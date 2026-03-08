@@ -1535,9 +1535,9 @@ def fig_pca(data, is_3d=False):
             hovertemplate=f"<b>{d['ID']}</b><br>Lead: {d['LeadScore']}<extra></extra>",showlegend=False))
     fig.update_layout(**PT,height=400,margin=dict(l=60,r=40,t=20,b=60),
         xaxis=dict(title="PC1",gridcolor="rgba(245,166,35,0.06)",zeroline=False,
-                   titlefont=dict(size=10,color="rgba(245,166,35,0.4)")),
+                   title=dict(font=dict(size=10,color="rgba(245,166,35,0.4))")),
         yaxis=dict(title="PC2",gridcolor="rgba(245,166,35,0.06)",zeroline=False,
-                   titlefont=dict(size=10,color="rgba(245,166,35,0.4)")))
+                   title=dict(font=dict(size=10,color="rgba(245,166,35,0.4))")))
     return fig
 
 def fig_qed_sa(display_data):
@@ -1554,7 +1554,7 @@ def fig_qed_sa(display_data):
         annotation_font=dict(size=8,color="rgba(245,166,35,0.5)",family="IBM Plex Mono"))
     fig.update_layout(**PT,height=260,showlegend=False,
         yaxis=dict(range=[0,1.18],gridcolor="rgba(245,166,35,0.05)",title="QED",
-                   titlefont=dict(size=9,color="rgba(245,166,35,0.4)")),
+                   title=dict(font=dict(size=9,color="rgba(245,166,35,0.4))")),
         margin=dict(l=40,r=40,t=20,b=40))
     return fig
 
@@ -1571,7 +1571,7 @@ def fig_sa(display_data):
         annotation_text="6 Difficult",annotation_font=dict(size=8,color="rgba(255,92,92,0.5)",family="IBM Plex Mono"))
     fig.update_layout(**PT,height=260,showlegend=False,
         yaxis=dict(range=[0,11.5],gridcolor="rgba(245,166,35,0.05)",title="SA Score",
-                   titlefont=dict(size=9,color="rgba(245,166,35,0.4)")),
+                   title=dict(font=dict(size=9,color="rgba(245,166,35,0.4))")),
         margin=dict(l=50,r=40,t=20,b=40))
     return fig
 
