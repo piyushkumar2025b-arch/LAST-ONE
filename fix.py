@@ -1,17 +1,21 @@
-import re
 content = open('app.py', encoding='utf-8').read()
 
-# Replace ALL **PT occurrences
-content = content.replace('**PT,', 
-    'paper_bgcolor="#0c1220", plot_bgcolor="#0c1220", font=dict(family="IBM Plex Mono", color="rgba(200,222,255,0.45)", size=10),')
+old = '''    st.dataframe(df_show.style
+        .background_gradient(cmap="YlOrRd", subset=["LeadScore","OralBioScore"])
+        .background_gradient(cmap="Reds",   subset=["PromiscuityRisk","SA_Score","CYP_Hits"])
+        .background_gradient(cmap="Blues",  subset=["Sim"])
+        .background_gradient(cmap="Greens", subset=["QED"]),
+        use_container_width=True, height=min(80+34*total,320))'''
 
-# Fix invalid title
-content = content.replace('title="tPSA (A2)"', 'title="tPSA"')
-content = content.replace('title="LogP (WLOGP)"', 'title="LogP"')
+new = '''    st.dataframe(df_show, use_container_width=True, height=min(80+34*total,320))'''
 
-# Fix all titlefont deprecated key
-content = re.sub(r'titlefont=dict\(([^)]+)\)', 
-    lambda m: 'title=dict(font=dict(' + m.group(1) + '))', content)
+if old in content:
+    content = content.replace(old, new)
+    print('FIXED')
+else:
+    print('NOT FOUND - printing exact lines around 1912')
+    lines = content.split('\n')
+    for i in range(1905, 1920):
+        print(f"{i+1}: {repr(lines[i])}")
 
 open('app.py', 'w', encoding='utf-8').write(content)
-print('DONE - remaining PT:', content.count('**PT'))
