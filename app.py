@@ -1909,12 +1909,7 @@ if input_text.strip():
     cols_show=["ID","LeadScore","OralBioScore","NP_Score","Stress","PromiscuityRisk","Grade","QED",
                "SA_Score","Complexity","CYP_Hits","Sim","MW","LogP","tPSA","HIA","BBB"]
     df_show=pd.DataFrame(display_data)[cols_show]
-    st.dataframe(df_show.style
-        .background_gradient(cmap="YlOrRd", subset=["LeadScore","OralBioScore"])
-        .background_gradient(cmap="Reds",   subset=["PromiscuityRisk","SA_Score","CYP_Hits"])
-        .background_gradient(cmap="Blues",  subset=["Sim"])
-        .background_gradient(cmap="Greens", subset=["QED"]),
-        use_container_width=True, height=min(80+34*total,320))
+    st.dataframe(df_show, use_container_width=True, height=min(80+34*total,320))
 
 
     dl1,dl2,dl3 = st.columns(3)
