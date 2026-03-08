@@ -1449,9 +1449,11 @@ def fig_boiled_egg(display_data):
                 f"Lead Score: {d['LeadScore']}<br>QED: {d['_qed']:.3f}<br>"
                 f"SA: {d['SA_Score']} ({d['SA_Label']})<br>"
                 f"hERG: {d['_herg']}<extra></extra>")))
-    fig.update_layout(**PT,
-        xaxis=dict(title=dict(text="tPSA",font=dict(size=10,color="rgba(245,166,35,0.4)")),range=[-10,220],gridcolor="rgba(245,166,35,0.06)",zeroline=False),
-        yaxis=dict(title=dict(text="LogP",font=dict(size=10,color="rgba(245,166,35,0.4)")),range=[-4.5,9],gridcolor="rgba(245,166,35,0.06)",zeroline=False),
+    fig.update_layout(
+        paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",
+        font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),
+        xaxis=dict(title="tPSA",range=[-10,220],gridcolor="rgba(245,166,35,0.06)",zeroline=False),
+        yaxis=dict(title="LogP",range=[-4.5,9],gridcolor="rgba(245,166,35,0.06)",zeroline=False),
         height=540,legend=dict(bgcolor="rgba(0,0,0,0)",font=dict(size=10,family="IBM Plex Mono",color="rgba(200,222,255,0.5)")),
         margin=dict(l=60,r=40,t=20,b=60))
     return fig
