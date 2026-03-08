@@ -1468,7 +1468,9 @@ def fig_similarity(display_data):
         texttemplate="%{text}",textfont=dict(size=10,family="IBM Plex Mono",color="#ffffff"),
         zmin=0,zmax=1,showscale=True,
         colorbar=dict(tickfont=dict(size=8,color="rgba(245,166,35,0.5)"),bgcolor="rgba(0,0,0,0)")))
-    fig.update_layout(**PT,
+    fig.update_layout(
+        paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",
+        font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),
         xaxis=dict(tickfont=dict(size=10,family="IBM Plex Mono",color="rgba(245,166,35,0.55)"),gridcolor="rgba(245,166,35,0.05)"),
         yaxis=dict(tickfont=dict(size=10,family="IBM Plex Mono",color="rgba(245,166,35,0.55)"),gridcolor="rgba(245,166,35,0.05)"),
         margin=dict(l=60,r=20,t=20,b=60),height=max(260,n*70+80))
@@ -1497,7 +1499,9 @@ def fig_parallel(display_data):
         ],
         labelfont=dict(size=9,family="IBM Plex Mono",color="rgba(245,166,35,0.55)"),
         tickfont=dict(size=8,family="IBM Plex Mono",color="rgba(200,222,255,0.3)")))
-    fig.update_layout(**PT,margin=dict(l=80,r=80,t=40,b=30),height=360)
+    fig.update_layout(
+        paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",
+        font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),margin=dict(l=80,r=80,t=40,b=30),height=360)
     return fig
 
 def fig_pca(data, is_3d=False):
@@ -1517,7 +1521,9 @@ def fig_pca(data, is_3d=False):
                             colorscale=[[0,"#ff5c5c"],[.5,"#f5a623"],[1,"#4ade80"]],
                             line=dict(color="#ffffff", width=2), symbol="diamond"),
                 hovertemplate=f"<b>{d['ID']}</b><br>Lead: {d['LeadScore']}<extra></extra>"))
-        fig.update_layout(**PT, height=600, scene=dict(
+        fig.update_layout(
+        paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",
+        font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10), height=600, scene=dict(
             xaxis=dict(title="PC1", backgroundcolor="rgba(0,0,0,0)", gridcolor="rgba(255,255,255,0.05)"),
             yaxis=dict(title="PC2", backgroundcolor="rgba(0,0,0,0)", gridcolor="rgba(255,255,255,0.05)"),
             zaxis=dict(title="PC3", backgroundcolor="rgba(0,0,0,0)", gridcolor="rgba(255,255,255,0.05)")
@@ -1535,7 +1541,9 @@ def fig_pca(data, is_3d=False):
                         colorscale=[[0,"#ff5c5c"],[.5,"#f5a623"],[1,"#4ade80"]],cmin=0,cmax=100,
                         line=dict(color="#ffffff",width=1.5),symbol="diamond"),
             hovertemplate=f"<b>{d['ID']}</b><br>Lead: {d['LeadScore']}<extra></extra>",showlegend=False))
-    fig.update_layout(**PT,height=400,margin=dict(l=60,r=40,t=20,b=60),
+    fig.update_layout(
+        paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",
+        font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),height=400,margin=dict(l=60,r=40,t=20,b=60),
         xaxis=dict(title="PC1",gridcolor="rgba(245,166,35,0.06)",zeroline=False,
                    title=dict(font=dict(size=10,color="rgba(245,166,35,0.4))")),
         yaxis=dict(title="PC2",gridcolor="rgba(245,166,35,0.06)",zeroline=False,
@@ -1554,7 +1562,9 @@ def fig_qed_sa(display_data):
     fig.add_hline(y=0.67,line_dash="dot",line_color="rgba(245,166,35,0.4)",
         annotation_text="FDA median  0.67",
         annotation_font=dict(size=8,color="rgba(245,166,35,0.5)",family="IBM Plex Mono"))
-    fig.update_layout(**PT,height=260,showlegend=False,
+    fig.update_layout(
+        paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",
+        font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),height=260,showlegend=False,
         yaxis=dict(range=[0,1.18],gridcolor="rgba(245,166,35,0.05)",title="QED",
                    title=dict(font=dict(size=9,color="rgba(245,166,35,0.4))")),
         margin=dict(l=40,r=40,t=20,b=40))
@@ -1571,7 +1581,9 @@ def fig_sa(display_data):
         annotation_text="3 Easy",annotation_font=dict(size=8,color="rgba(74,222,128,0.5)",family="IBM Plex Mono"))
     fig.add_hline(y=6,line_dash="dot",line_color="rgba(255,92,92,0.4)",
         annotation_text="6 Difficult",annotation_font=dict(size=8,color="rgba(255,92,92,0.5)",family="IBM Plex Mono"))
-    fig.update_layout(**PT,height=260,showlegend=False,
+    fig.update_layout(
+        paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",
+        font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),height=260,showlegend=False,
         yaxis=dict(range=[0,11.5],gridcolor="rgba(245,166,35,0.05)",title="SA Score",
                    title=dict(font=dict(size=9,color="rgba(245,166,35,0.4))")),
         margin=dict(l=50,r=40,t=20,b=40))
@@ -1586,7 +1598,9 @@ def fig_cyp(data):
         texttemplate="%{text}",textfont=dict(size=9,family="IBM Plex Mono",color="rgba(255,255,255,0.7)"),
         showscale=False,zmin=0,zmax=1,
         hovertemplate="<b>%{y}  %{x}</b><br>%{text}<extra></extra>"))
-    fig.update_layout(**PT,
+    fig.update_layout(
+        paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",
+        font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),
         xaxis=dict(tickfont=dict(size=9,family="IBM Plex Mono",color="rgba(245,166,35,0.55)"),side="top"),
         yaxis=dict(tickfont=dict(size=9,family="IBM Plex Mono",color="rgba(245,166,35,0.55)")),
         margin=dict(l=70,r=20,t=60,b=10),height=max(180,len(data)*52+80))
@@ -1622,7 +1636,9 @@ def fig_approved(res):
         marker=dict(color="rgba(200,222,255,0.25)",line=dict(color="rgba(200,222,255,0.4)",width=1)),
         text=[f"{v:.1f}" for v in mv],textposition="outside",
         textfont=dict(size=9,family="IBM Plex Mono",color="rgba(200,222,255,0.5)")))
-    fig.update_layout(**PT,barmode="group",height=270,
+    fig.update_layout(
+        paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",
+        font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),barmode="group",height=270,
         legend=dict(bgcolor="rgba(0,0,0,0)",font=dict(size=10,family="IBM Plex Mono",color="rgba(200,222,255,0.5)")),
         margin=dict(l=40,r=40,t=20,b=40))
     return fig
