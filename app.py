@@ -1082,9 +1082,22 @@ def promiscuity(r):
     return min(100,s)
 
 def mol_img_b64(mol, sz=(280,210)):
-    img=Draw.MolToImage(mol,size=sz)
-    buf=io.BytesIO(); img.save(buf,format="PNG")
-    return base64.b64encode(buf.getvalue()).decode()
+    try:
+        from rdkit.Chem.Draw import rdMolDraw2D
+        drawer = rdMolDraw2D.MolDraw2DSVG(sz[0], sz[1])
+        drawer.DrawMolecule(mol)
+        drawer.FinishDrawing()
+        svg = drawer.GetDrawingText()
+        return base64.b64encode(svg.encode()).decode() + "__SVG__"
+    except Exception:
+        pass
+    return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
+def mol_img_src(mol, sz=(280,210)):
+    raw = mol_img_b64(mol, sz)
+    if raw.endswith("__SVG__"):
+        return "data:image/svg+xml;base64," + raw[:-7]
+    return "data:image/png;base64," + raw
 
 @st.cache_data(show_spinner=False)
 def pubchem(smiles):
