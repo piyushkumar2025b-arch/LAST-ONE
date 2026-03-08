@@ -24,8 +24,14 @@ import aether_engine_v10000 as aether
 import aether_data_v10000 as adata
 
 from rdkit import Chem
-from rdkit.Chem import (Descriptors, Draw, AllChem, DataStructs, QED,
+from rdkit.Chem import (Descriptors, AllChem, DataStructs, QED,
                         rdMolDescriptors, Crippen)
+try:
+    from rdkit.Chem import Draw as _Draw
+    _DRAW_OK = True
+except Exception:
+    _Draw = None
+    _DRAW_OK = False
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 import plotly.graph_objects as go
@@ -1720,7 +1726,7 @@ with st.container():
     r1, r2, r3 = st.columns([1, 3, 2])
     with r1:
         st.markdown(
-            f'<img src="data:image/png;base64,{mol_img_b64(gold_mol,(160,128))}" '
+            f'<img src="{mol_img_src(gold_mol,(160,128))}" '
             f'style="width:100%;border-radius:8px;border:1px solid rgba(245,166,35,.2)">', 
             unsafe_allow_html=True)
     with r2:
@@ -2150,7 +2156,7 @@ if input_text.strip():
                         f'<div class="med-id">{res["ID"]}</div></div>',
                         unsafe_allow_html=True)
                     st.markdown(
-                        f'<img src="data:image/png;base64,{mol_img_b64(res["_mol"],(270,200))}" '
+                        f'<img src="{mol_img_src(res["_mol"],(270,200))}" '
                         f'class="aura-img pulse-img" style="width:100%;border-radius:var(--radius-sm);background:var(--bg2);padding:10px">',
                         unsafe_allow_html=True)
 
@@ -2349,7 +2355,7 @@ if input_text.strip():
             m_res = next(d for d in display_data if d["ID"]==sel_m)
             st.markdown(
                 f'<div style="text-align:center;background:var(--bg2);padding:20px;border-radius:12px;border:1px solid var(--border)">'
-                f'<img src="data:image/png;base64,{mol_img_b64(m_res["_mol"],(400,320))}" '
+                f'<img src="{mol_img_src(m_res["_mol"],(400,320))}" '
                 f'style="width:100%;border-radius:8px">'
                 f'<div style="margin-top:14px;font-family:IBM Plex Mono,monospace;font-size:0.6rem;color:var(--amber)">LEAD TOPOLOGY: {m_res["ID"]}</div></div>',
                 unsafe_allow_html=True)
@@ -3421,7 +3427,7 @@ if input_text.strip():
 
             s1, s2 = st.columns([1, 2])
             with s1:
-                st.markdown(f'<img src="data:image/png;base64,{mol_img_b64(res_s["_mol"],(300,240))}" style="width:100%;border-radius:12px;border:1px solid var(--border)">', unsafe_allow_html=True)
+                st.markdown(f'<img src="{mol_img_src(res_s["_mol"],(300,240))}" style="width:100%;border-radius:12px;border:1px solid var(--border)">', unsafe_allow_html=True)
                 st.markdown(f'<div style="text-align:center;margin-top:10px;font-family:IBM Plex Mono;font-size:0.7rem;color:var(--amber)">SA SCORE: {res_s["SA_Score"]}</div>', unsafe_allow_html=True)
 
             with s2:
