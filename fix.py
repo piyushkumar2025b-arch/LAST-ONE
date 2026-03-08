@@ -1,22 +1,17 @@
+import re
 content = open('app.py', encoding='utf-8').read()
 
-# Find and replace ALL update_layout(**PT in entire file
-import re
+# Replace ALL **PT occurrences
+content = content.replace('**PT,', 
+    'paper_bgcolor="#0c1220", plot_bgcolor="#0c1220", font=dict(family="IBM Plex Mono", color="rgba(200,222,255,0.45)", size=10),')
 
-def replace_pt(m):
-    rest = m.group(1)
-    return 'update_layout(\n        paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",\n        font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),' + rest
-
-content = re.sub(r'update_layout\(\*\*PT,', 
-    'update_layout(\n        paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",\n        font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),',
-    content)
-
-# Fix tPSA (A2) invalid title
+# Fix invalid title
 content = content.replace('title="tPSA (A2)"', 'title="tPSA"')
-content = content.replace("title='tPSA (A2)'", "title='tPSA'")
+content = content.replace('title="LogP (WLOGP)"', 'title="LogP"')
 
-count = content.count('**PT')
-print(f'Remaining **PT occurrences: {count}')
-print('DONE')
+# Fix all titlefont deprecated key
+content = re.sub(r'titlefont=dict\(([^)]+)\)', 
+    lambda m: 'title=dict(font=dict(' + m.group(1) + '))', content)
 
 open('app.py', 'w', encoding='utf-8').write(content)
+print('DONE - remaining PT:', content.count('**PT'))
