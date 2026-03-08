@@ -1,13 +1,13 @@
+import re
 content = open('app.py', encoding='utf-8').read()
 
-old = '    st.dataframe(df_show.style\n        .background_gradient(cmap="YlOrRd", subset=["LeadScore","OralBioScore"])\n        .background_gradient(cmap="Reds",   subset=["PromiscuityRisk","SA_Score","CYP_Hits"])\n        .background_gradient(cmap="Blues",  subset=["Sim"])\n        .background_gradient(cmap="Greens", subset=["QED"]),\n        use_container_width=True, height=min(80+34*total,320))'
+# Remove both add_shape ellipse calls entirely
+content = re.sub(
+    r'\s*fig\.add_shape\(type="ellipse".*?\)\n',
+    '\n',
+    content,
+    flags=re.DOTALL
+)
 
-new = '    st.dataframe(df_show, use_container_width=True, height=min(80+34*total,320))'
-
-if old in content:
-    content = content.replace(old, new)
-    print('FIXED')
-else:
-    print('NOT FOUND')
-
+print('FIXED' if 'add_shape' not in content else 'check manually')
 open('app.py', 'w', encoding='utf-8').write(content)

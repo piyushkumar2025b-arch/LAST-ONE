@@ -1434,13 +1434,7 @@ def fig_gauge(val, title):
 def fig_boiled_egg(display_data):
     fig=go.Figure()
     # white (HIA) ellipse
-    fig.add_shape(type="ellipse",x0=5,y0=-2.5,x1=137,y1=6.5,
-        fillcolor="rgba(200,222,255,0.018)",
-        line=dict(color="rgba(200,222,255,0.2)",width=1.5,dash="dot"))
     # yolk (BBB) ellipse
-    fig.add_shape(type="ellipse",x0=22,y0=-1.8,x1=78,y1=4.3,
-        fillcolor="rgba(245,166,35,0.04)",
-        line=dict(color="rgba(245,166,35,0.35)",width=1.5))
     fig.add_annotation(x=80,y=5.8,text="HIA zone",showarrow=False,
         font=dict(color="rgba(200,222,255,0.3)",size=9,family="IBM Plex Mono"))
     fig.add_annotation(x=50,y=4.0,text="BBB zone",showarrow=False,
