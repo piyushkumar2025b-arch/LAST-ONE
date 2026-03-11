@@ -1,50 +1,93 @@
-# ⬡ ChemoFilter — Crystalline Noir Edition v7
-### VIT Chennai MDP 2026
+# ⬡ ChemoFilter — Crystalline Noir Edition
+### VIT Chennai MDP 2026 · Omnipotent v1,000,000
 
-A production-grade computational drug screening dashboard with a radically redesigned **Crystalline Noir** UI — amber gold on deep midnight navy, frosted glass panels, Playfair Display + IBM Plex Mono typography, animated gradient borders, and 21 active features.
-
----
-
-## 🎨 UI Design Philosophy — Crystalline Noir
-- **Palette**: Deep midnight navy `#080c14` · Amber gold `#f5a623` · Ice blue `#c8deff`
-- **Typography**: Playfair Display (editorial display) + IBM Plex Mono (data/mono) + Cormorant Garamond (italic sub-heads)
-- **Motifs**: Animated gold gradient borders · Frosted glass cards · Hex decorative elements · Twinkling star background · Grid texture overlay
-- **Completely different from v6** — zero green terminal aesthetic
+A production-grade computational drug screening dashboard — amber gold on deep midnight navy, 21 active features, AI-powered analysis.
 
 ---
 
-## 🚀 21 Features
+## 🚀 Deploy on Streamlit Cloud (share.streamlit.io)
 
-### Core ADME
-BOILED-EGG · Lipinski Ro5 · Veber/Ghose/Egan · QED · CNS MPO · ESOL · PAINS · hERG · Ames · Tanimoto
+### Step 1 — Push to GitHub
+```bash
+git init
+git add .
+git commit -m "ChemoFilter v1M"
+git remote add origin https://github.com/YOUR_USERNAME/chemofilter.git
+git push -u origin main
+```
 
-### New in v7 (UI-upgraded from v6)
-SA Score · CYP Panel ×5 · Complexity Score · Elemental Donut · Promiscuity Risk · Lead Score™ · Oral Bio Score · AI Explainer · AI Analogues · Drug Repurposing Hint · Interactive Property Editor
+### Step 2 — Connect on Streamlit Cloud
+1. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub
+2. Click **New app**
+3. Select your repo, branch (`main`), and set **Main file path** to `app.py`
+4. Click **Deploy**
 
-### Visualisation
-BOILED-EGG scatter · QED bar · SA bar · CYP heatmap · Radar chart · Similarity matrix · Parallel coordinates · PCA chemical space · vs Approved drugs · Element donut · Dual gauges
+### Step 3 — Add Your API Key (for AI features)
+1. In the Streamlit Cloud dashboard, open your app → **⋮ menu** → **Settings**
+2. Go to the **Secrets** tab
+3. Paste this:
+```toml
+ANTHROPIC_API_KEY = "sk-ant-your-key-here"
+```
+4. Click **Save** — the app will reboot with AI features enabled
+
+> Without the API key, the app still works fully — AI Explainer, Analogues, and Repurposing will just show a fallback message.
 
 ---
 
-## 🛠️ Run
+## 💻 Run Locally
 
 ```bash
+# Install dependencies
 pip install -r requirements.txt
+
+# Add your API key for local dev
+cp .streamlit/secrets.toml.template .streamlit/secrets.toml
+# Edit secrets.toml and fill in ANTHROPIC_API_KEY
+
+# Run
 streamlit run app.py
 ```
 
-**Streamlit Cloud**: push to GitHub, connect at share.streamlit.io — `packages.txt` handles system deps automatically.
+---
+
+## 📦 File Structure
+```
+chemofilter/
+├── app.py                       ← Main app (Crystalline Noir, v1M)
+├── requirements.txt             ← Python deps
+├── .gitignore                   ← Keeps secrets.toml out of git
+├── .streamlit/
+│   ├── config.toml              ← Theme + server settings
+│   └── secrets.toml.template   ← Copy → secrets.toml for local dev
+│
+├── features_v15.py              ← ADME features
+├── mega_features_v20.py         ← 50+ extended features
+├── quantum_accuracy_engine.py   ← LogP refinement, FDA similarity
+├── hyper_zenith_v50.py          ← Hyper-zenith research module
+├── master_drug_atlas.py         ← FDA drug atlas
+├── chemical_intelligence_db.py  ← Core DB: toxicophores, CYP, BBB
+├── omnipotent_engine_v200.py    ← Singularity engine
+├── omnipotent_reactivity_db.py  ← Metabolic transformation DB
+├── universal_analysis_v500.py   ← Organ tox, pharmacophore mapping
+├── universal_blueprint_v500.py  ← Blueprint data
+├── celestial_engine_v1000.py    ← Celestial engine
+├── celestial_data_v1000.py
+├── omega_engine_v2000.py        ← Omega-zenith engine
+├── omega_data_v2000.py
+├── xenon_engine_v5000.py        ← Xenon-god engine
+├── xenon_data_v5000.py
+├── aether_engine_v10000.py      ← Aether-primality engine (god-mode)
+└── aether_data_v10000.py
+```
 
 ---
 
-## 📦 Files
-```
-chemofilter_v7/
-├── app.py              ← Main app (v7 Crystalline Noir)
-├── requirements.txt    ← Python deps
-├── packages.txt        ← System deps (Streamlit Cloud)
-└── README.md
-```
+## 🔑 Secrets Reference
+
+| Key | Where to set | Purpose |
+|-----|-------------|---------|
+| `ANTHROPIC_API_KEY` | Streamlit Cloud → App Settings → Secrets | AI Explainer, Analogues, Repurposing |
 
 ---
 

@@ -5,5 +5,4 @@ pandas
 numpy
 requests
 pillow
-
 matplotlib
