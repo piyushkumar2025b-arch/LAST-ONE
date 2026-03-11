@@ -39,6 +39,13 @@ import pandas as pd
 import numpy as np
 import requests, urllib.parse, io, base64, json, re, random
 
+# ── API KEY: reads from Streamlit Cloud Secrets (App Settings → Secrets) ──
+def _get_api_key():
+    try:
+        return st.secrets.get("ANTHROPIC_API_KEY", "")
+    except Exception:
+        return ""
+
 # 
 st.set_page_config(
     page_title="ChemoFilter v1,000,000 Omnipotent",
@@ -1124,7 +1131,7 @@ def ai_explain(data_str):
         resp=requests.post("https://api.anthropic.com/v1/messages",
             headers={
                 "Content-Type": "application/json",
-                "x-api-key": st.secrets.get("ANTHROPIC_API_KEY", ""),
+                "x-api-key": _get_api_key(),
                 "anthropic-version": "2023-06-01",
             },
             json={"model":"claude-sonnet-4-20250514","max_tokens":700,
@@ -1143,7 +1150,7 @@ def ai_analogues(smiles, props):
         resp=requests.post("https://api.anthropic.com/v1/messages",
             headers={
                 "Content-Type": "application/json",
-                "x-api-key": st.secrets.get("ANTHROPIC_API_KEY", ""),
+                "x-api-key": _get_api_key(),
                 "anthropic-version": "2023-06-01",
             },
             json={"model":"claude-sonnet-4-20250514","max_tokens":900,
@@ -1161,7 +1168,7 @@ def ai_repurpose(smiles, props):
         resp=requests.post("https://api.anthropic.com/v1/messages",
             headers={
                 "Content-Type": "application/json",
-                "x-api-key": st.secrets.get("ANTHROPIC_API_KEY", ""),
+                "x-api-key": _get_api_key(),
                 "anthropic-version": "2023-06-01",
             },
             json={"model":"claude-sonnet-4-20250514","max_tokens":500,
@@ -1545,9 +1552,9 @@ def fig_pca(data, is_3d=False):
         paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",
         font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),height=400,margin=dict(l=60,r=40,t=20,b=60),
         xaxis=dict(title="PC1",gridcolor="rgba(245,166,35,0.06)",zeroline=False,
-                   title=dict(font=dict(size=10,color="rgba(245,166,35,0.4))")),
+                   title_font=dict(size=10,color="rgba(245,166,35,0.4)")),
         yaxis=dict(title="PC2",gridcolor="rgba(245,166,35,0.06)",zeroline=False,
-                   title=dict(font=dict(size=10,color="rgba(245,166,35,0.4))")))
+                   title_font=dict(size=10,color="rgba(245,166,35,0.4)")))
     return fig
 
 def fig_qed_sa(display_data):
@@ -1565,8 +1572,8 @@ def fig_qed_sa(display_data):
     fig.update_layout(
         paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",
         font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),height=260,showlegend=False,
-        yaxis=dict(range=[0,1.18],gridcolor="rgba(245,166,35,0.05)",title="QED",
-                   title=dict(font=dict(size=9,color="rgba(245,166,35,0.4))")),
+        yaxis=dict(range=[0,1.18],gridcolor="rgba(245,166,35,0.05)",title="QED"),
+
         margin=dict(l=40,r=40,t=20,b=40))
     return fig
 
@@ -1584,8 +1591,8 @@ def fig_sa(display_data):
     fig.update_layout(
         paper_bgcolor="#0c1220",plot_bgcolor="#0c1220",
         font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),height=260,showlegend=False,
-        yaxis=dict(range=[0,11.5],gridcolor="rgba(245,166,35,0.05)",title="SA Score",
-                   title=dict(font=dict(size=9,color="rgba(245,166,35,0.4))")),
+        yaxis=dict(range=[0,11.5],gridcolor="rgba(245,166,35,0.05)",title="SA Score"),
+
         margin=dict(l=50,r=40,t=20,b=40))
     return fig
 
@@ -3453,7 +3460,7 @@ if input_text.strip():
                         r_synth=requests.post("https://api.anthropic.com/v1/messages",
                             headers={
                 "Content-Type": "application/json",
-                "x-api-key": st.secrets.get("ANTHROPIC_API_KEY", ""),
+                "x-api-key": _get_api_key(),
                 "anthropic-version": "2023-06-01",
             },
                             json={"model":"claude-sonnet-4-20250514","max_tokens":600,
