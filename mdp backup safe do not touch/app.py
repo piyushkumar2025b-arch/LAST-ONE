@@ -39,23 +39,6 @@ import pandas as pd
 import numpy as np
 import requests, urllib.parse, io, base64, json, re, random
 
-from landing import render_landing
-from ui_upgrade import (
-    inject_ui,
-    render_section_header,
-    render_compound_header,
-    render_score_badge,
-    render_metric_card,
-    render_info_panel,
-    render_progress_bar,
-    render_pill,
-    render_tox_alert,
-    render_ai_response,
-    render_filter_results_table,
-    render_sidebar_brand,
-    theme_toggle_sidebar,
-)
-
 # ── API KEY: reads from Streamlit Cloud Secrets (App Settings → Secrets) ──
 def _get_api_key():
     try:
@@ -70,18 +53,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# Landing page gate — shows on first load only
-if "entered_app" not in st.session_state:
-    st.session_state.entered_app = False
-if not st.session_state.entered_app:
-    if render_landing():
-        st.session_state.entered_app = True
-        st.rerun()
-    st.stop()
-
-# Professional UI layer — injects theme system + components
-inject_ui()
 
 # CLOUD DISCOVERY INITIALIZATION (v1M)
 cloud_engine = cid.get_cloud_engine()
@@ -1693,7 +1664,6 @@ with st.container():
 # 
 #  SIDEBAR
 # 
-render_sidebar_brand()
 st.sidebar.markdown("""
 <div style="padding:4px 0 20px">
   <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;font-weight:400;
