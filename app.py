@@ -491,7 +491,7 @@ section[data-testid="stSidebar"] label {
 }
 
 /* ── BUTTONS ── */
-.stButton > button, .stDownloadButton > button {
+.stButton > button {
   background: transparent !important;
   border: 1px solid rgba(232,160,32,.25) !important;
   color: var(--amber) !important;
@@ -501,10 +501,29 @@ section[data-testid="stSidebar"] label {
   padding: 9px 22px !important;
   transition: all .2s ease !important;
 }
-.stButton > button:hover, .stDownloadButton > button:hover {
+.stButton > button:hover {
   background: rgba(232,160,32,.07) !important;
   border-color: var(--amber) !important;
   box-shadow: 0 0 20px rgba(232,160,32,.15) !important;
+}
+
+/* ── DOWNLOAD BUTTONS ── polished, distinct from action buttons */
+.stDownloadButton > button {
+  background: rgba(232,160,32,.06) !important;
+  border: 1px solid rgba(232,160,32,.22) !important;
+  color: rgba(232,160,32,.8) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: .52rem !important; letter-spacing: 1.8px !important;
+  text-transform: uppercase !important; border-radius: 5px !important;
+  padding: 7px 14px !important;
+  transition: all .2s ease !important;
+  white-space: nowrap !important;
+}
+.stDownloadButton > button:hover {
+  background: rgba(232,160,32,.12) !important;
+  border-color: var(--amber) !important;
+  color: var(--amber) !important;
+  box-shadow: 0 0 16px rgba(232,160,32,.12) !important;
 }
 
 /* ── TABS ── */
@@ -1796,47 +1815,62 @@ if input_text.strip():
     st.dataframe(df_show, use_container_width=True, height=min(80+34*total,320))
 
 
-    dl1,dl2,dl3 = st.columns(3)
+    st.markdown("""
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+  <span style="font-family:'JetBrains Mono',monospace;font-size:.52rem;letter-spacing:3px;
+  color:rgba(232,160,32,.45);text-transform:uppercase;margin-right:8px">Export Dossier</span>
+</div>""", unsafe_allow_html=True)
+    dl1,dl2,dl3,dl4 = st.columns(4)
     with dl1:
-        st.download_button(" Export CSV",
+        st.download_button("↓  CSV Spreadsheet",
             data=df_show.assign(SMILES=[d["SMILES"] for d in display_data]).to_csv(index=False).encode(),
-            file_name="chemofilter_v10000.csv", mime="text/csv")
+            file_name="chemofilter_analysis.csv", mime="text/csv",
+            help="Download all compound data as a CSV spreadsheet")
     with dl2:
-        st.download_button(" Export HTML Report",
-            data=html_export(display_data), file_name="chemofilter_v10000_report.html", mime="text/html")
+        st.download_button("↓  HTML Report",
+            data=html_export(display_data), file_name="chemofilter_report.html", mime="text/html",
+            help="Download a styled HTML report — open in browser then Ctrl+P to save as PDF")
     with dl3:
-        st.download_button(" Export Professional (.txt)",
-            data=text_report_export(display_data), file_name="chemofilter_v10000_analysis.txt", mime="text/plain")
+        st.download_button("↓  Text Report (.txt)",
+            data=text_report_export(display_data), file_name="chemofilter_report.txt", mime="text/plain",
+            help="Download a plain-text professional report")
+    with dl4:
+        # PDF hint download (HTML file with print-ready PDF instructions)
+        _pdf_hint = html_export(display_data)
+        st.download_button("↓  Print PDF (HTML→PDF)",
+            data=_pdf_hint, file_name="chemofilter_print.html", mime="text/html",
+            help="Open this HTML file in your browser and press Ctrl+P → Save as PDF for a print-ready PDF")
 
     # 
     #  TABS
     # 
     TABS = st.tabs([
-        " Project Portal",
-        " Diagnostics",
-        " 3D Hyper-Lab",
-        " Metabolic Pulse",
-        " BOILED-EGG",
-        " Analysis Suite",
-        " QSAR & Fragments",
-        " World-First Tech",
-        " Hyper-Advanced SAR",
-        " Omni-Science v20",
-        " Deep Accuracy",
-        " Infinity SAR v100",
-        " Singularity v200",
-        " Universal v500",
-        " Celestial v1000",
-        " Omega-Zenith v2000",
-        " Xenon-God v5000",
-        " Aether-Primality v10000",
-        " Quantum Frontier v25000",
-        " Genetic Nexus v50000",
-        " Omnipotent IP v100000",
-        " Molecular Evolution v1M",
-        " Neural Blueprint v1M",
-        " AI Synthesis Lab",
-        " Full Report"
+        "⬡  Overview",
+        "⬡  Diagnostics",
+        "⬡  3D Conformer",
+        "⬡  Metabolic Pulse",
+        "⬡  BOILED-EGG",
+        "⬡  Analysis Suite",
+        "⬡  QSAR & Fragments",
+        "⬡  World-First",
+        "⬡  Hyper SAR",
+        "⬡  Omni-Science",
+        "⬡  Deep Accuracy",
+        "⬡  Infinity SAR",
+        "⬡  Singularity",
+        "⬡  Universal v500",
+        "⬡  Celestial",
+        "⬡  Omega-Zenith",
+        "⬡  Xenon v5000",
+        "⬡  Aether v10000",
+        "⬡  Quantum Frontier",
+        "⬡  Genetic Nexus",
+        "⬡  IP Scout",
+        "⬡  Evolution v1M",
+        "⬡  Neural Blueprint",
+        "⬡  AI Synthesis",
+        "⬡  Full Report"
     ])
 
 
@@ -1853,6 +1887,44 @@ if input_text.strip():
 
     MEDAL = {"A":"mA","B":"mB","C":"mC","F":"mF"}
     PALETTE = ["#f5a623","#4ade80","#c8deff","#a78bfa","#fb923c","#e879f9","#67e8f9","#fbbf24"]
+    # ─── PER-TAB DOWNLOAD HELPER ─────────────────────────────────────────
+    def tab_dl_row(tab_label, tab_data_fn):
+        """Render a compact 3-button download row for a tab.
+        tab_label: short string used in filename
+        tab_data_fn: callable that returns (txt_bytes, html_bytes) tuple
+        """
+        _txt, _html = tab_data_fn()
+        _dcol1, _dcol2, _dcol3, _spacer = st.columns([1,1,1,3])
+        with _dcol1:
+            st.download_button(
+                f"↓ TXT",
+                data=_txt,
+                file_name=f"chemofilter_{tab_label}.txt",
+                mime="text/plain",
+                key=f"dl_txt_{tab_label}",
+                help=f"Download {tab_label} data as plain text"
+            )
+        with _dcol2:
+            st.download_button(
+                f"↓ HTML",
+                data=_html,
+                file_name=f"chemofilter_{tab_label}.html",
+                mime="text/html",
+                key=f"dl_html_{tab_label}",
+                help=f"Download {tab_label} as styled HTML (open in browser → Ctrl+P for PDF)"
+            )
+        with _dcol3:
+            st.download_button(
+                f"↓ PDF",
+                data=_html,
+                file_name=f"chemofilter_{tab_label}_print.html",
+                mime="text/html",
+                key=f"dl_pdf_{tab_label}",
+                help="HTML file — open in browser then Ctrl+P → Save as PDF"
+            )
+    # ──────────────────────────────────────────────────────────────────────
+
+
 
     # 
     #  TAB 0  THE PROJECT PORTAL
@@ -2030,6 +2102,14 @@ if input_text.strip():
 
     #  TAB 1  DIAGNOSTICS 
     with TABS[1]:
+        def _dl_diag():
+            lines = []
+            for d in display_data:
+                lines.append(f"ID: {d['ID']} | Grade: {d['Grade']} | Lead: {d['LeadScore']} | MW: {d['MW']} | LogP: {d['LogP']} | tPSA: {d['tPSA']} | QED: {d['QED']} | HIA: {d['HIA']} | BBB: {d['BBB']} | hERG: {d['_herg']} | Ames: {d['_ames']} | PAINS: {d['_pains']} | CYP: {d['CYP_Hits']}/5")
+            txt = "CHEMOFILTER — DIAGNOSTICS REPORT\n" + "="*60 + "\n" + "\n".join(lines)
+            html = "<html><head><meta charset=\'UTF-8\'><title>Diagnostics</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}table{{border-collapse:collapse;width:100%}}td,th{{border:1px solid rgba(232,160,32,.2);padding:8px;font-size:.8rem}}th{{background:rgba(232,160,32,.08);color:#e8a020}}</style></head><body><h2>ChemoFilter — Diagnostics</h2><table><tr><th>ID</th><th>Grade</th><th>Lead</th><th>MW</th><th>LogP</th><th>tPSA</th><th>QED</th><th>HIA</th><th>BBB</th><th>hERG</th><th>Ames</th><th>PAINS</th><th>CYP</th></tr>" + "".join(f"<tr><td>{d['ID']}</td><td>{d['Grade']}</td><td>{d['LeadScore']}</td><td>{d['MW']}</td><td>{d['LogP']}</td><td>{d['tPSA']}</td><td>{d['QED']}</td><td>{d['HIA']}</td><td>{d['BBB']}</td><td>{d['_herg']}</td><td>{d['_ames']}</td><td>{d['_pains']}</td><td>{d['CYP_Hits']}/5</td></tr>" for d in display_data) + "</table></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("diagnostics", _dl_diag)
         for i, res in enumerate(display_data):
             pc = PALETTE[i%len(PALETTE)]
             mc = MEDAL.get(res["Grade"],"mF")
@@ -2051,6 +2131,23 @@ if input_text.strip():
                         f'<img src="{mol_img_src(res["_mol"],(270,200))}" '
                         f'class="aura-img pulse-img" style="width:100%;border-radius:var(--radius-sm);background:var(--bg2);padding:10px">',
                         unsafe_allow_html=True)
+                    # PNG download for structure
+                    try:
+                        from rdkit.Chem import Draw
+                        _img_pil = Draw.MolToImage(res["_mol"], size=(400, 300))
+                        import io as _io
+                        _img_buf = _io.BytesIO()
+                        _img_pil.save(_img_buf, format="PNG")
+                        st.download_button(
+                            "↓ PNG Structure",
+                            data=_img_buf.getvalue(),
+                            file_name=f"structure_{res['ID']}.png",
+                            mime="image/png",
+                            key=f"png_{i}",
+                            help="Download molecule structure as PNG image"
+                        )
+                    except Exception:
+                        pass
 
 
                     iupac, formula = pubchem(res["SMILES"])
@@ -2204,6 +2301,12 @@ if input_text.strip():
 
     # --- TAB 2: THREE-D HYPER-LAB ---
     with TABS[2]:
+        def _dl_3d():
+            lines = [f"ID: {d['ID']} | LogD7.4: {d.get('LogD74','N/A')} | PPB: {d.get('PPB','N/A')} | Clearance: {d.get('Clearance','N/A')} | SA: {d['SA_Score']} ({d['SA_Label']})" for d in display_data]
+            txt = "CHEMOFILTER — 3D CONFORMER DATA\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>3D Data</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>ChemoFilter — 3D Conformer Data</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("3d_conformer", _dl_3d)
         st.markdown('<div class="sec"><span class="sec-num">2</span><span class="sec-title">Three-D Hyper-Conformer Explorer</span><div class="sec-line"></div><span class="sec-tag">Quantum MMFF94 Optimised</span></div>', unsafe_allow_html=True)
 
         sel_3d = st.selectbox("Select compound for 3D analysis", [d["ID"] for d in display_data], key="3d_sel")
@@ -2233,6 +2336,16 @@ if input_text.strip():
 
     #  TAB 3  METABOLIC PULSE 
     with TABS[3]:
+        def _dl_meta():
+            lines = []
+            for d in display_data:
+                sites = d.get("_meta", [])
+                site_str = "; ".join(f"{s['type']} ({s['probability']})" for s in sites) if sites else "None"
+                lines.append(f"ID: {d['ID']} | LogD7.4: {d.get('LogD74','N/A')} | PPB: {d.get('PPB','N/A')} | Metabolic Sites: {site_str}")
+            txt = "CHEMOFILTER — METABOLIC PULSE\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset='UTF-8'><title>Metabolic Pulse</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>Metabolic Pulse</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("metabolic_pulse", _dl_meta)
 
         st.markdown("""<div class="sec">
           <span class="sec-num">3</span>
@@ -2276,6 +2389,12 @@ if input_text.strip():
 
     #  TAB 4  BOILED-EGG 
     with TABS[4]:
+        def _dl_egg():
+            lines = [f"ID: {d['ID']} | tPSA: {d['tPSA']} | LogP: {d['LogP']} | HIA: {d['HIA']} | BBB: {d['BBB']} | Grade: {d['Grade']}" for d in display_data]
+            txt = "CHEMOFILTER — BOILED-EGG ADME\n" + "="*60 + "\n" + "\n".join(lines)
+            html = "<html><head><meta charset='UTF-8'><title>BOILED-EGG</title><style>body{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}h2{color:#e8a020}table{border-collapse:collapse;width:100%}td,th{border:1px solid rgba(232,160,32,.2);padding:8px}th{background:rgba(232,160,32,.08);color:#e8a020}</style></head><body><h2>ChemoFilter — BOILED-EGG ADME</h2><table><tr><th>ID</th><th>tPSA</th><th>LogP</th><th>HIA</th><th>BBB</th><th>Grade</th></tr>" + "".join(f"<tr><td>{d['ID']}</td><td>{d['tPSA']}</td><td>{d['LogP']}</td><td>{d['HIA']}</td><td>{d['BBB']}</td><td>{d['Grade']}</td></tr>" for d in display_data) + "</table></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("boiled_egg", _dl_egg)
 
         st.markdown("""<div class="sec">
           <span class="sec-num">4</span>
@@ -2295,6 +2414,12 @@ if input_text.strip():
 
     #  TAB 5  ANALYSIS SUITE 
     with TABS[5]:
+        def _dl_suite():
+            lines = [f"ID: {d['ID']} | Tanimoto: {d['Sim']} | QED: {d['QED']} | SA: {d['SA_Score']} | Complexity: {round(d['Complexity'],1)} | LeadScore: {d['LeadScore']}" for d in display_data]
+            txt = "CHEMOFILTER — ANALYSIS SUITE\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>Analysis Suite</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>Analysis Suite</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("analysis_suite", _dl_suite)
 
         st.markdown("""<div class="sec">
           <span class="sec-num">4</span>
@@ -2328,6 +2453,12 @@ if input_text.strip():
 
     #  TAB 6  QSAR & FRAGMENTS 
     with TABS[6]:
+        def _dl_qsar():
+            lines = [f"ID: {d['ID']} | LogD7.4: {d.get('LogD74','N/A')} | PPB: {d.get('PPB','N/A')} | NP Score: {d.get('NP_Score','N/A')} | Fsp3: {d['Fsp3']}" for d in display_data]
+            txt = "CHEMOFILTER — QSAR & FRAGMENTS\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>QSAR</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>QSAR & Fragments</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("qsar_fragments", _dl_qsar)
         st.markdown("""<div class="sec">
           <span class="sec-num">6</span>
           <span class="sec-title">Fragment Factory & QSAR Regression</span>
@@ -2364,6 +2495,12 @@ if input_text.strip():
 
     #  TAB 7  WORLD-FIRST TECH 
     with TABS[7]:
+        def _dl_wft():
+            lines = [f"ID: {d['ID']} | Dissolution: {d.get('_diss','N/A')} | Cost: {d.get('_cost','N/A')} | BioDeg: {d.get('_eco','N/A')}% | Barcode: {d.get('_barcode','N/A')}" for d in display_data]
+            txt = "CHEMOFILTER — WORLD-FIRST TECH\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>World-First</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>World-First Tech</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("world_first", _dl_wft)
         st.markdown("""<div class="sec">
           <span class="sec-num">7</span>
           <span class="sec-title">Proprietary World-First Analytics</span>
@@ -2410,6 +2547,15 @@ if input_text.strip():
 
     #  TAB 8  HYPER-ADVANCED SAR 
     with TABS[8]:
+        def _dl_hsar():
+            lines = []
+            for d in display_data:
+                v = d.get("_v15", {})
+                lines.append(f"ID: {d['ID']} | OralAbs: {v.get('OralAbs','N/A')} | Caco2: {v.get('Caco2','N/A')} | t1/2: {v.get('t12','N/A')} | DILI: {v.get('DILI','N/A')} | Muegge: {v.get('Muegge','N/A')}")
+            txt = "CHEMOFILTER — HYPER-ADVANCED SAR\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>Hyper SAR</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>Hyper-Advanced SAR</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("hyper_sar", _dl_hsar)
         st.markdown("""<div class="sec">
           <span class="sec-num">8</span>
           <span class="sec-title">Hyper-Engine v15 SAR Dashboard</span>
@@ -2455,6 +2601,15 @@ if input_text.strip():
 
     #  TAB 9  OMNI-SCIENCE v20 
     with TABS[9]:
+        def _dl_omni():
+            lines = []
+            for d in display_data:
+                mv = d.get("_v20", {})
+                lines.append(f"ID: {d['ID']} | OmniScore: {mv.get('Omni_Score','N/A')} | IP: {mv.get('IP_Originality','N/A')}% | Ro5: {mv.get('Rule_of_5_Ext','N/A')} | Pfizer3/75: {mv.get('Pfizer_3_75','N/A')}")
+            txt = "CHEMOFILTER — OMNI-SCIENCE v20\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>Omni-Science</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>Omni-Science v20</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("omni_science", _dl_omni)
         st.markdown("""<div class="sec">
           <span class="sec-num">9</span>
           <span class="sec-title">Omni-Science v20 Mega-Dashboard</span>
@@ -2550,6 +2705,15 @@ if input_text.strip():
     #  TAB 10  DEEP ACCURACY 
 
     with TABS[10]:
+        def _dl_deep():
+            lines = []
+            for d in display_data:
+                qa = d.get("_qa", {})
+                lines.append(f"ID: {d['ID']} | Refined LogP: {qa.get('Refined_LogP','N/A')} | Tox Alerts: {len(qa.get('Extended_Tox',[]))}")
+            txt = "CHEMOFILTER — DEEP ACCURACY\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset='UTF-8'><title>Deep Accuracy</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>Deep Accuracy</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("deep_accuracy", _dl_deep)
         st.markdown("""<div class="sec">
           <span class="sec-num">10</span>
           <span class="sec-title">Quantum Accuracy v30  FDA Intelligence</span>
@@ -2619,6 +2783,15 @@ if input_text.strip():
 
     #  TAB 11  INFINITY SAR v100 
     with TABS[11]:
+        def _dl_inf():
+            lines = []
+            for d in display_data:
+                iv = d.get("_v50", {})
+                lines.append(f"ID: {d['ID']} | SAR Hint: {iv.get('Lead_SAR_Hint','N/A')} | PROTAC: {iv.get('PROTAC_Score','N/A')} | LogBB: {iv.get('LogBB_Wager','N/A')}")
+            txt = "CHEMOFILTER — INFINITY SAR v100\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>Infinity SAR</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>Infinity SAR v100</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("infinity_sar", _dl_inf)
         st.markdown("""<div class="sec">
           <span class="sec-num">11</span>
           <span class="sec-title">Infinity-Engine v100  Deep SAR</span>
@@ -2671,6 +2844,16 @@ if input_text.strip():
 
     #  TAB 12  SINGULARITY v200 
     with TABS[12]:
+        def _dl_sing():
+            lines = []
+            for d in display_data:
+                sv = d.get("_v200", {})
+                le = sv.get("LE_Metrics", {})
+                lines.append(f"ID: {d['ID']} | Singularity: {sv.get('Singularity_Score','N/A')} | Status: {sv.get('Status','N/A')} | LE: {le.get('LE','N/A')} | LLE: {le.get('LLE','N/A')}")
+            txt = "CHEMOFILTER — SINGULARITY v200\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>Singularity</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>Singularity v200</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("singularity", _dl_sing)
         st.markdown("""<div class="sec">
           <span class="sec-num">12</span>
           <span class="sec-title">Singularity v200  Omnipotent Engine</span>
@@ -2740,6 +2923,15 @@ if input_text.strip():
 
     #  TAB 13  UNIVERSAL v500 
     with TABS[13]:
+        def _dl_univ():
+            lines = []
+            for d in display_data:
+                uv = d.get("_v500", {})
+                lines.append(f"ID: {d['ID']} | Universal: {uv.get('Universal_Score','N/A')}/1000 | Safety: {uv.get('Safety_Grade','N/A')} | BEI: {uv.get('Binding_Efficiency_Index','N/A')}")
+            txt = "CHEMOFILTER — UNIVERSAL v500\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>Universal v500</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>Universal v500</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("universal_v500", _dl_univ)
         st.markdown("""<div class="sec">
           <span class="sec-num">13</span>
           <span class="sec-title">Universal Edition v500  Deep Discovery</span>
@@ -2812,6 +3004,15 @@ if input_text.strip():
 
     #  TAB 14  CELESTIAL v1000 
     with TABS[14]:
+        def _dl_cel():
+            lines = []
+            for d in display_data:
+                cv = d.get("_v1000", {})
+                lines.append(f"ID: {d['ID']} | Celestial: {cv.get('Celestial_Score','N/A')} | PBPK Ka: {cv.get('PBPK_Ka','N/A')} | CLint: {cv.get('CLint','N/A')}")
+            txt = "CHEMOFILTER — CELESTIAL v1000\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>Celestial</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>Celestial v1000</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("celestial_v1000", _dl_cel)
         st.markdown("""<div class="sec">
           <span class="sec-num">14</span>
           <span class="sec-title">Celestial v1000  Supreme Intelligence</span>
@@ -2951,6 +3152,15 @@ if input_text.strip():
 
     #  TAB 16  XENON-GOD v5000 
     with TABS[16]:
+        def _dl_xenon():
+            lines = []
+            for d in display_data:
+                xv = d.get("_v5000", {})
+                lines.append(f"ID: {d['ID']} | Xenon: {xv.get('Xenon_Score','N/A')} | RDI: {xv.get('Retro_Complexity_RDI','N/A')} | Hydration: {xv.get('Hydration_Energy','N/A')} kcal/mol")
+            txt = "CHEMOFILTER — XENON-GOD v5000\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>Xenon</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>Xenon-God v5000</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("xenon_v5000", _dl_xenon)
         st.markdown("""<div class="sec">
           <span class="sec-num">16</span>
           <span class="sec-title">Xenon-God v5000  Multiverse Horizon</span>
@@ -3116,6 +3326,15 @@ if input_text.strip():
 
     #  TAB 19  GENETIC NEXUS v50000 
     with TABS[19]:
+        def _dl_gnex():
+            lines = []
+            for d in display_data:
+                gv = d.get("_v10000", {}).get("v50k", {})
+                lines.append(f"ID: {d['ID']} | Binding: {gv.get('Binding_Affinity_Est','N/A')} kcal/mol | Genetic Risk: {gv.get('Genetic_Risk_Index','N/A')} | Target: {gv.get('Primary_Target_Anchor','N/A')}")
+            txt = "CHEMOFILTER — GENETIC NEXUS v50000\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>Genetic Nexus</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>Genetic Nexus v50000</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("genetic_nexus", _dl_gnex)
         st.markdown("""<div class="sec">
           <span class="sec-num">19</span>
           <span class="sec-title">Genetic Nexus v50000  Genomic Overlord</span>
@@ -3161,6 +3380,17 @@ if input_text.strip():
 
     #  TAB 20  OMNIPOTENT IP v100000 
     with TABS[20]:
+        def _dl_ip():
+            import hashlib
+            lines = []
+            for d in display_data:
+                _s = int(hashlib.md5(d["SMILES"].encode()).hexdigest(), 16) % 10000
+                nov = round(85.0 + _s/10000*14.9, 2)
+                lines.append(f"ID: {d['ID']} | Novelty: {nov}% | FTO: {'READY' if int(_s/10000*3)==0 else 'CAUTION'}")
+            txt = "CHEMOFILTER — IP SCOUT\n" + "="*60 + "\n" + "\n".join(lines)
+            html = f"<html><head><meta charset=\'UTF-8\'><title>IP Scout</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>IP Scout v100000</h2><pre>{txt}</pre></body></html>"
+            return txt.encode(), html.encode()
+        tab_dl_row("ip_scout", _dl_ip)
         st.markdown("""<div class="sec">
           <span class="sec-num">20</span>
           <span class="sec-title">Omnipotent IP Scout  Final Discovery</span>
@@ -3344,6 +3574,9 @@ if input_text.strip():
 
     #  TAB 24  FULL REPORT 
     with TABS[24]:
+        def _dl_full():
+            return text_report_export(display_data), html_export(display_data)
+        tab_dl_row("full_report", _dl_full)
 
 
 
