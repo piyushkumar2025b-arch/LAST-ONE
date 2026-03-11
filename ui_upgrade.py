@@ -243,14 +243,15 @@ p, .stMarkdown p, label, span {
   border-radius: 0 0 var(--cf-r2) var(--cf-r2) !important;
 }
 
-/* Dataframe / table */
+/* Dataframe / table — only style the outer wrapper, NEVER touch canvas internals */
 [data-testid="stDataFrame"] {
   border: 1px solid var(--cf-border) !important;
   border-radius: var(--cf-r) !important;
   overflow: hidden !important;
 }
-.dvn-scroller { background: var(--cf-bg1) !important; }
-.col-header-cell { background: var(--cf-bg2) !important; color: var(--cf-text2) !important; }
+/* DO NOT style .dvn-scroller, .col-header-cell, canvas, or any glide-data-grid
+   internals — they live in a shadow DOM / canvas and overriding them blacks out
+   the entire dataframe. Streamlit handles those colors internally. */
 
 /* Metrics */
 [data-testid="stMetric"] {
