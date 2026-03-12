@@ -1841,378 +1841,336 @@ if input_text.strip():
 
     # ── Leaderboard summary stat bar ──
     _ga = sum(1 for d in display_data if d["Grade"]=="A")
-    _gb = sum(1 for d in display_data if d["Grade"]=="B")
-    _gc2 = sum(1 for d in display_data if d["Grade"]=="C")
-    _gf = sum(1 for d in display_data if d["Grade"]=="F")
     _avg_lead = sum(d["LeadScore"] for d in display_data) / len(display_data) if display_data else 0
     _avg_qed  = sum(d["QED"] for d in display_data) / len(display_data) if display_data else 0
     _bbb_n    = sum(1 for d in display_data if d["_bbb"])
     _hia_n    = sum(1 for d in display_data if d["_hia"])
-
-    # Build rows JSON for JS sorting
-    import json as _json
+    import json as _json, time as _time
     _rows_for_js = []
     for _d in sorted(display_data, key=lambda x: x["LeadScore"], reverse=True):
         _rows_for_js.append({
-            "id": _d["ID"],
-            "grade": _d["Grade"],
-            "lead": _d["LeadScore"],
-            "oral": _d["OralBioScore"],
-            "qed": round(_d["QED"],3),
-            "np": round(_d["NP_Score"],1),
-            "stress": round(_d["Stress"],1),
-            "prom": round(_d["PromiscuityRisk"],0),
-            "mw": _d["MW"],
-            "logp": round(_d["LogP"],2),
-            "tpsa": round(_d["tPSA"],1),
-            "fsp3": round(_d["Fsp3"],2),
-            "sa": round(_d["SA_Score"],2),
-            "sa_lbl": _d["SA_Label"],
-            "cplx": round(_d["Complexity"],1),
-            "cyp": _d["CYP_Hits"],
-            "sim": round(_d["Sim"],3),
-            "herg": _d["_herg"],
-            "ames": _d["_ames"][:12],
-            "hia": _d["_hia"],
-            "bbb": _d["_bbb"],
-            "logs": str(_d["logS"]),
-            "cns": _d["CNS_MPO"],
+            "id":_d["ID"],"grade":_d["Grade"],
+            "lead":_d["LeadScore"],"oral":_d["OralBioScore"],
+            "qed":round(_d["QED"],3),"np":round(_d["NP_Score"],1),
+            "stress":round(_d["Stress"],1),"prom":round(_d["PromiscuityRisk"],0),
+            "mw":_d["MW"],"logp":round(_d["LogP"],2),"tpsa":round(_d["tPSA"],1),
+            "fsp3":round(_d["Fsp3"],2),"sa":round(_d["SA_Score"],2),
+            "sa_lbl":_d["SA_Label"],"cplx":round(_d["Complexity"],1),
+            "cyp":_d["CYP_Hits"],"sim":round(_d["Sim"],3),
+            "herg":_d["_herg"],"ames":_d["_ames"][:12],
+            "hia":_d["_hia"],"bbb":_d["_bbb"],
+            "logs":str(_d["logS"]),"cns":_d["CNS_MPO"],
         })
-    _rows_json = _json.dumps(_rows_for_js)
+    _rj = _json.dumps(_rows_for_js)
+    _compounds_n = len(display_data)
+    _herg_hi = sum(1 for d in display_data if d["_herg"]=="HIGH")
+    _pains_n = sum(1 for d in display_data if d["_pains"])
+    _uid = str(int(_time.time()*1000))[-6:]
 
     st.markdown(f"""
 <style>
-/* ══════════ LEADERBOARD BASE ══════════ */
-.lb-outer{{position:relative;}}
-.lb-wrap{{background:rgba(5,8,15,.97);border:1px solid rgba(232,160,32,.18);border-radius:16px;overflow:hidden;margin-bottom:18px;box-shadow:0 0 40px rgba(232,160,32,.07);transition:box-shadow .3s;}}
-.lb-wrap:hover{{box-shadow:0 0 60px rgba(232,160,32,.13);}}
-.lb-statbar{{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;background:rgba(232,160,32,.07);border-bottom:1px solid rgba(232,160,32,.1);}}
-.lb-sc{{background:#05080f;padding:14px 8px;text-align:center;transition:background .2s;}}
-.lb-sc:hover{{background:rgba(232,160,32,.06);}}
-.lb-sv{{font-family:"DM Serif Display",serif;font-size:1.55rem;font-weight:400;line-height:1;}}
-.lb-sl{{font-family:"JetBrains Mono",monospace;font-size:.42rem;letter-spacing:2px;color:rgba(200,222,255,.3);margin-top:5px;text-transform:uppercase;}}
-
-/* ══════════ SCROLL CONTAINER ══════════ */
-.lb-scroll{{overflow-x:auto;overflow-y:auto;max-height:480px;position:relative;}}
-.lb-scroll::-webkit-scrollbar{{width:5px;height:5px;}}
-.lb-scroll::-webkit-scrollbar-track{{background:rgba(255,255,255,.02);}}
-.lb-scroll::-webkit-scrollbar-thumb{{background:rgba(232,160,32,.35);border-radius:4px;}}
-.lb-scroll::-webkit-scrollbar-thumb:hover{{background:rgba(232,160,32,.7);}}
-
-/* ══════════ NEON SCROLL BORDER ══════════ */
-.lb-neon-border{{position:absolute;inset:0;pointer-events:none;border-radius:0;z-index:10;}}
-.lb-neon-top{{position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#e8a020,#38bdf8,#a78bfa,transparent);opacity:0;transition:opacity .3s;border-radius:2px 2px 0 0;}}
-.lb-neon-bottom{{position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#a78bfa,#38bdf8,#e8a020,transparent);opacity:0;transition:opacity .3s;}}
-.lb-neon-left{{position:absolute;top:0;bottom:0;left:0;width:3px;background:linear-gradient(180deg,transparent,#34d399,transparent);opacity:0;transition:opacity .3s;}}
-.lb-neon-right{{position:absolute;top:0;bottom:0;right:0;width:3px;background:linear-gradient(180deg,transparent,#e8a020,transparent);opacity:0;transition:opacity .3s;}}
-.lb-scroll.scrolling .lb-neon-top,.lb-scroll.scrolling .lb-neon-bottom,.lb-scroll.scrolling .lb-neon-left,.lb-scroll.scrolling .lb-neon-right{{opacity:1;}}
-
-/* ══════════ TABLE ══════════ */
-.lb-tbl{{width:100%;border-collapse:collapse;font-family:"JetBrains Mono",monospace;}}
-.lb-tbl th{{padding:10px 12px;text-align:left;font-size:.52rem;letter-spacing:1.5px;text-transform:uppercase;color:rgba(232,160,32,.45);background:#090d18;border-bottom:1px solid rgba(232,160,32,.1);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:5;transition:color .15s,background .15s;}}
-.lb-tbl th:hover{{color:#e8a020;background:#0e1628;}}
-.lb-tbl th.sort-asc::after{{content:" ▲";font-size:.5rem;color:#34d399;}}
-.lb-tbl th.sort-desc::after{{content:" ▼";font-size:.5rem;color:#38bdf8;}}
-.lb-tbl td{{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;font-size:.72rem;white-space:nowrap;transition:background .15s;}}
-.lb-tbl tr:hover td{{background:rgba(232,160,32,.04);}}
-.lb-tbl tr.row-highlight td{{background:rgba(56,189,248,.07)!important;border-bottom:1px solid rgba(56,189,248,.15)!important;}}
-
-/* ══════════ CELLS ══════════ */
-.lb-id{{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:#e8a020;font-weight:500;}}
-.lb-grade{{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font-family:"DM Serif Display",serif;font-size:.95rem;font-weight:400;}}
-.grA{{background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3);box-shadow:0 0 8px rgba(52,211,153,.15);}}
-.grB{{background:rgba(232,160,32,.12);color:#e8a020;border:1px solid rgba(232,160,32,.3);box-shadow:0 0 8px rgba(232,160,32,.12);}}
-.grC{{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.3);}}
-.grD{{background:rgba(251,146,60,.12);color:#fb923c;border:1px solid rgba(251,146,60,.3);}}
-.grF{{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.3);box-shadow:0 0 8px rgba(248,113,113,.1);}}
-.lb-bar-wrap{{width:90px;}}
-.lb-bar-track{{height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}}
-.lb-bar-fill{{height:100%;border-radius:2px;transition:width .4s ease;}}
-.lb-barval{{font-size:.62rem;color:rgba(200,222,255,.65);text-align:right;margin-top:2px;}}
-.lb-bool-ok{{color:#34d399;font-size:.9rem;text-shadow:0 0 8px rgba(52,211,153,.5);}}
-.lb-bool-no{{color:rgba(200,222,255,.18);font-size:.9rem;}}
-.lb-herg-low{{color:#34d399}}.lb-herg-med{{color:#fbbf24}}.lb-herg-hi{{color:#f87171;text-shadow:0 0 6px rgba(248,113,113,.4)}}
-.lb-footer{{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;background:#090d18;border-top:1px solid rgba(255,255,255,.04);flex-wrap:wrap;gap:8px;}}
-.lb-footer-l{{font-family:"JetBrains Mono",monospace;font-size:.52rem;color:rgba(200,222,255,.25);letter-spacing:1px;}}
-.lb-footer-r{{display:flex;gap:14px;flex-wrap:wrap;}}
-.lb-legend{{display:flex;align-items:center;gap:5px;font-family:"JetBrains Mono",monospace;font-size:.52rem;}}
-.lb-dot{{width:6px;height:6px;border-radius:50%;display:inline-block;}}
-
-/* ══════════ FULLSCREEN ══════════ */
-.lb-fs-btn{{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:6px;border:1px solid rgba(232,160,32,.3);background:rgba(232,160,32,.06);color:rgba(232,160,32,.8);font-family:"JetBrains Mono",monospace;font-size:.55rem;letter-spacing:1.5px;cursor:pointer;text-transform:uppercase;transition:all .2s;margin-left:10px;}}
-.lb-fs-btn:hover{{background:rgba(232,160,32,.15);border-color:#e8a020;color:#e8a020;box-shadow:0 0 12px rgba(232,160,32,.2);}}
-
-/* ══════════ FULLSCREEN OVERLAY ══════════ */
-#lb-fullscreen-overlay{{display:none;position:fixed;inset:0;z-index:999999;background:#05080f;flex-direction:column;}}
-#lb-fullscreen-overlay.active{{display:flex;}}
-#lb-fs-inner{{flex:1;overflow:auto;padding:0;}}
-#lb-fs-inner .lb-tbl th{{font-size:.58rem;padding:12px 14px;}}
-#lb-fs-inner .lb-tbl td{{font-size:.78rem;padding:11px 14px;}}
-#lb-fs-header{{display:flex;align-items:center;padding:12px 20px;background:#090d18;border-bottom:1px solid rgba(232,160,32,.12);gap:12px;}}
-#lb-fs-title{{font-family:"JetBrains Mono",monospace;font-size:.65rem;letter-spacing:4px;color:rgba(200,222,255,.5);text-transform:uppercase;flex:1;}}
-#lb-fs-close{{padding:5px 14px;border-radius:6px;border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.06);color:#f87171;font-family:"JetBrains Mono",monospace;font-size:.55rem;cursor:pointer;letter-spacing:1px;transition:all .2s;}}
-#lb-fs-close:hover{{background:rgba(248,113,113,.15);box-shadow:0 0 12px rgba(248,113,113,.2);}}
-
-/* ══════════ PULSE ANIM ══════════ */
-@keyframes neon-pulse{{0%,100%{{opacity:.5}}50%{{opacity:1}}}}
-@keyframes row-in{{from{{opacity:0;transform:translateY(4px)}}to{{opacity:1;transform:none}}}}
-.lb-tbl tbody tr{{animation:row-in .25s ease both;}}
-.lb-sort-glow{{box-shadow:inset 0 -2px 0 #e8a020!important;}}
+.lbw{_uid}{{background:#05080f;border:1px solid rgba(232,160,32,.2);border-radius:16px;overflow:hidden;margin-bottom:18px;box-shadow:0 0 40px rgba(232,160,32,.07);font-family:'JetBrains Mono',monospace;}}
+.lbsb{_uid}{{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;background:rgba(232,160,32,.07);border-bottom:1px solid rgba(232,160,32,.12);}}
+.lbsc{_uid}{{background:#05080f;padding:14px 8px;text-align:center;transition:background .2s;cursor:default;}}
+.lbsc{_uid}:hover{{background:rgba(232,160,32,.07);}}
+.lbsv{_uid}{{font-family:'DM Serif Display',serif;font-size:1.55rem;font-weight:400;line-height:1;}}
+.lbsl{_uid}{{font-size:.42rem;letter-spacing:2px;color:rgba(200,222,255,.3);margin-top:5px;text-transform:uppercase;}}
+.lbscroll{_uid}{{overflow:auto;max-height:500px;position:relative;}}
+.lbscroll{_uid}::-webkit-scrollbar{{width:5px;height:5px;}}
+.lbscroll{_uid}::-webkit-scrollbar-track{{background:rgba(255,255,255,.02);}}
+.lbscroll{_uid}::-webkit-scrollbar-thumb{{background:rgba(232,160,32,.4);border-radius:4px;}}
+.lbscroll{_uid}::-webkit-scrollbar-thumb:hover{{background:#e8a020;}}
+.lbneon{_uid}{{position:absolute;inset:0;pointer-events:none;z-index:9;}}
+.lbnt{_uid},.lbnb{_uid}{{position:absolute;left:0;right:0;height:3px;opacity:0;transition:opacity .3s;}}
+.lbnt{_uid}{{top:0;background:linear-gradient(90deg,transparent,#e8a020 30%,#38bdf8 70%,transparent);border-radius:2px 2px 0 0;}}
+.lbnb{_uid}{{bottom:0;background:linear-gradient(90deg,transparent,#a78bfa 30%,#34d399 70%,transparent);}}
+.lbnl{_uid},.lbnr{_uid}{{position:absolute;top:0;bottom:0;width:3px;opacity:0;transition:opacity .3s;}}
+.lbnl{_uid}{{left:0;background:linear-gradient(180deg,transparent,#34d399 50%,transparent);}}
+.lbnr{_uid}{{right:0;background:linear-gradient(180deg,transparent,#e8a020 50%,transparent);}}
+.lbscroll{_uid}.neonon .lbnt{_uid},.lbscroll{_uid}.neonon .lbnb{_uid},.lbscroll{_uid}.neonon .lbnl{_uid},.lbscroll{_uid}.neonon .lbnr{_uid}{{opacity:1;}}
+.lbt{_uid}{{width:100%;border-collapse:collapse;}}
+.lbt{_uid} th{{padding:11px 12px;text-align:left;font-size:.52rem;letter-spacing:1.5px;text-transform:uppercase;color:rgba(232,160,32,.45);background:#090d18;border-bottom:1px solid rgba(232,160,32,.12);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:5;transition:color .15s,background .15s;}}
+.lbt{_uid} th:hover{{color:#e8a020;background:rgba(232,160,32,.06);}}
+.lbt{_uid} th.sasc::after{{content:" ▲";font-size:.5rem;color:#34d399;}}
+.lbt{_uid} th.sdsc::after{{content:" ▼";font-size:.5rem;color:#38bdf8;}}
+.lbt{_uid} td{{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;font-size:.72rem;white-space:nowrap;}}
+.lbt{_uid} tr:hover td{{background:rgba(56,189,248,.06)!important;}}
+.lbgr{{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font-family:'DM Serif Display',serif;font-size:.95rem;}}
+.grA{{background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3);box-shadow:0 0 8px rgba(52,211,153,.2);}}
+.grB{{background:rgba(232,160,32,.12);color:#e8a020;border:1px solid rgba(232,160,32,.3);}}
+.grC{{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.25);}}
+.grD{{background:rgba(251,146,60,.12);color:#fb923c;border:1px solid rgba(251,146,60,.25);}}
+.grF{{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.3);box-shadow:0 0 8px rgba(248,113,113,.15);}}
+.lbbar{{width:90px;}}
+.lbtrack{{height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;margin-bottom:2px;}}
+.lbfill{{height:100%;border-radius:2px;}}
+.lbbv{{font-size:.62rem;color:rgba(200,222,255,.6);text-align:right;}}
+.bok{{color:#34d399;text-shadow:0 0 8px rgba(52,211,153,.5);}}
+.bno{{color:rgba(200,222,255,.18);}}
+.lbfooter{_uid}{{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;background:#090d18;border-top:1px solid rgba(255,255,255,.04);flex-wrap:wrap;gap:8px;}}
+.lbftl{{font-size:.52rem;color:rgba(200,222,255,.25);letter-spacing:1px;}}
+.lbftr{{display:flex;gap:14px;align-items:center;flex-wrap:wrap;}}
+.lbleg{{display:flex;align-items:center;gap:5px;font-size:.5rem;color:rgba(200,222,255,.3);}}
+.lbdot{{width:6px;height:6px;border-radius:50%;display:inline-block;}}
+.lbfsbtn{_uid}{{display:inline-flex;align-items:center;gap:5px;padding:5px 13px;border-radius:6px;border:1px solid rgba(232,160,32,.35);background:rgba(232,160,32,.07);color:#e8a020;font-size:.55rem;letter-spacing:1.5px;cursor:pointer;text-transform:uppercase;transition:all .2s;font-family:'JetBrains Mono',monospace;}}
+.lbfsbtn{_uid}:hover{{background:rgba(232,160,32,.18);box-shadow:0 0 14px rgba(232,160,32,.25);}}
+@keyframes rowin{{from{{opacity:0;transform:translateY(3px)}}to{{opacity:1;transform:none}}}}
+#lbfs{_uid}{{display:none;position:fixed;inset:0;z-index:2147483647;background:#05080f;flex-direction:column;}}
+#lbfs{_uid}.fsactive{{display:flex!important;}}
+#lbfsh{_uid}{{display:flex;align-items:center;padding:12px 20px;background:#090d18;border-bottom:1px solid rgba(232,160,32,.14);gap:12px;flex-shrink:0;}}
+#lbfstitle{_uid}{{font-size:.6rem;letter-spacing:4px;color:rgba(200,222,255,.4);text-transform:uppercase;flex:1;font-family:'JetBrains Mono',monospace;}}
+#lbfscls{_uid}{{padding:5px 14px;border-radius:6px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.07);color:#f87171;font-size:.55rem;cursor:pointer;letter-spacing:1px;font-family:'JetBrains Mono',monospace;transition:all .2s;}}
+#lbfscls{_uid}:hover{{background:rgba(248,113,113,.18);box-shadow:0 0 12px rgba(248,113,113,.25);}}
+#lbfsinner{_uid}{{flex:1;overflow:auto;}}
+#lbfsinner{_uid}::-webkit-scrollbar{{width:5px;height:5px;}}
+#lbfsinner{_uid}::-webkit-scrollbar-thumb{{background:rgba(232,160,32,.4);border-radius:4px;}}
+#lbfsinner{_uid} .lbt{_uid} th{{font-size:.56rem;padding:12px 14px;background:#090d18;position:sticky;top:0;z-index:5;}}
+#lbfsinner{_uid} .lbt{_uid} td{{font-size:.76rem;padding:11px 14px;}}
 </style>
 
-<div class="lb-outer">
-<!-- FULLSCREEN OVERLAY -->
-<div id="lb-fullscreen-overlay">
-  <div id="lb-fs-header">
-    <div id="lb-fs-title">⬡ COMPOUND LEADERBOARD — FULLSCREEN MODE</div>
-    <button id="lb-fs-close" onclick="closeLBFullscreen()">✕  EXIT FULLSCREEN</button>
+<!-- FS overlay injected directly (not template) so it works in Streamlit -->
+<div id="lbfs{_uid}">
+  <div id="lbfsh{_uid}">
+    <span id="lbfstitle{_uid}">⬡ COMPOUND LEADERBOARD — FULLSCREEN</span>
+    <button id="lbfscls{_uid}">✕ EXIT FULLSCREEN</button>
   </div>
-  <div id="lb-fs-inner">
-    <div id="lb-fs-table-mount"></div>
+  <div id="lbfsinner{_uid}">
+    <table class="lbt{_uid}" id="lbfstbl{_uid}">
+      <thead><tr id="lbfshr{_uid}"></tr></thead>
+      <tbody id="lbfsbody{_uid}"></tbody>
+    </table>
   </div>
 </div>
 
-<div class="lb-wrap" id="lb-main-wrap">
-<div class="lb-statbar">
-  <div class="lb-sc"><div class="lb-sv" style="color:#e8f0ff">{len(display_data)}</div><div class="lb-sl">Compounds</div></div>
-  <div class="lb-sc"><div class="lb-sv" style="color:#34d399">{_ga}</div><div class="lb-sl">Grade A</div></div>
-  <div class="lb-sc"><div class="lb-sv" style="color:#e8a020">{_avg_lead:.1f}</div><div class="lb-sl">Avg Lead</div></div>
-  <div class="lb-sc"><div class="lb-sv" style="color:#a78bfa">{_avg_qed:.3f}</div><div class="lb-sl">Avg QED</div></div>
-  <div class="lb-sc"><div class="lb-sv" style="color:#34d399">{_hia_n}</div><div class="lb-sl">Good HIA</div></div>
-  <div class="lb-sc"><div class="lb-sv" style="color:#38bdf8">{_bbb_n}</div><div class="lb-sl">BBB Cross</div></div>
-  <div class="lb-sc"><div class="lb-sv" style="color:#f87171">{sum(1 for d in display_data if d["_herg"]=="HIGH")}</div><div class="lb-sl">hERG High</div></div>
-  <div class="lb-sc"><div class="lb-sv" style="color:#fb923c">{sum(1 for d in display_data if d["_pains"])}</div><div class="lb-sl">PAINS Flags</div></div>
+<div class="lbw{_uid}">
+<div class="lbsb{_uid}">
+  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#e8f0ff">{_compounds_n}</div><div class="lbsl{_uid}">Compounds</div></div>
+  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#34d399">{_ga}</div><div class="lbsl{_uid}">Grade A</div></div>
+  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#e8a020">{_avg_lead:.1f}</div><div class="lbsl{_uid}">Avg Lead</div></div>
+  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#a78bfa">{_avg_qed:.3f}</div><div class="lbsl{_uid}">Avg QED</div></div>
+  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#34d399">{_hia_n}</div><div class="lbsl{_uid}">Good HIA</div></div>
+  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#38bdf8">{_bbb_n}</div><div class="lbsl{_uid}">BBB Cross</div></div>
+  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#f87171">{_herg_hi}</div><div class="lbsl{_uid}">hERG High</div></div>
+  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#fb923c">{_pains_n}</div><div class="lbsl{_uid}">PAINS Flags</div></div>
 </div>
 
-<!-- scroll wrapper with neon border -->
-<div class="lb-scroll" id="lb-scroll-wrap">
-  <div class="lb-neon-border">
-    <div class="lb-neon-top"></div>
-    <div class="lb-neon-bottom"></div>
-    <div class="lb-neon-left"></div>
-    <div class="lb-neon-right"></div>
+<div class="lbscroll{_uid}" id="lbscroll{_uid}">
+  <div class="lbneon{_uid}">
+    <div class="lbnt{_uid}"></div><div class="lbnb{_uid}"></div>
+    <div class="lbnl{_uid}"></div><div class="lbnr{_uid}"></div>
   </div>
-  <table class="lb-tbl" id="lb-main-table">
-  <thead><tr>
-    <th data-col="idx" class="sort-asc">#</th>
-    <th data-col="id">ID</th>
-    <th data-col="grade">Grade</th>
-    <th data-col="lead">Lead Score</th>
-    <th data-col="oral">Oral Bio</th>
-    <th data-col="qed">QED</th>
-    <th data-col="np">NP Score</th>
-    <th data-col="stress">Stress</th>
-    <th data-col="prom">Promiscuity</th>
-    <th data-col="mw">MW</th>
-    <th data-col="logp">LogP</th>
-    <th data-col="tpsa">tPSA</th>
-    <th data-col="fsp3">Fsp3</th>
-    <th data-col="sa">SA Score</th>
-    <th data-col="cplx">Complexity</th>
-    <th data-col="cyp">CYP Hits</th>
-    <th data-col="sim">Sim</th>
-    <th data-col="herg">hERG</th>
-    <th data-col="ames">Ames</th>
-    <th data-col="hia">HIA</th>
-    <th data-col="bbb">BBB</th>
-    <th data-col="logs">logS</th>
-    <th data-col="cns">CNS MPO</th>
-  </tr></thead>
-  <tbody id="lb-tbody"></tbody>
+  <table class="lbt{_uid}" id="lbtbl{_uid}">
+    <thead><tr id="lbhr{_uid}"></tr></thead>
+    <tbody id="lbbody{_uid}"></tbody>
   </table>
 </div>
 
-<div class="lb-footer">
+<div class="lbfooter{_uid}">
   <div style="display:flex;align-items:center;gap:8px">
-    <div class="lb-footer-l" id="lb-status-txt">SHOWING ALL COLUMNS · RANKED BY LEAD SCORE · HOVER ROW TO HIGHLIGHT</div>
-    <button class="lb-fs-btn" onclick="openLBFullscreen()">⛶ FULLSCREEN</button>
+    <span class="lbftl" id="lbstatus{_uid}">SHOWING ALL COLUMNS · RANKED BY LEAD SCORE · HOVER TO HIGHLIGHT</span>
+    <button class="lbfsbtn{_uid}" id="lbfsbtn{_uid}">⛶ FULLSCREEN</button>
   </div>
-  <div class="lb-footer-r">
-    <div class="lb-legend"><div class="lb-dot" style="background:#34d399"></div><span style="font-family:'JetBrains Mono',monospace;font-size:.5rem;color:rgba(200,222,255,.3)">Grade A: optimal</span></div>
-    <div class="lb-legend"><div class="lb-dot" style="background:#e8a020"></div><span style="font-family:'JetBrains Mono',monospace;font-size:.5rem;color:rgba(200,222,255,.3)">Grade B: good</span></div>
-    <div class="lb-legend"><div class="lb-dot" style="background:#fbbf24"></div><span style="font-family:'JetBrains Mono',monospace;font-size:.5rem;color:rgba(200,222,255,.3)">Grade C: marginal</span></div>
-    <div class="lb-legend"><div class="lb-dot" style="background:#f87171"></div><span style="font-family:'JetBrains Mono',monospace;font-size:.5rem;color:rgba(200,222,255,.3)">Grade F: fail</span></div>
+  <div class="lbftr">
+    <div class="lbleg"><div class="lbdot" style="background:#34d399"></div>Grade A: optimal</div>
+    <div class="lbleg"><div class="lbdot" style="background:#e8a020"></div>Grade B: good</div>
+    <div class="lbleg"><div class="lbdot" style="background:#fbbf24"></div>Grade C: marginal</div>
+    <div class="lbleg"><div class="lbdot" style="background:#f87171"></div>Grade F: fail</div>
   </div>
-</div>
 </div>
 </div>
 
 <script>
 (function(){{
-  // ── Data ──
-  var ROWS = {_rows_json};
-  var sortCol = "lead";
-  var sortDir = -1; // -1 = desc, 1 = asc
+var U="{_uid}";
+var ROWS={_rj};
+var sortCol="lead",sortDir=-1;
+var cur=ROWS.slice();
 
-  // ── Color helpers ──
-  function barColor(val, col){{
-    if(col==="lead") return val>=75?"#34d399":val>=50?"#e8a020":val>=25?"#fbbf24":"#f87171";
-    if(col==="stress") return val>60?"#f87171":val>30?"#fbbf24":"#34d399";
-    if(col==="prom") return "#f87171";
-    if(col==="oral") return "#60a5fa";
-    if(col==="qed") return "#a78bfa";
-    if(col==="np") return "#c084fc";
-    return "#e8a020";
-  }}
-  function gradeClass(g){{return "lb-grade gr"+g;}}
-  function hergClass(h){{return h==="LOW"?"lb-herg-low":h==="MEDIUM"?"lb-herg-med":"lb-herg-hi";}}
-  function colColor(val,col){{
-    if(col==="mw") return val<500?"#34d399":"#f87171";
-    if(col==="logp") return (val>-1&&val<5)?"#34d399":"#f87171";
-    if(col==="tpsa") return val<90?"#34d399":val<140?"#fbbf24":"#f87171";
-    if(col==="fsp3") return val>0.25?"#34d399":"#fbbf24";
-    if(col==="sa") return val<=3?"#34d399":val<=6?"#fbbf24":"#f87171";
-    if(col==="cplx") return "rgba(200,222,255,.65)";
-    if(col==="cyp") return val>=3?"#f87171":val>0?"#fbbf24":"#34d399";
-    if(col==="sim") return val>0.15?"#34d399":"rgba(200,222,255,.4)";
-    if(col==="logs"){{var n=parseFloat(val);return n>-2?"#34d399":n>-4?"#fbbf24":"#f87171";}}
-    if(col==="cns") return val>=4?"#34d399":"#fbbf24";
-    return "rgba(200,222,255,.65)";
-  }}
+var COLS=[
+  {{k:"idx",l:"#"}},{{k:"id",l:"ID"}},{{k:"grade",l:"Grade"}},
+  {{k:"lead",l:"Lead Score"}},{{k:"oral",l:"Oral Bio"}},{{k:"qed",l:"QED"}},
+  {{k:"np",l:"NP Score"}},{{k:"stress",l:"Stress"}},{{k:"prom",l:"Promiscuity"}},
+  {{k:"mw",l:"MW"}},{{k:"logp",l:"LogP"}},{{k:"tpsa",l:"tPSA"}},{{k:"fsp3",l:"Fsp3"}},
+  {{k:"sa",l:"SA Score"}},{{k:"cplx",l:"Complexity"}},{{k:"cyp",l:"CYP Hits"}},
+  {{k:"sim",l:"Sim"}},{{k:"herg",l:"hERG"}},{{k:"ames",l:"Ames"}},
+  {{k:"hia",l:"HIA"}},{{k:"bbb",l:"BBB"}},{{k:"logs",l:"logS"}},{{k:"cns",l:"CNS MPO"}},
+];
 
-  function bar(val, max, col){{
-    var pct = Math.min(100, (val/max)*100);
-    return '<div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:'+pct+'%;background:'+barColor(val,col)+'"></div></div><div class="lb-barval">'+val+'</div></div>';
-  }}
+function barC(v,col){{
+  if(col==="lead") return v>=75?"#34d399":v>=50?"#e8a020":v>=25?"#fbbf24":"#f87171";
+  if(col==="stress") return v>60?"#f87171":v>30?"#fbbf24":"#34d399";
+  if(col==="prom") return "#f87171";
+  if(col==="oral") return "#60a5fa";
+  if(col==="qed") return "#a78bfa";
+  if(col==="np") return "#c084fc";
+  return "#e8a020";
+}}
+function txtC(v,col){{
+  if(col==="mw") return v<500?"#34d399":"#f87171";
+  if(col==="logp") return (v>-1&&v<5)?"#34d399":"#f87171";
+  if(col==="tpsa") return v<90?"#34d399":v<140?"#fbbf24":"#f87171";
+  if(col==="fsp3") return v>0.25?"#34d399":"#fbbf24";
+  if(col==="sa") return v<=3?"#34d399":v<=6?"#fbbf24":"#f87171";
+  if(col==="cyp") return v>=3?"#f87171":v>0?"#fbbf24":"#34d399";
+  if(col==="sim") return v>0.15?"#34d399":"rgba(200,222,255,.4)";
+  if(col==="logs"){{var n=parseFloat(v);return isNaN(n)?"rgba(200,222,255,.5)":n>-2?"#34d399":n>-4?"#fbbf24":"#f87171";}}
+  if(col==="cns") return v>=4?"#34d399":"#fbbf24";
+  return "rgba(200,222,255,.7)";
+}}
+function bar(v,col){{
+  var pct=Math.min(100,Math.max(0,col==="qed"?v*100:v));
+  return '<div class="lbbar"><div class="lbtrack"><div class="lbfill" style="width:'+pct+'%;background:'+barC(v,col)+'"></div></div><div class="lbbv">'+v+'</div></div>';
+}}
+function hergS(h){{return h==="LOW"?"color:#34d399":h==="MEDIUM"?"color:#fbbf24":"color:#f87171";}}
+function amesC(a){{return a.indexOf("Low")>=0?"#34d399":a.indexOf("Possible")>=0?"#fbbf24":"#f87171";}}
 
-  function renderRows(tbody, rows){{
-    var html = "";
-    rows.forEach(function(d, i){{
-      html += '<tr onmouseenter="this.classList.add(\'row-highlight\')" onmouseleave="this.classList.remove(\'row-highlight\')">';
-      html += '<td style="color:rgba(200,222,255,.2);font-size:.62rem">'+(i+1)+'</td>';
-      html += '<td class="lb-id">'+d.id+'</td>';
-      html += '<td><span class="'+gradeClass(d.grade)+'">'+d.grade+'</span></td>';
-      html += '<td>'+bar(d.lead,100,"lead")+'</td>';
-      html += '<td>'+bar(d.oral,100,"oral")+'</td>';
-      html += '<td>'+bar(parseFloat((d.qed*100).toFixed(1)),100,"qed")+'<div style="font-size:.62rem;color:rgba(200,222,255,.65);text-align:right">'+d.qed+'</div></td>';
-      html += '<td>'+bar(d.np,100,"np")+'</td>';
-      html += '<td>'+bar(d.stress,100,"stress")+'</td>';
-      html += '<td>'+bar(d.prom,100,"prom")+'</td>';
-      html += '<td style="color:'+colColor(d.mw,"mw")+'">'+d.mw+'</td>';
-      html += '<td style="color:'+colColor(d.logp,"logp")+'">'+d.logp+'</td>';
-      html += '<td style="color:'+colColor(d.tpsa,"tpsa")+'">'+d.tpsa+'</td>';
-      html += '<td style="color:'+colColor(d.fsp3,"fsp3")+'">'+d.fsp3+'</td>';
-      html += '<td style="color:'+colColor(d.sa,"sa")+'">'+d.sa+' <span style="font-size:.6rem;opacity:.6">('+d.sa_lbl+')</span></td>';
-      html += '<td style="color:'+colColor(d.cplx,"cplx")+'">'+d.cplx+'</td>';
-      html += '<td style="color:'+colColor(d.cyp,"cyp")+'">'+d.cyp+'/5</td>';
-      html += '<td style="color:'+colColor(d.sim,"sim")+'">'+d.sim+'</td>';
-      html += '<td class="'+hergClass(d.herg)+'">'+d.herg+'</td>';
-      var amesColor = d.ames.indexOf("Low")>=0?"#34d399":d.ames.indexOf("Possible")>=0?"#fbbf24":"#f87171";
-      html += '<td style="color:'+amesColor+';font-size:.65rem">'+d.ames+'</td>';
-      html += '<td class="lb-bool-'+(d.hia?"ok":"no")+'">'+(d.hia?"✓":"✗")+'</td>';
-      html += '<td class="lb-bool-'+(d.bbb?"ok":"no")+'">'+(d.bbb?"✓":"✗")+'</td>';
-      html += '<td style="color:'+colColor(d.logs,"logs")+'">'+d.logs+'</td>';
-      html += '<td style="color:'+colColor(d.cns,"cns")+'">'+d.cns+'/6</td>';
-      html += '</tr>';
-    }});
-    tbody.innerHTML = html;
-  }}
+function buildHdr(tr){{
+  tr.innerHTML="";
+  COLS.forEach(function(c){{
+    var th=document.createElement("th");
+    th.setAttribute("data-col",c.k);
+    th.textContent=c.l;
+    if(c.k===sortCol) th.classList.add(sortDir===-1?"sdsc":"sasc");
+    th.onclick=function(){{doSort(c.k);}};
+    tr.appendChild(th);
+  }});
+}}
 
-  function sortAndRender(col){{
-    if(sortCol === col){{ sortDir *= -1; }}
-    else{{ sortCol = col; sortDir = -1; }}
+function buildBody(tbody, rows){{
+  var h="";
+  rows.forEach(function(d,i){{
+    var delay=(i*0.025).toFixed(3);
+    h+='<tr style="animation:rowin .22s ease '+delay+'s both">';
+    h+='<td style="color:rgba(200,222,255,.2);font-size:.62rem">'+(i+1)+'</td>';
+    h+='<td style="color:#e8a020;font-weight:500">'+d.id+'</td>';
+    h+='<td><span class="lbgr gr'+d.grade+'">'+d.grade+'</span></td>';
+    h+='<td>'+bar(d.lead,"lead")+'</td>';
+    h+='<td>'+bar(d.oral,"oral")+'</td>';
+    h+='<td>'+bar(d.qed,"qed")+'</td>';
+    h+='<td>'+bar(d.np,"np")+'</td>';
+    h+='<td>'+bar(d.stress,"stress")+'</td>';
+    h+='<td>'+bar(d.prom,"prom")+'</td>';
+    h+='<td style="color:'+txtC(d.mw,"mw")+'">'+d.mw+'</td>';
+    h+='<td style="color:'+txtC(d.logp,"logp")+'">'+d.logp+'</td>';
+    h+='<td style="color:'+txtC(d.tpsa,"tpsa")+'">'+d.tpsa+'</td>';
+    h+='<td style="color:'+txtC(d.fsp3,"fsp3")+'">'+d.fsp3+'</td>';
+    h+='<td style="color:'+txtC(d.sa,"sa")+'">'+d.sa+' <span style="font-size:.6rem;opacity:.5">('+d.sa_lbl+')</span></td>';
+    h+='<td style="color:rgba(200,222,255,.65)">'+d.cplx+'</td>';
+    h+='<td style="color:'+txtC(d.cyp,"cyp")+'">'+d.cyp+'/5</td>';
+    h+='<td style="color:'+txtC(d.sim,"sim")+'">'+d.sim+'</td>';
+    h+='<td style="'+hergS(d.herg)+'">'+d.herg+'</td>';
+    h+='<td style="color:'+amesC(d.ames)+';font-size:.65rem">'+d.ames+'</td>';
+    h+='<td class="'+(d.hia?"bok":"bno")+'">'+(d.hia?"✓":"✗")+'</td>';
+    h+='<td class="'+(d.bbb?"bok":"bno")+'">'+(d.bbb?"✓":"✗")+'</td>';
+    h+='<td style="color:'+txtC(d.logs,"logs")+'">'+d.logs+'</td>';
+    h+='<td style="color:'+txtC(d.cns,"cns")+'">'+d.cns+'/6</td>';
+    h+='</tr>';
+  }});
+  tbody.innerHTML=h;
+  // hover via event delegation
+  tbody.querySelectorAll("tr").forEach(function(tr){{
+    tr.addEventListener("mouseenter",function(){{this.querySelectorAll("td").forEach(function(td){{td.style.background="rgba(56,189,248,.06)";}});}});
+    tr.addEventListener("mouseleave",function(){{this.querySelectorAll("td").forEach(function(td){{td.style.background="";}});}});
+  }});
+}}
 
-    // Update headers
-    document.querySelectorAll(".lb-tbl th").forEach(function(th){{
-      th.classList.remove("sort-asc","sort-desc");
-      if(th.getAttribute("data-col")===col){{
-        th.classList.add(sortDir===-1?"sort-desc":"sort-asc");
-      }}
-    }});
+function updHdrs(){{
+  document.querySelectorAll("[data-col]").forEach(function(th){{
+    th.classList.remove("sasc","sdsc");
+    if(th.getAttribute("data-col")===sortCol) th.classList.add(sortDir===-1?"sdsc":"sasc");
+  }});
+}}
 
-    var sorted = ROWS.slice().sort(function(a,b){{
-      var av = a[col], bv = b[col];
-      if(col==="idx") return sortDir*(ROWS.indexOf(a)-ROWS.indexOf(b));
-      if(col==="id"||col==="herg"||col==="ames") return sortDir*(av<bv?-1:av>bv?1:0);
-      if(col==="hia"||col==="bbb") return sortDir*((a[col]?1:0)-(b[col]?1:0));
-      if(col==="logs"){{ av=parseFloat(av)||0; bv=parseFloat(bv)||0; }}
-      return sortDir*(av-bv);
-    }});
+function doSort(col){{
+  if(sortCol===col) sortDir*=-1; else{{sortCol=col;sortDir=-1;}}
+  cur=ROWS.slice().sort(function(a,b){{
+    var av=a[col],bv=b[col];
+    if(col==="idx") return 0;
+    if(typeof av==="boolean") return sortDir*((av?1:0)-(bv?1:0));
+    if(typeof av==="string") return sortDir*(av<bv?-1:av>bv?1:0);
+    if(col==="logs"){{av=parseFloat(av)||0;bv=parseFloat(bv)||0;}}
+    return sortDir*(av-bv);
+  }});
+  var b=document.getElementById("lbbody"+U);
+  if(b) buildBody(b,cur);
+  var fb=document.getElementById("lbfsbody"+U);
+  if(fb) buildBody(fb,cur);
+  updHdrs();
+  var st=document.getElementById("lbstatus"+U);
+  if(st) st.textContent="SORTED BY "+col.toUpperCase()+" · "+(sortDir===-1?"DESC":"ASC");
+}}
 
-    var tbody = document.getElementById("lb-tbody");
-    if(tbody) renderRows(tbody, sorted);
-    var tbody2 = document.getElementById("lb-fs-tbody");
-    if(tbody2) renderRows(tbody2, sorted);
+// Neon scroll
+function initNeon(){{
+  var sw=document.getElementById("lbscroll"+U);
+  if(!sw) return;
+  var t;
+  sw.addEventListener("scroll",function(){{
+    sw.classList.add("neonon");
+    clearTimeout(t);
+    t=setTimeout(function(){{sw.classList.remove("neonon");}},900);
+  }});
+}}
 
-    var txt = "SORTED BY "+col.toUpperCase()+" · "+(sortDir===-1?"DESCENDING":"ASCENDING");
-    var el = document.getElementById("lb-status-txt");
-    if(el) el.textContent = txt;
-  }}
+// Stat pulse
+function initPulse(){{
+  var els=document.querySelectorAll(".lbsv"+U);
+  els.forEach(function(el){{
+    setInterval(function(){{
+      el.style.textShadow="0 0 "+(5+Math.random()*12)+"px currentColor";
+    }},1000+Math.random()*2000);
+  }});
+}}
 
-  // ── Init table ──
-  function initTable(){{
-    var tbody = document.getElementById("lb-tbody");
-    if(tbody){{
-      renderRows(tbody, ROWS);
-      // attach sort handlers
-      document.querySelectorAll("#lb-main-table th").forEach(function(th){{
-        th.addEventListener("click",function(){{ sortAndRender(this.getAttribute("data-col")); }});
-      }});
-    }}
-  }}
+// Fullscreen
+function initFS(){{
+  var btn=document.getElementById("lbfsbtn"+U);
+  var ov=document.getElementById("lbfs"+U);
+  var cls=document.getElementById("lbfscls"+U);
+  if(!btn||!ov||!cls) return;
 
-  // ── Neon scroll effect ──
-  function initNeonScroll(){{
-    var wrap = document.getElementById("lb-scroll-wrap");
-    if(!wrap) return;
-    var timer;
-    wrap.addEventListener("scroll",function(){{
-      wrap.classList.add("scrolling");
-      clearTimeout(timer);
-      timer = setTimeout(function(){{ wrap.classList.remove("scrolling"); }}, 800);
-    }});
-  }}
-
-  // ── Fullscreen ──
-  window.openLBFullscreen = function(){{
-    var overlay = document.getElementById("lb-fullscreen-overlay");
-    var mount = document.getElementById("lb-fs-table-mount");
-    if(!overlay||!mount) return;
-    // Clone table into fullscreen
-    mount.innerHTML = '<div style="overflow:auto;height:calc(100vh - 60px)"><table class="lb-tbl" id="lb-fs-table"><thead><tr>'
-      + document.querySelector("#lb-main-table thead tr").innerHTML
-      + '</tr></thead><tbody id="lb-fs-tbody"></tbody></table></div>';
-    var tbody2 = document.getElementById("lb-fs-tbody");
-    if(tbody2) renderRows(tbody2, ROWS.slice().sort(function(a,b){{
-      return (b.lead - a.lead);
-    }}));
-    // attach sort to fs headers
-    document.querySelectorAll("#lb-fs-table th").forEach(function(th){{
-      th.addEventListener("click",function(){{ sortAndRender(this.getAttribute("data-col")); }});
-    }});
-    overlay.classList.add("active");
-    document.body.style.overflow = "hidden";
-  }};
-
-  window.closeLBFullscreen = function(){{
-    var overlay = document.getElementById("lb-fullscreen-overlay");
-    if(overlay) overlay.classList.remove("active");
-    document.body.style.overflow = "";
-  }};
-
-  // ── Live neon pulse on stat bar numbers ──
-  function initStatPulse(){{
-    document.querySelectorAll(".lb-sv").forEach(function(el){{
-      setInterval(function(){{
-        el.style.textShadow = "0 0 "+(8+Math.random()*8)+"px currentColor";
-      }}, 1500+Math.random()*1000);
-    }});
-  }}
-
-  // ── Escape key closes fullscreen ──
-  document.addEventListener("keydown",function(e){{
-    if(e.key==="Escape") window.closeLBFullscreen();
+  btn.addEventListener("click",function(){{
+    // Build FS headers if needed
+    var fshr=document.getElementById("lbfshr"+U);
+    if(fshr&&fshr.children.length===0) buildHdr(fshr);
+    // Build FS body
+    var fsb=document.getElementById("lbfsbody"+U);
+    if(fsb) buildBody(fsb,cur);
+    // Move overlay to document.body so it escapes all stacking contexts
+    if(ov.parentElement!==document.body) document.body.appendChild(ov);
+    ov.classList.add("fsactive");
+    document.body.style.overflow="hidden";
+    updHdrs();
   }});
 
-  // Run on DOM ready
-  function run(){{
-    initTable();
-    initNeonScroll();
-    initStatPulse();
+  cls.addEventListener("click",closeFS);
+  document.addEventListener("keydown",function(e){{if(e.key==="Escape")closeFS();}});
+
+  function closeFS(){{
+    ov.classList.remove("fsactive");
+    document.body.style.overflow="";
   }}
-  if(document.readyState==="loading"){{
-    document.addEventListener("DOMContentLoaded",run);
-  }} else {{ run(); }}
+}}
+
+// Boot with retry — handles Streamlit async rendering
+var tries=0;
+function boot(){{
+  var hr=document.getElementById("lbhr"+U);
+  var body=document.getElementById("lbbody"+U);
+  if(!hr||!body){{
+    if(++tries<40) setTimeout(boot,200);
+    return;
+  }}
+  buildHdr(hr);
+  buildBody(body,cur);
+  // also init FS header early
+  var fshr=document.getElementById("lbfshr"+U);
+  if(fshr) buildHdr(fshr);
+  initNeon();
+  initPulse();
+  initFS();
+}}
+boot();
 }})();
 </script>
 """, unsafe_allow_html=True)
