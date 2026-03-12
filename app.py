@@ -1773,7 +1773,7 @@ function makeDraggable(panel, handle) {
 </script>
 """
 
-_stc.html(_FLOATING_HTML, height=0, scrolling=False)
+_stc_panels.html(_FLOATING_HTML, height=0, scrolling=False)
 
 
 # 
