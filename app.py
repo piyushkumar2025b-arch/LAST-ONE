@@ -1831,18 +1831,123 @@ if input_text.strip():
 
     st.markdown(f'<div style="font-family:IBM Plex Mono; font-size:0.7rem; color:var(--gold); margin-bottom:10px">MATCHED COMPOUNDS: {len(display_data)} / {total}</div>', unsafe_allow_html=True)
 
-    #  LEADERBOARD
+    #  LEADERBOARD — ADVANCED UI
     st.markdown("""<div class="sec">
       <span class="sec-num">1</span>
       <span class="sec-title">Compound Leaderboard</span>
       <div class="sec-line"></div>
-      <span class="sec-tag">Ranked by Lead Score</span>
+      <span class="sec-tag">Ranked by Lead Score · Click column header to sort</span>
     </div>""", unsafe_allow_html=True)
+
+    # ── Leaderboard summary stat bar ──
+    _ga = sum(1 for d in display_data if d["Grade"]=="A")
+    _gb = sum(1 for d in display_data if d["Grade"]=="B")
+    _gc2 = sum(1 for d in display_data if d["Grade"]=="C")
+    _gf = sum(1 for d in display_data if d["Grade"]=="F")
+    _avg_lead = sum(d["LeadScore"] for d in display_data) / len(display_data) if display_data else 0
+    _avg_qed  = sum(d["QED"] for d in display_data) / len(display_data) if display_data else 0
+    _bbb_n    = sum(1 for d in display_data if d["_bbb"])
+    _hia_n    = sum(1 for d in display_data if d["_hia"])
+
+    st.markdown(f"""
+<style>
+.lb-wrap{{background:rgba(255,255,255,.015);border:1px solid rgba(232,160,32,.1);border-radius:14px;overflow:hidden;margin-bottom:18px;}}
+.lb-statbar{{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;background:rgba(232,160,32,.06);border-bottom:1px solid rgba(232,160,32,.08);}}
+.lb-sc{{background:#05080f;padding:14px 8px;text-align:center;}}
+.lb-sv{{font-family:'DM Serif Display',serif;font-size:1.55rem;font-weight:400;line-height:1;}}
+.lb-sl{{font-family:'JetBrains Mono',monospace;font-size:.42rem;letter-spacing:2px;color:rgba(200,222,255,.3);margin-top:5px;text-transform:uppercase;}}
+/* Table */
+.lb-tbl{{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;}}
+.lb-tbl th{{padding:10px 12px;text-align:left;font-size:.52rem;letter-spacing:1.5px;text-transform:uppercase;color:rgba(232,160,32,.45);background:#090d18;border-bottom:1px solid rgba(232,160,32,.08);white-space:nowrap;cursor:pointer;user-select:none;}}
+.lb-tbl th:hover{{color:rgba(232,160,32,.8);}}
+.lb-tbl td{{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;font-size:.72rem;white-space:nowrap;}}
+.lb-tbl tr:hover td{{background:rgba(232,160,32,.025);}}
+.lb-id{{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:#e8a020;font-weight:500;}}
+.lb-grade{{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font-family:'DM Serif Display',serif;font-size:.95rem;font-weight:400;}}
+.grA{{background:rgba(52,211,153,.1);color:#34d399;border:1px solid rgba(52,211,153,.25);}}
+.grB{{background:rgba(232,160,32,.1);color:#e8a020;border:1px solid rgba(232,160,32,.25);}}
+.grC{{background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25);}}
+.grD{{background:rgba(251,146,60,.1);color:#fb923c;border:1px solid rgba(251,146,60,.25);}}
+.grF{{background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.25);}}
+.lb-bar-wrap{{width:90px;}}
+.lb-bar-track{{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;}}
+.lb-bar-fill{{height:100%;border-radius:2px;}}
+.lb-barval{{font-size:.62rem;color:rgba(200,222,255,.65);text-align:right;margin-top:2px;}}
+.lb-bool-ok{{color:#34d399;font-size:.85rem;}}
+.lb-bool-no{{color:rgba(200,222,255,.2);font-size:.85rem;}}
+.lb-herg-low{{color:#34d399}}.lb-herg-med{{color:#fbbf24}}.lb-herg-hi{{color:#f87171}}
+.lb-dili-low{{color:#34d399}}.lb-dili-mod{{color:#fbbf24}}.lb-dili-hi{{color:#f87171}}
+.lb-footer{{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;background:#090d18;border-top:1px solid rgba(255,255,255,.03);}}
+.lb-footer-l{{font-family:'JetBrains Mono',monospace;font-size:.52rem;color:rgba(200,222,255,.25);letter-spacing:1px;}}
+.lb-footer-r{{display:flex;gap:14px;}}
+.lb-legend{{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:.52rem;}}
+.lb-dot{{width:6px;height:6px;border-radius:50%;display:inline-block;}}
+</style>
+<div class="lb-wrap">
+<div class="lb-statbar">
+  <div class="lb-sc"><div class="lb-sv" style="color:#e8f0ff">{len(display_data)}</div><div class="lb-sl">Compounds</div></div>
+  <div class="lb-sc"><div class="lb-sv" style="color:#34d399">{_ga}</div><div class="lb-sl">Grade A</div></div>
+  <div class="lb-sc"><div class="lb-sv" style="color:#e8a020">{_avg_lead:.1f}</div><div class="lb-sl">Avg Lead</div></div>
+  <div class="lb-sc"><div class="lb-sv" style="color:#a78bfa">{_avg_qed:.3f}</div><div class="lb-sl">Avg QED</div></div>
+  <div class="lb-sc"><div class="lb-sv" style="color:#34d399">{_hia_n}</div><div class="lb-sl">Good HIA</div></div>
+  <div class="lb-sc"><div class="lb-sv" style="color:#38bdf8">{_bbb_n}</div><div class="lb-sl">BBB Cross</div></div>
+  <div class="lb-sc"><div class="lb-sv" style="color:#f87171">{sum(1 for d in display_data if d["_herg"]=="HIGH")}</div><div class="lb-sl">hERG High</div></div>
+  <div class="lb-sc"><div class="lb-sv" style="color:#fb923c">{sum(1 for d in display_data if d["_pains"])}</div><div class="lb-sl">PAINS Flags</div></div>
+</div>
+<table class="lb-tbl">
+<thead><tr>
+  <th>#</th><th>ID</th><th>Grade</th>
+  <th>Lead Score</th><th>Oral Bio</th><th>QED</th>
+  <th>NP Score</th><th>Stress</th><th>Promiscuity</th>
+  <th>MW</th><th>LogP</th><th>tPSA</th><th>Fsp3</th>
+  <th>SA Score</th><th>Complexity</th><th>CYP Hits</th>
+  <th>Sim</th><th>hERG</th><th>Ames</th>
+  <th>HIA</th><th>BBB</th><th>logS</th><th>CNS MPO</th>
+</tr></thead>
+<tbody>
+""" + "".join([
+    f"""<tr>
+  <td style="color:rgba(200,222,255,.2);font-size:.62rem">{idx+1}</td>
+  <td class="lb-id">{d["ID"]}</td>
+  <td><span class="lb-grade gr{d['Grade']}">{d['Grade']}</span></td>
+  <td><div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:{min(100,d['LeadScore'])}%;background:{'#34d399' if d['LeadScore']>=75 else '#e8a020' if d['LeadScore']>=50 else '#fbbf24' if d['LeadScore']>=25 else '#f87171'}"></div></div><div class="lb-barval">{d['LeadScore']}</div></div></td>
+  <td><div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:{min(100,d['OralBioScore'])}%;background:#60a5fa"></div></div><div class="lb-barval">{d['OralBioScore']}</div></div></td>
+  <td><div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:{d['QED']*100:.0f}%;background:#a78bfa"></div></div><div class="lb-barval">{d['QED']:.3f}</div></div></td>
+  <td><div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:{min(100,d['NP_Score'])}%;background:#c084fc"></div></div><div class="lb-barval">{d['NP_Score']:.1f}</div></div></td>
+  <td><div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:{min(100,d['Stress'])}%;background:{'#f87171' if d['Stress']>60 else '#fbbf24' if d['Stress']>30 else '#34d399'}"></div></div><div class="lb-barval">{d['Stress']:.1f}</div></div></td>
+  <td><div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:{min(100,d['PromiscuityRisk'])}%;background:#f87171"></div></div><div class="lb-barval">{d['PromiscuityRisk']:.0f}</div></div></td>
+  <td style="color:{'#34d399' if d['MW']<500 else '#f87171'}">{d['MW']}</td>
+  <td style="color:{'#34d399' if -1<d['LogP']<5 else '#f87171'}">{d['LogP']:.2f}</td>
+  <td style="color:{'#34d399' if d['tPSA']<90 else '#fbbf24' if d['tPSA']<140 else '#f87171'}">{d['tPSA']:.1f}</td>
+  <td style="color:{'#34d399' if d['Fsp3']>0.25 else '#fbbf24'}">{d['Fsp3']:.2f}</td>
+  <td style="color:{'#34d399' if d['SA_Score']<=3 else '#fbbf24' if d['SA_Score']<=6 else '#f87171'}">{d['SA_Score']:.2f} <span style="font-size:.6rem;opacity:.6">({d['SA_Label']})</span></td>
+  <td style="color:rgba(200,222,255,.65)">{d['Complexity']:.1f}</td>
+  <td style="color:{'#f87171' if d['CYP_Hits']>=3 else '#fbbf24' if d['CYP_Hits']>0 else '#34d399'}">{d['CYP_Hits']}/5</td>
+  <td style="color:{'#34d399' if d['Sim']>0.15 else 'rgba(200,222,255,.4)'}">{d['Sim']:.3f}</td>
+  <td class="lb-herg-{'low' if d['_herg']=='LOW' else 'med' if d['_herg']=='MEDIUM' else 'hi'}">{d['_herg']}</td>
+  <td style="color:{'#34d399' if d['_ames']=='Low Risk' else '#fbbf24' if 'Possible' in d['_ames'] else '#f87171'};font-size:.65rem">{d['_ames'][:12]}</td>
+  <td class="lb-bool-{'ok' if d['_hia'] else 'no'}">{'✓' if d['_hia'] else '✗'}</td>
+  <td class="lb-bool-{'ok' if d['_bbb'] else 'no'}">{'✓' if d['_bbb'] else '✗'}</td>
+  <td style="color:{'#34d399' if isinstance(d['logS'],float) and d['logS']>-2 else '#fbbf24' if isinstance(d['logS'],float) and d['logS']>-4 else '#f87171'}">{d['logS']}</td>
+  <td style="color:{'#34d399' if d['CNS_MPO']>=4 else '#fbbf24'}">{d['CNS_MPO']}/6</td>
+</tr>"""
+    for idx, d in enumerate(sorted(display_data, key=lambda x: x["LeadScore"], reverse=True))
+]) + """
+</tbody></table>
+<div class="lb-footer">
+  <div class="lb-footer-l">SHOWING ALL COLUMNS · RANKED BY LEAD SCORE · HOVER ROW TO HIGHLIGHT</div>
+  <div class="lb-footer-r">
+    <div class="lb-legend"><div class="lb-dot" style="background:#34d399"></div><span style="font-family:'JetBrains Mono',monospace;font-size:.5rem;color:rgba(200,222,255,.3)">Grade A: optimal</span></div>
+    <div class="lb-legend"><div class="lb-dot" style="background:#e8a020"></div><span style="font-family:'JetBrains Mono',monospace;font-size:.5rem;color:rgba(200,222,255,.3)">Grade B: good</span></div>
+    <div class="lb-legend"><div class="lb-dot" style="background:#fbbf24"></div><span style="font-family:'JetBrains Mono',monospace;font-size:.5rem;color:rgba(200,222,255,.3)">Grade C: marginal</span></div>
+    <div class="lb-legend"><div class="lb-dot" style="background:#f87171"></div><span style="font-family:'JetBrains Mono',monospace;font-size:.5rem;color:rgba(200,222,255,.3)">Grade F: fail</span></div>
+  </div>
+</div>
+</div>""", unsafe_allow_html=True)
 
     cols_show=["ID","LeadScore","OralBioScore","NP_Score","Stress","PromiscuityRisk","Grade","QED",
                "SA_Score","Complexity","CYP_Hits","Sim","MW","LogP","tPSA","HIA","BBB"]
     df_show=pd.DataFrame(display_data)[cols_show]
-    st.dataframe(df_show, use_container_width=True, height=min(80+34*total,320))
 
 
     st.markdown("""
