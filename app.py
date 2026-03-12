@@ -539,6 +539,1243 @@ section[data-testid="stSidebar"] label {
 </style>
 """, unsafe_allow_html=True)
 
+# ══════════════════════════════════════════════════════════════════
+#  FLOATING PANELS: Scientific Calculator + Editor + About/Glossary
+# ══════════════════════════════════════════════════════════════════
+import streamlit.components.v1 as _stc_panels
+
+_FLOATING_HTML = """
+<style>
+/* ── FLOATING TRIGGER BUTTONS ── */
+#cf-fab-bar {
+  position:fixed; right:22px; bottom:32px; z-index:99999;
+  display:flex; flex-direction:column; gap:10px; align-items:flex-end;
+}
+.cf-fab {
+  width:48px; height:48px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; font-size:1.2rem; border:none; outline:none;
+  transition:all .22s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 4px 18px rgba(0,0,0,.55);
+  position:relative;
+}
+.cf-fab:hover { transform:scale(1.12); }
+.cf-fab-label {
+  position:absolute; right:56px; top:50%; transform:translateY(-50%);
+  font-family:'JetBrains Mono',monospace; font-size:.48rem; letter-spacing:2px;
+  background:#090d18; color:rgba(232,160,32,.8); border:1px solid rgba(232,160,32,.2);
+  padding:4px 10px; border-radius:3px; white-space:nowrap; opacity:0;
+  transition:opacity .18s; pointer-events:none; text-transform:uppercase;
+}
+.cf-fab:hover .cf-fab-label { opacity:1; }
+#fab-calc { background:linear-gradient(135deg,#0f2a10,#1a4020); color:#34d399; }
+#fab-editor { background:linear-gradient(135deg,#0f1a30,#162040); color:#38bdf8; }
+#fab-about { background:linear-gradient(135deg,#1a100f,#301810); color:#e8a020; }
+
+/* ── SHARED PANEL BASE ── */
+.cf-panel {
+  position:fixed; z-index:99998; background:#05080f;
+  border:1px solid rgba(232,160,32,.18); border-radius:14px;
+  box-shadow:0 24px 80px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.03);
+  display:none; flex-direction:column; overflow:hidden;
+  font-family:'JetBrains Mono',monospace;
+}
+.cf-panel.open { display:flex; animation:panelIn .22s cubic-bezier(.4,0,.2,1) both; }
+@keyframes panelIn { from{opacity:0;transform:scale(.96) translateY(8px)} to{opacity:1;transform:none} }
+
+.cf-panel-hdr {
+  display:flex; align-items:center; gap:10px; padding:12px 16px;
+  background:#090d18; border-bottom:1px solid rgba(232,160,32,.08);
+  flex-shrink:0; cursor:move; user-select:none;
+}
+.cf-panel-title { font-size:.58rem; letter-spacing:3px; flex:1; text-transform:uppercase; }
+.cf-panel-btn {
+  width:22px; height:22px; border-radius:4px; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.7rem; transition:all .15s; background:transparent; color:rgba(200,222,255,.4);
+}
+.cf-panel-btn:hover { background:rgba(255,255,255,.06); color:var(--ice2); }
+.cf-close { color:rgba(248,113,113,.5); }
+.cf-close:hover { background:rgba(248,113,113,.1) !important; color:#f87171 !important; }
+
+/* ════════════════════════════════════
+   SCIENTIFIC CALCULATOR
+════════════════════════════════════ */
+#calc-panel { width:460px; height:680px; bottom:100px; right:90px; }
+#calc-display {
+  background:#030508; padding:14px 16px;
+  border-bottom:1px solid rgba(232,160,32,.06); flex-shrink:0;
+}
+#calc-expr {
+  font-size:.55rem; color:rgba(200,222,255,.3); min-height:14px;
+  letter-spacing:1px; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+#calc-val {
+  font-family:'DM Serif Display',serif; font-size:2.2rem;
+  color:#e8f0ff; text-align:right; letter-spacing:-1px; margin-top:2px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+#calc-hist {
+  font-size:.46rem; color:rgba(200,222,255,.2); text-align:right; margin-top:2px;
+  height:12px; overflow:hidden;
+}
+#calc-tabs {
+  display:flex; gap:0; border-bottom:1px solid rgba(232,160,32,.08); flex-shrink:0;
+}
+.ctab {
+  flex:1; padding:7px 4px; font-size:.44rem; letter-spacing:1.5px; cursor:pointer;
+  color:rgba(200,222,255,.28); text-transform:uppercase; text-align:center;
+  border-bottom:2px solid transparent; transition:all .15s; background:transparent; border-top:none; border-left:none; border-right:none;
+}
+.ctab.active { color:#e8a020; border-bottom-color:rgba(232,160,32,.5); }
+.ctab:hover:not(.active) { color:rgba(200,222,255,.55); }
+#calc-body { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px; }
+#calc-body::-webkit-scrollbar { width:3px; }
+#calc-body::-webkit-scrollbar-thumb { background:rgba(232,160,32,.2); border-radius:2px; }
+.calc-grid { display:grid; gap:5px; }
+.cg-4 { grid-template-columns:repeat(4,1fr); }
+.cg-5 { grid-template-columns:repeat(5,1fr); }
+.cg-6 { grid-template-columns:repeat(6,1fr); }
+.cb {
+  padding:8px 4px; border-radius:6px; border:1px solid rgba(200,222,255,.07);
+  background:#090d18; color:rgba(200,222,255,.75); font-family:'JetBrains Mono',monospace;
+  font-size:.52rem; letter-spacing:.5px; cursor:pointer; text-align:center;
+  transition:all .12s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.cb:hover { background:rgba(200,222,255,.06); border-color:rgba(200,222,255,.18); color:#e8f0ff; }
+.cb:active { transform:scale(.96); }
+.cb.amber { background:rgba(232,160,32,.07); border-color:rgba(232,160,32,.2); color:#e8a020; }
+.cb.amber:hover { background:rgba(232,160,32,.15); color:#f5b942; }
+.cb.green { background:rgba(52,211,153,.07); border-color:rgba(52,211,153,.2); color:#34d399; }
+.cb.green:hover { background:rgba(52,211,153,.15); }
+.cb.red { background:rgba(248,113,113,.07); border-color:rgba(248,113,113,.2); color:#f87171; }
+.cb.red:hover { background:rgba(248,113,113,.15); }
+.cb.cyan { background:rgba(56,189,248,.07); border-color:rgba(56,189,248,.2); color:#38bdf8; }
+.cb.cyan:hover { background:rgba(56,189,248,.15); }
+.cb.violet { background:rgba(167,139,250,.07); border-color:rgba(167,139,250,.2); color:#a78bfa; }
+.cb.violet:hover { background:rgba(167,139,250,.15); }
+.cb.span2 { grid-column:span 2; }
+.cb.span3 { grid-column:span 3; }
+.calc-section-lbl {
+  font-size:.4rem; letter-spacing:3px; color:rgba(232,160,32,.25); text-transform:uppercase;
+  padding:4px 2px 1px; border-bottom:1px solid rgba(232,160,32,.05); margin-bottom:2px;
+}
+
+/* CALC DOWNLOAD */
+#calc-dl-bar {
+  padding:8px 10px; background:#090d18; border-top:1px solid rgba(232,160,32,.06);
+  display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap;
+}
+.cdl { font-size:.42rem; padding:4px 9px; border-radius:4px; border:1px solid rgba(232,160,32,.2); background:rgba(232,160,32,.05); color:rgba(232,160,32,.65); cursor:pointer; transition:all .15s; }
+.cdl:hover { background:rgba(232,160,32,.12); color:#e8a020; }
+
+/* ════════════════════════════════════
+   DOCUMENT EDITOR
+════════════════════════════════════ */
+#editor-panel { width:820px; height:88vh; max-height:800px; bottom:80px; left:50%; transform:translateX(-50%); }
+#editor-menubar {
+  display:flex; gap:0; padding:0 8px; background:#090d18;
+  border-bottom:1px solid rgba(232,160,32,.06); flex-shrink:0;
+}
+.emenu {
+  font-size:.48rem; letter-spacing:.5px; padding:6px 10px; cursor:pointer;
+  color:rgba(200,222,255,.45); transition:all .15s; border-radius:3px;
+  position:relative; background:transparent; border:none;
+}
+.emenu:hover { background:rgba(255,255,255,.04); color:rgba(200,222,255,.8); }
+.emenu-dropdown {
+  display:none; position:absolute; top:100%; left:0; z-index:9;
+  background:#0a0f1e; border:1px solid rgba(232,160,32,.15); border-radius:6px;
+  min-width:160px; padding:4px 0; box-shadow:0 12px 40px rgba(0,0,0,.7);
+}
+.emenu:hover .emenu-dropdown { display:block; }
+.emenu-item {
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:6px 14px; font-size:.48rem; color:rgba(200,222,255,.6); cursor:pointer;
+  transition:background .12s;
+}
+.emenu-item:hover { background:rgba(232,160,32,.07); color:#e8a020; }
+.emenu-sep { height:1px; background:rgba(232,160,32,.07); margin:3px 0; }
+#editor-toolbar {
+  display:flex; align-items:center; gap:2px; padding:6px 10px;
+  background:#090d18; border-bottom:1px solid rgba(232,160,32,.06);
+  flex-wrap:wrap; flex-shrink:0;
+}
+.etb-sep { width:1px; height:18px; background:rgba(200,222,255,.08); margin:0 4px; }
+.etb {
+  width:26px; height:26px; border-radius:4px; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:.72rem;
+  color:rgba(200,222,255,.5); background:transparent; transition:all .12s;
+  position:relative;
+}
+.etb:hover { background:rgba(255,255,255,.06); color:#e8f0ff; }
+.etb.active { background:rgba(232,160,32,.1); color:#e8a020; }
+.etb-tooltip {
+  position:absolute; bottom:calc(100%+4px); left:50%; transform:translateX(-50%);
+  background:#0a0f1e; border:1px solid rgba(232,160,32,.15); border-radius:3px;
+  font-size:.38rem; letter-spacing:1px; color:rgba(200,222,255,.6); padding:2px 6px;
+  white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .12s;
+}
+.etb:hover .etb-tooltip { opacity:1; }
+select.etb-select {
+  background:#090d18; border:1px solid rgba(232,160,32,.12); color:rgba(200,222,255,.6);
+  font-family:'JetBrains Mono',monospace; font-size:.46rem; border-radius:4px;
+  padding:2px 6px; cursor:pointer; outline:none;
+}
+select.etb-select:hover { border-color:rgba(232,160,32,.3); color:#e8a020; }
+#editor-ruler {
+  height:24px; background:#070b16; border-bottom:1px solid rgba(232,160,32,.05);
+  position:relative; flex-shrink:0; padding:0 96px;
+  font-size:.38rem; color:rgba(200,222,255,.2); display:flex; align-items:center;
+  gap:48px; padding-top:14px; overflow:hidden;
+}
+.ruler-mark { position:absolute; bottom:0; width:1px; height:6px; background:rgba(200,222,255,.12); }
+#editor-canvas-wrap {
+  flex:1; overflow-y:auto; background:#0a0d16;
+  display:flex; flex-direction:column; align-items:center; padding:28px 24px;
+}
+#editor-canvas-wrap::-webkit-scrollbar { width:4px; }
+#editor-canvas-wrap::-webkit-scrollbar-thumb { background:rgba(232,160,32,.2); border-radius:3px; }
+#editor-doc {
+  width:660px; min-height:850px; background:#06090f;
+  border:1px solid rgba(232,160,32,.07);
+  box-shadow:0 4px 40px rgba(0,0,0,.5);
+  padding:72px 80px; outline:none; color:#c8deff;
+  font-size:.88rem; line-height:1.8; caret-color:#e8a020;
+  font-family:'Georgia',serif;
+}
+#editor-doc:focus { border-color:rgba(232,160,32,.14); }
+#editor-statusbar {
+  display:flex; align-items:center; gap:16px; padding:5px 12px;
+  background:#090d18; border-top:1px solid rgba(232,160,32,.06);
+  font-size:.4rem; color:rgba(200,222,255,.25); flex-shrink:0;
+}
+#editor-dl-bar {
+  display:flex; gap:5px; padding:7px 10px;
+  background:#070b16; border-top:1px solid rgba(232,160,32,.06); flex-shrink:0; flex-wrap:wrap;
+}
+
+/* ════════════════════════════════════
+   ABOUT / GLOSSARY
+════════════════════════════════════ */
+#about-panel { width:680px; height:78vh; max-height:720px; bottom:90px; right:90px; }
+#about-search-bar { padding:10px 14px; background:#070b16; border-bottom:1px solid rgba(232,160,32,.07); flex-shrink:0; }
+#about-search {
+  width:100%; background:#030508; border:1px solid rgba(232,160,32,.12); border-radius:5px;
+  color:#c8deff; font-family:'JetBrains Mono',monospace; font-size:.6rem; padding:7px 12px;
+  outline:none; caret-color:#e8a020;
+}
+#about-search:focus { border-color:rgba(232,160,32,.3); }
+#about-cats { display:flex; gap:5px; padding:8px 14px; flex-wrap:wrap; border-bottom:1px solid rgba(232,160,32,.06); flex-shrink:0; }
+.acat {
+  font-size:.42rem; padding:3px 9px; border-radius:2px; cursor:pointer;
+  border:1px solid rgba(200,222,255,.08); color:rgba(200,222,255,.35);
+  background:transparent; transition:all .12s;
+}
+.acat.on { border-color:rgba(232,160,32,.35); color:#e8a020; background:rgba(232,160,32,.06); }
+.acat:hover:not(.on) { color:rgba(200,222,255,.65); border-color:rgba(200,222,255,.2); }
+#about-list { flex:1; overflow-y:auto; padding:10px 14px; display:flex; flex-direction:column; gap:3px; }
+#about-list::-webkit-scrollbar { width:3px; }
+#about-list::-webkit-scrollbar-thumb { background:rgba(232,160,32,.2); border-radius:2px; }
+.aterm {
+  display:flex; gap:10px; align-items:flex-start; padding:7px 10px;
+  border-radius:5px; cursor:pointer; transition:background .12s;
+  border-left:2px solid transparent;
+}
+.aterm:hover { background:rgba(232,160,32,.03); }
+.aterm.present { border-left-color:rgba(52,211,153,.5); }
+.aterm.absent { border-left-color:rgba(248,113,113,.25); }
+.aterm-badge {
+  width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-top:4px;
+}
+.aterm-name { font-size:.6rem; color:#c8deff; font-weight:500; flex-shrink:0; min-width:120px; }
+.aterm-desc { font-size:.52rem; color:rgba(200,222,255,.4); line-height:1.5; flex:1; }
+.aterm-status { font-size:.42rem; flex-shrink:0; letter-spacing:1px; }
+.aterm-status.yes { color:#34d399; }
+.aterm-status.no { color:rgba(248,113,113,.5); }
+.about-stats { display:flex; gap:0; border-bottom:1px solid rgba(232,160,32,.06); flex-shrink:0; }
+.ast { flex:1; text-align:center; padding:8px 4px; border-right:1px solid rgba(232,160,32,.05); }
+.ast:last-child { border-right:none; }
+.ast-n { font-family:'DM Serif Display',serif; font-size:1.2rem; color:#e8f0ff; }
+.ast-l { font-size:.38rem; letter-spacing:2px; color:rgba(200,222,255,.25); margin-top:2px; text-transform:uppercase; }
+
+/* ── DRAG ── */
+.dragging { opacity:.92; transition:none !important; }
+</style>
+
+<!-- FAB BUTTONS -->
+<div id="cf-fab-bar">
+  <div class="cf-fab" id="fab-about" onclick="togglePanel('about-panel')">
+    ⬡<span class="cf-fab-label">About & Glossary</span>
+  </div>
+  <div class="cf-fab" id="fab-editor" onclick="togglePanel('editor-panel')">
+    ✎<span class="cf-fab-label">Document Editor</span>
+  </div>
+  <div class="cf-fab" id="fab-calc" onclick="togglePanel('calc-panel')">
+    ⊞<span class="cf-fab-label">Scientific Calculator</span>
+  </div>
+</div>
+
+<!-- ══════════ SCIENTIFIC CALCULATOR ══════════ -->
+<div class="cf-panel" id="calc-panel">
+  <div class="cf-panel-hdr" id="calc-hdr">
+    <span class="cf-panel-title" style="color:#34d399">⊞ Scientific Calculator</span>
+    <button class="cf-panel-btn" onclick="document.getElementById('calc-panel').style.width=(parseInt(document.getElementById('calc-panel').style.width||'460')===460?'280':'460')+'px'" title="Compact">⇔</button>
+    <button class="cf-panel-btn cf-close" onclick="closePanel('calc-panel')">✕</button>
+  </div>
+  <div id="calc-display">
+    <div id="calc-expr"></div>
+    <div id="calc-val">0</div>
+    <div id="calc-hist"></div>
+  </div>
+  <div id="calc-tabs">
+    <button class="ctab active" onclick="showCalcTab('basic',this)">Basic</button>
+    <button class="ctab" onclick="showCalcTab('sci',this)">Science</button>
+    <button class="ctab" onclick="showCalcTab('chem',this)">Chem</button>
+    <button class="ctab" onclick="showCalcTab('stat',this)">Stats</button>
+    <button class="ctab" onclick="showCalcTab('conv',this)">Convert</button>
+    <button class="ctab" onclick="showCalcTab('hist',this)">History</button>
+  </div>
+  <div id="calc-body"></div>
+  <div id="calc-dl-bar">
+    <span class="cdl" onclick="calcDownload('txt')">↓ TXT</span>
+    <span class="cdl" onclick="calcDownload('csv')">↓ CSV</span>
+    <span class="cdl" onclick="calcDownload('json')">↓ JSON</span>
+    <span style="margin-left:auto;font-size:.4rem;color:rgba(200,222,255,.2);align-self:center">300+ functions</span>
+  </div>
+</div>
+
+<!-- ══════════ DOCUMENT EDITOR ══════════ -->
+<div class="cf-panel" id="editor-panel">
+  <div class="cf-panel-hdr" id="editor-hdr">
+    <span style="font-size:.55rem;color:rgba(200,222,255,.5)">📄</span>
+    <input id="editor-title" value="Untitled Research Document"
+      style="background:transparent;border:none;outline:none;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:#c8deff;flex:1;letter-spacing:1px" />
+    <span class="cf-panel-title" style="color:#38bdf8;font-size:.44rem;flex:0">EDITOR</span>
+    <button class="cf-panel-btn cf-close" onclick="closePanel('editor-panel')">✕</button>
+  </div>
+  <div id="editor-menubar">
+    <div class="emenu">File<div class="emenu-dropdown">
+      <div class="emenu-item" onclick="editorDownload('txt')">Save as TXT<span>.txt</span></div>
+      <div class="emenu-item" onclick="editorDownload('html')">Save as HTML<span>.html</span></div>
+      <div class="emenu-item" onclick="editorDownload('md')">Save as Markdown<span>.md</span></div>
+      <div class="emenu-item" onclick="editorDownload('rtf')">Save as RTF<span>.rtf</span></div>
+      <div class="emenu-sep"></div>
+      <div class="emenu-item" onclick="editorPrint()">Print<span>Ctrl+P</span></div>
+    </div></div>
+    <div class="emenu">Edit<div class="emenu-dropdown">
+      <div class="emenu-item" onclick="document.execCommand('undo')">Undo<span>Ctrl+Z</span></div>
+      <div class="emenu-item" onclick="document.execCommand('redo')">Redo<span>Ctrl+Y</span></div>
+      <div class="emenu-sep"></div>
+      <div class="emenu-item" onclick="document.execCommand('selectAll')">Select All<span>Ctrl+A</span></div>
+      <div class="emenu-item" onclick="document.execCommand('copy')">Copy<span>Ctrl+C</span></div>
+      <div class="emenu-item" onclick="document.execCommand('paste')">Paste<span>Ctrl+V</span></div>
+      <div class="emenu-item" onclick="document.execCommand('cut')">Cut<span>Ctrl+X</span></div>
+      <div class="emenu-sep"></div>
+      <div class="emenu-item" onclick="editorFind()">Find & Replace</div>
+    </div></div>
+    <div class="emenu">Format<div class="emenu-dropdown">
+      <div class="emenu-item" onclick="document.execCommand('bold')">Bold<span>Ctrl+B</span></div>
+      <div class="emenu-item" onclick="document.execCommand('italic')">Italic<span>Ctrl+I</span></div>
+      <div class="emenu-item" onclick="document.execCommand('underline')">Underline<span>Ctrl+U</span></div>
+      <div class="emenu-item" onclick="document.execCommand('strikeThrough')">Strikethrough</div>
+      <div class="emenu-sep"></div>
+      <div class="emenu-item" onclick="document.execCommand('justifyLeft')">Align Left</div>
+      <div class="emenu-item" onclick="document.execCommand('justifyCenter')">Align Center</div>
+      <div class="emenu-item" onclick="document.execCommand('justifyRight')">Align Right</div>
+      <div class="emenu-item" onclick="document.execCommand('justifyFull')">Justify</div>
+      <div class="emenu-sep"></div>
+      <div class="emenu-item" onclick="document.execCommand('insertOrderedList')">Numbered List</div>
+      <div class="emenu-item" onclick="document.execCommand('insertUnorderedList')">Bullet List</div>
+    </div></div>
+    <div class="emenu">Insert<div class="emenu-dropdown">
+      <div class="emenu-item" onclick="insertEditorContent('table')">Table</div>
+      <div class="emenu-item" onclick="insertEditorContent('divider')">Horizontal Line</div>
+      <div class="emenu-item" onclick="insertEditorContent('date')">Current Date</div>
+      <div class="emenu-item" onclick="insertEditorContent('pagebreak')">Page Break</div>
+      <div class="emenu-item" onclick="insertEditorContent('smiles')">SMILES Template</div>
+      <div class="emenu-item" onclick="insertEditorContent('admet')">ADMET Summary Block</div>
+    </div></div>
+    <div class="emenu">View<div class="emenu-dropdown">
+      <div class="emenu-item" onclick="editorZoom(1.1)">Zoom In</div>
+      <div class="emenu-item" onclick="editorZoom(0.9)">Zoom Out</div>
+      <div class="emenu-item" onclick="editorZoom(1)">Zoom 100%</div>
+      <div class="emenu-sep"></div>
+      <div class="emenu-item" onclick="toggleEditorDark()">Toggle Theme</div>
+      <div class="emenu-item" onclick="toggleSpellcheck()">Spellcheck</div>
+    </div></div>
+  </div>
+  <div id="editor-toolbar">
+    <select class="etb-select" onchange="document.execCommand('formatBlock',false,this.value)">
+      <option value="p">Paragraph</option>
+      <option value="h1">Heading 1</option>
+      <option value="h2">Heading 2</option>
+      <option value="h3">Heading 3</option>
+      <option value="h4">Heading 4</option>
+      <option value="pre">Code Block</option>
+      <option value="blockquote">Quote</option>
+    </select>
+    <select class="etb-select" id="font-sel" onchange="document.execCommand('fontName',false,this.value)" style="margin-left:4px">
+      <option value="Georgia">Georgia</option>
+      <option value="JetBrains Mono">Mono</option>
+      <option value="Arial">Arial</option>
+      <option value="Times New Roman">Times</option>
+      <option value="Courier New">Courier</option>
+      <option value="Verdana">Verdana</option>
+    </select>
+    <select class="etb-select" id="size-sel" onchange="document.execCommand('fontSize',false,this.value)" style="margin-left:4px">
+      <option value="1">8</option><option value="2">10</option><option value="3" selected>12</option>
+      <option value="4">14</option><option value="5">18</option><option value="6">24</option><option value="7">36</option>
+    </select>
+    <div class="etb-sep"></div>
+    <button class="etb" onclick="document.execCommand('bold')" title="Bold"><b>B</b><span class="etb-tooltip">Bold Ctrl+B</span></button>
+    <button class="etb" onclick="document.execCommand('italic')" title="Italic"><i>I</i><span class="etb-tooltip">Italic Ctrl+I</span></button>
+    <button class="etb" onclick="document.execCommand('underline')"><u>U</u><span class="etb-tooltip">Underline Ctrl+U</span></button>
+    <button class="etb" onclick="document.execCommand('strikeThrough')"><s>S</s><span class="etb-tooltip">Strikethrough</span></button>
+    <button class="etb" onclick="document.execCommand('superscript')">x²<span class="etb-tooltip">Superscript</span></button>
+    <button class="etb" onclick="document.execCommand('subscript')">x₂<span class="etb-tooltip">Subscript</span></button>
+    <div class="etb-sep"></div>
+    <button class="etb" onclick="document.execCommand('justifyLeft')">⬤◌◌<span class="etb-tooltip">Align Left</span></button>
+    <button class="etb" onclick="document.execCommand('justifyCenter')">◌⬤◌<span class="etb-tooltip">Center</span></button>
+    <button class="etb" onclick="document.execCommand('justifyRight')">◌◌⬤<span class="etb-tooltip">Align Right</span></button>
+    <button class="etb" onclick="document.execCommand('justifyFull')">☰<span class="etb-tooltip">Justify</span></button>
+    <div class="etb-sep"></div>
+    <button class="etb" onclick="document.execCommand('insertOrderedList')">1.<span class="etb-tooltip">Numbered List</span></button>
+    <button class="etb" onclick="document.execCommand('insertUnorderedList')">•<span class="etb-tooltip">Bullet List</span></button>
+    <button class="etb" onclick="document.execCommand('indent')">→<span class="etb-tooltip">Indent</span></button>
+    <button class="etb" onclick="document.execCommand('outdent')">←<span class="etb-tooltip">Outdent</span></button>
+    <div class="etb-sep"></div>
+    <button class="etb" title="Text Color" onclick="editorColor('fore')">A<span class="etb-tooltip">Text Color</span></button>
+    <button class="etb" title="Highlight" onclick="editorColor('back')">🖊<span class="etb-tooltip">Highlight</span></button>
+    <input type="color" id="color-picker" style="width:0;height:0;opacity:0;position:absolute" />
+    <div class="etb-sep"></div>
+    <button class="etb" onclick="document.execCommand('removeFormat')">✕<span class="etb-tooltip">Clear Format</span></button>
+    <button class="etb" onclick="editorFind()">⌕<span class="etb-tooltip">Find & Replace</span></button>
+    <div class="etb-sep"></div>
+    <span id="editor-wordcount" style="font-size:.42rem;color:rgba(200,222,255,.25);margin-left:4px">0 words</span>
+  </div>
+  <div id="editor-canvas-wrap">
+    <div id="editor-doc" contenteditable="true" spellcheck="false"
+      onkeyup="updateEditorStats()" oninput="updateEditorStats()"
+      placeholder="Start writing your research document…">
+      <h2 style="color:#e8a020;font-family:'JetBrains Mono',monospace;font-size:1.1rem;border-bottom:1px solid rgba(232,160,32,.12);padding-bottom:8px;margin-bottom:16px">ChemoFilter Research Document</h2>
+      <p style="color:rgba(200,222,255,.5);font-size:.82rem;font-style:italic">Begin your analysis notes here. Use the toolbar above to format your document. Export via File menu when complete.</p>
+    </div>
+  </div>
+  <div id="editor-statusbar">
+    <span id="ed-words">0 words</span>
+    <span>·</span>
+    <span id="ed-chars">0 chars</span>
+    <span>·</span>
+    <span id="ed-lines">0 lines</span>
+    <span>·</span>
+    <span id="ed-zoom">100%</span>
+    <span style="margin-left:auto" id="ed-saved">● Unsaved</span>
+  </div>
+  <div id="editor-dl-bar">
+    <span style="font-size:.42rem;color:rgba(200,222,255,.25);align-self:center;margin-right:4px">Export as:</span>
+    <span class="cdl" onclick="editorDownload('txt')">TXT</span>
+    <span class="cdl" onclick="editorDownload('html')">HTML</span>
+    <span class="cdl" onclick="editorDownload('md')">Markdown</span>
+    <span class="cdl" onclick="editorDownload('rtf')">RTF</span>
+    <span class="cdl" onclick="editorDownload('json')">JSON</span>
+    <span class="cdl" onclick="editorPrint()">🖨 Print/PDF</span>
+  </div>
+</div>
+
+<!-- ══════════ ABOUT / GLOSSARY ══════════ -->
+<div class="cf-panel" id="about-panel">
+  <div class="cf-panel-hdr" id="about-hdr">
+    <span class="cf-panel-title" style="color:#e8a020">⬡ About · Term Glossary</span>
+    <button class="cf-panel-btn cf-close" onclick="closePanel('about-panel')">✕</button>
+  </div>
+  <div class="about-stats">
+    <div class="ast"><div class="ast-n" id="as-total">0</div><div class="ast-l">Terms</div></div>
+    <div class="ast"><div class="ast-n" style="color:#34d399" id="as-present">0</div><div class="ast-l">In ChemoFilter</div></div>
+    <div class="ast"><div class="ast-n" style="color:#f87171" id="as-absent">0</div><div class="ast-l">Not Implemented</div></div>
+    <div class="ast"><div class="ast-n" style="color:#a78bfa" id="as-pct">0%</div><div class="ast-l">Coverage</div></div>
+  </div>
+  <div id="about-search-bar">
+    <input id="about-search" placeholder="Search terms, descriptions…" oninput="filterAbout()" />
+  </div>
+  <div id="about-cats"></div>
+  <div id="about-list"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  ABOUT / GLOSSARY DATA
+// ══════════════════════════════════════════════════
+const TERMS = [
+  // DRUG-LIKENESS
+  {n:"Lipinski Ro5",cat:"Drug-Likeness",present:true,desc:"Rule of Five: MW<500, LogP<5, HBD<5, HBA<10. Predicts oral bioavailability."},
+  {n:"QED",cat:"Drug-Likeness",present:true,desc:"Quantitative Estimate of Drug-likeness (0–1). Bickerton 2012."},
+  {n:"Ghose Filter",cat:"Drug-Likeness",present:true,desc:"MW 160–480, LogP -0.4–5.6, MR 40–130, Atom count 20–70."},
+  {n:"Veber Rule",cat:"Drug-Likeness",present:true,desc:"RotBonds ≤10, tPSA ≤140 for oral absorption. Veber 2002."},
+  {n:"Egan Rule",cat:"Drug-Likeness",present:true,desc:"tPSA ≤131.6, AlogP98 ≤5.88 for passive GI absorption."},
+  {n:"Muegge Filter",cat:"Drug-Likeness",present:true,desc:"MW 200–600, LogP -2–5, tPSA ≤150, rings ≤7, HBD ≤5."},
+  {n:"Oprea Lead Filter",cat:"Drug-Likeness",present:true,desc:"Lead-like properties: MW<460, LogP<4.2, HBD<5, HBA<9."},
+  {n:"Beyond Ro5",cat:"Drug-Likeness",present:true,desc:"Macrocycles and PPI drugs that violate Lipinski but are oral."},
+  {n:"Fsp3",cat:"Drug-Likeness",present:true,desc:"Fraction sp3 carbons. Higher = more 3D character, better development."},
+  {n:"Pfizer 3/75 Rule",cat:"Drug-Likeness",present:true,desc:"LogP<3 and tPSA>75 minimize in vivo toxicity risk."},
+  {n:"GSK 4/400 Rule",cat:"Drug-Likeness",present:true,desc:"LogP<4 and MW<400 for better selectivity and lower risk."},
+  {n:"Lead-likeness",cat:"Drug-Likeness",present:true,desc:"MW<350, LogP<3, HBD<3 — optimal starting point for optimization."},
+  // ADME
+  {n:"HIA",cat:"ADME",present:true,desc:"Human Intestinal Absorption — predicted fraction absorbed via GI tract."},
+  {n:"BBB",cat:"ADME",present:true,desc:"Blood-Brain Barrier penetration. Critical for CNS drug design."},
+  {n:"tPSA",cat:"ADME",present:true,desc:"Topological Polar Surface Area. <90 good absorption, <60 BBB penetration."},
+  {n:"logS (ESOL)",cat:"ADME",present:true,desc:"Estimated aqueous solubility via Delaney ESOL equation."},
+  {n:"Papp (Caco-2)",cat:"ADME",present:true,desc:"Apparent permeability across Caco-2 cell monolayer. Predicted."},
+  {n:"Oral Bioavailability",cat:"ADME",present:true,desc:"Estimated fraction reaching systemic circulation after oral dosing."},
+  {n:"LogD pH 7.4",cat:"ADME",present:false,desc:"Distribution coefficient at physiological pH 7.4. Differs from LogP for ionizable drugs."},
+  {n:"P-gp Substrate",cat:"ADME",present:false,desc:"Whether compound is a P-glycoprotein efflux transporter substrate."},
+  {n:"OATP Substrate",cat:"ADME",present:false,desc:"Organic Anion Transporting Polypeptide substrate prediction."},
+  {n:"First-Pass Effect",cat:"ADME",present:true,desc:"Hepatic metabolism reduction of drug concentration before systemic circulation."},
+  // TOXICOLOGY
+  {n:"hERG Risk",cat:"Toxicology",present:true,desc:"Cardiac channel blockade risk. HIGH = QT prolongation concern. Sanguinetti 2006."},
+  {n:"Ames Test",cat:"Toxicology",present:true,desc:"Mutagenicity screening via Salmonella assay. Predicts genotoxicity. Ames 1975."},
+  {n:"PAINS",cat:"Toxicology",present:true,desc:"Pan-Assay Interference Compounds — false positives in HTS screens. Baell 2010."},
+  {n:"DILI Risk",cat:"Toxicology",present:false,desc:"Drug-Induced Liver Injury prediction. Idiosyncratic hepatotoxicity flags."},
+  {n:"Reactive Metabolites",cat:"Toxicology",present:false,desc:"Electrophilic species from CYP metabolism that alkylate proteins."},
+  {n:"Skin Sensitization",cat:"Toxicology",present:false,desc:"Allergic contact dermatitis potential via Michael acceptors."},
+  {n:"Phospholipidosis",cat:"Toxicology",present:false,desc:"Cationic amphiphilic drug accumulation in lysosomes."},
+  {n:"Genotoxicity",cat:"Toxicology",present:true,desc:"DNA damage potential assessed via structural alerts."},
+  {n:"Nephrotoxicity",cat:"Toxicology",present:false,desc:"Kidney damage prediction based on structural features."},
+  // MOLECULAR PROPERTIES
+  {n:"MW",cat:"Properties",present:true,desc:"Molecular Weight in Daltons. Lipinski: <500 for oral drugs."},
+  {n:"LogP",cat:"Properties",present:true,desc:"Octanol-water partition coefficient — lipophilicity measure."},
+  {n:"HBD",cat:"Properties",present:true,desc:"Hydrogen Bond Donors. Lipinski: ≤5. Counted as N-H + O-H."},
+  {n:"HBA",cat:"Properties",present:true,desc:"Hydrogen Bond Acceptors. Lipinski: ≤10. N + O atoms."},
+  {n:"RotBonds",cat:"Properties",present:true,desc:"Rotatable Bonds — molecular flexibility. Veber: ≤10."},
+  {n:"Rings",cat:"Properties",present:true,desc:"Number of ring systems. More rings = more rigid scaffold."},
+  {n:"Stereocenters",cat:"Properties",present:true,desc:"Chiral centers. More = more complex synthesis and purification."},
+  {n:"Molar Refractivity",cat:"Properties",present:true,desc:"Ghose descriptor: ideally 40–130 for drug-like molecules."},
+  {n:"Labute ASA",cat:"Properties",present:true,desc:"Approximate Surface Area. Useful in lipophilicity/solubility models."},
+  {n:"Mol Volume",cat:"Properties",present:true,desc:"van der Waals volume. Correlates with solubility and binding."},
+  {n:"Polarizability",cat:"Properties",present:true,desc:"Estimated from atom contributions. Affects π-π interactions."},
+  {n:"TPSA/Heavy",cat:"Properties",present:true,desc:"tPSA normalized by heavy atom count."},
+  {n:"Nitrogen Sat %",cat:"Properties",present:true,desc:"Fraction of saturated (sp3) nitrogen atoms. Improves selectivity."},
+  {n:"Heteroatom Ratio",cat:"Properties",present:true,desc:"N+O+S+P / total atoms. Affects aqueous solubility."},
+  {n:"Halogen Ratio",cat:"Properties",present:true,desc:"Halogen count / heavy atoms. Too many halogens = toxicity risk."},
+  // SCORING
+  {n:"Lead Score",cat:"Scoring",present:true,desc:"Composite score (0–100) integrating ADMET, QED, SA, Lipinski, hERG, PAINS."},
+  {n:"Oral Bio Score",cat:"Scoring",present:true,desc:"Predicted oral bioavailability percentage (0–100)."},
+  {n:"NP Score",cat:"Scoring",present:true,desc:"Natural Product-Likeness Score. Ertl 2008. Range: -5 to +5."},
+  {n:"Stress Score",cat:"Scoring",present:true,desc:"Composite pharmacological stress from toxicity, complexity, instability."},
+  {n:"Promiscuity Risk",cat:"Scoring",present:true,desc:"Likelihood of non-specific binding across multiple targets."},
+  {n:"Complexity Score",cat:"Scoring",present:true,desc:"Bertz-inspired index from rings, stereocenters, bridgeheads, spiro."},
+  {n:"CNS MPO",cat:"Scoring",present:true,desc:"CNS Multiparameter Optimization score (0–6). Wager 2010."},
+  {n:"LLE",cat:"Scoring",present:false,desc:"Ligand Lipophilicity Efficiency = pActivity - LogP. Lead optimization metric."},
+  {n:"BEI",cat:"Scoring",present:false,desc:"Binding Efficiency Index = pActivity / MW. Fragment evaluation."},
+  {n:"LE",cat:"Scoring",present:false,desc:"Ligand Efficiency = ΔG / heavy atom count. FBDD optimization."},
+  // METABOLISM
+  {n:"CYP1A2",cat:"Metabolism",present:true,desc:"Cytochrome P450 1A2 — aromatic amines, planar heterocycles substrate."},
+  {n:"CYP2C9",cat:"Metabolism",present:true,desc:"CYP 2C9 — acidic drugs, NSAIDs, warfarin. Major drug-drug interaction."},
+  {n:"CYP2C19",cat:"Metabolism",present:true,desc:"CYP 2C19 — imidazoles, proton pump inhibitors. Polymorphic enzyme."},
+  {n:"CYP2D6",cat:"Metabolism",present:true,desc:"CYP 2D6 — basic N + aromatic ring. Highly polymorphic. 25% drugs."},
+  {n:"CYP3A4",cat:"Metabolism",present:true,desc:"CYP 3A4 — largest lipophilic drugs. ~50% of all marketed drugs."},
+  {n:"N-Dealkylation",cat:"Metabolism",present:true,desc:"Oxidative removal of alkyl from nitrogen. Major Phase I reaction."},
+  {n:"O-Dealkylation",cat:"Metabolism",present:true,desc:"Oxidative removal of alkyl from oxygen. CYP-mediated."},
+  {n:"Glucuronidation",cat:"Metabolism",present:true,desc:"Phase II conjugation of OH, NH, COOH with glucuronic acid via UGT."},
+  {n:"Sulfation",cat:"Metabolism",present:false,desc:"Phase II conjugation via SULT enzymes. High affinity, low capacity."},
+  {n:"Acetylation",cat:"Metabolism",present:false,desc:"Phase II NAT-mediated conjugation of primary amines. Polymorphic."},
+  {n:"Microsomal Stability",cat:"Metabolism",present:false,desc:"Half-life in liver microsomes — predicts hepatic clearance."},
+  {n:"Hepatic ER",cat:"Metabolism",present:false,desc:"Hepatic Extraction Ratio — fraction removed in single liver pass."},
+  // FINGERPRINTS
+  {n:"ECFP4 / Morgan",cat:"Fingerprints",present:true,desc:"Extended Connectivity Fingerprints radius 2 — standard similarity metric. Rogers 2010."},
+  {n:"MACCS Keys",cat:"Fingerprints",present:false,desc:"166-bit structural key fingerprint. MDL/Daylight standard."},
+  {n:"RDKit Fingerprint",cat:"Fingerprints",present:false,desc:"Path-based 2048-bit fingerprint from RDKit."},
+  {n:"FCFP",cat:"Fingerprints",present:false,desc:"Feature-class fingerprints — atom class based (H-bond donor/acceptor etc)."},
+  {n:"Tanimoto Similarity",cat:"Fingerprints",present:true,desc:"Jaccard coefficient for fingerprint similarity comparison (0–1)."},
+  // VISUALIZATION
+  {n:"BOILED-EGG",cat:"Visualization",present:true,desc:"HIA vs BBB plot (tPSA vs WLOGP). White ellipse=HIA, Yolk=BBB. Daina 2016."},
+  {n:"QED Radar",cat:"Visualization",present:true,desc:"Radar chart showing QED sub-property contributions."},
+  {n:"3D Conformer",cat:"Visualization",present:true,desc:"MMFF94-optimized 3D structure rendered via RDKit."},
+  {n:"Scaffold Tree",cat:"Visualization",present:false,desc:"Hierarchical decomposition of scaffolds. Schuffenhauer 2007."},
+  {n:"Murcko Scaffold",cat:"Visualization",present:true,desc:"Core scaffold after removing side chains. Murcko 1996."},
+  // CNS
+  {n:"LogBB",cat:"CNS",present:true,desc:"Estimated log [brain]/[blood] ratio. >-1 = CNS penetrant."},
+  {n:"CNS Likeness",cat:"CNS",present:true,desc:"Combination of BBB, tPSA, LogP, MW for CNS drug suitability."},
+  {n:"P-gp Efflux",cat:"CNS",present:false,desc:"Blood-brain barrier efflux by P-glycoprotein. Reduces CNS exposure."},
+  {n:"Brain ER",cat:"CNS",present:false,desc:"Brain Extraction Ratio. In vivo metric for CNS penetration."},
+  // ANALYSIS
+  {n:"SAR",cat:"Analysis",present:true,desc:"Structure-Activity Relationship — how structural changes affect activity."},
+  {n:"QSAR",cat:"Analysis",present:true,desc:"Quantitative SAR — mathematical models of structure vs activity."},
+  {n:"Cluster Analysis",cat:"Analysis",present:true,desc:"Grouping compounds by structural/property similarity."},
+  {n:"IP Scout",cat:"Analysis",present:true,desc:"Intellectual property freedom-to-operate and novelty analysis."},
+  {n:"Drug Repurposing",cat:"Analysis",present:true,desc:"Finding new therapeutic uses for existing approved drugs."},
+  {n:"Matched Molecular Pairs",cat:"Analysis",present:false,desc:"Pairs of compounds differing by single transformation. SAR tool."},
+  {n:"Activity Cliff",cat:"Analysis",present:false,desc:"Pairs of similar compounds with large potency differences."},
+  {n:"Free-Wilson",cat:"Analysis",present:false,desc:"Additive substituent contribution QSAR model. Free 1964."},
+  // PHYSICAL CHEMISTRY
+  {n:"pKa",cat:"Physical Chem",present:true,desc:"Acid/base dissociation constant. Affects ionization at physiological pH."},
+  {n:"Zwitterion",cat:"Physical Chem",present:true,desc:"Molecule with both positive and negative charges at physiological pH."},
+  {n:"Ionization State",cat:"Physical Chem",present:true,desc:"Predicted charge state at pH 7.4 (Henderson-Hasselbalch)."},
+  {n:"Solubility Class",cat:"Physical Chem",present:true,desc:"BCS-based classification: High (>1mg/mL), Low (<1mg/mL)."},
+  {n:"Crystal Packing",cat:"Physical Chem",present:false,desc:"Solid-state arrangement affecting dissolution and polymorphism."},
+  {n:"Polymorphism",cat:"Physical Chem",present:false,desc:"Multiple crystal forms — can affect bioavailability dramatically."},
+  // CHEMINFORMATICS
+  {n:"Kappa Indices",cat:"Cheminformatics",present:true,desc:"Shape descriptors κ1, κ2, κ3 from Hall & Kier. Encode molecular flexibility."},
+  {n:"Wiener Index",cat:"Cheminformatics",present:true,desc:"Topological descriptor: sum of shortest-path distances. Wiener 1947."},
+  {n:"Balaban J",cat:"Cheminformatics",present:false,desc:"Highly discriminating topological index. Balaban 1982."},
+  {n:"Chi Indices",cat:"Cheminformatics",present:true,desc:"Connectivity indices χ0–χ3 encoding path lengths and branching."},
+  {n:"Estrada Index",cat:"Cheminformatics",present:false,desc:"Protein folding index from spectral graph theory."},
+  {n:"SMILES",cat:"Cheminformatics",present:true,desc:"Simplified Molecular Input Line Entry System. Weininger 1988."},
+  {n:"InChI",cat:"Cheminformatics",present:false,desc:"IUPAC International Chemical Identifier — canonical descriptor."},
+  // STRUCTURAL
+  {n:"Bridgehead Atoms",cat:"Structural",present:true,desc:"Atoms shared between two or more rings — affects rigidity."},
+  {n:"Spiro Atoms",cat:"Structural",present:true,desc:"Atoms shared between exactly two rings via single atom. Increases 3D."},
+  {n:"Macrocycle",cat:"Structural",present:true,desc:"Ring with ≥10 atoms. Beyond Ro5 space. Driggers 2008."},
+  {n:"Atropisomerism",cat:"Structural",present:false,desc:"Restricted rotation stereoisomerism in biaryl systems."},
+  {n:"Axial Chirality",cat:"Structural",present:false,desc:"Chirality from restricted rotation — not classical stereocenters."},
+  // FRAGMENT
+  {n:"Fragment-Based",cat:"FBDD",present:true,desc:"Lead discovery from small fragments (MW<300). Murray 2009."},
+  {n:"Rule of Three",cat:"FBDD",present:true,desc:"Fragment criteria: MW<300, LogP<3, HBD≤3, HBA≤3. Congreve 2003."},
+  {n:"Bioisostere",cat:"FBDD",present:true,desc:"Structural replacements with similar biological activity. Meanwell 2011."},
+  {n:"Exit Vectors",cat:"FBDD",present:false,desc:"Attachment points for scaffold decoration in FBDD."},
+  // PHARMACOPHORE
+  {n:"Pharmacophore",cat:"Pharmacophore",present:false,desc:"3D arrangement of features essential for biological activity."},
+  {n:"H-Bond Acceptor",cat:"Pharmacophore",present:true,desc:"Lone pair donor atoms (N, O) for hydrogen bonding."},
+  {n:"H-Bond Donor",cat:"Pharmacophore",present:true,desc:"NH, OH groups that donate hydrogen bonds."},
+  {n:"Hydrophobic Center",cat:"Pharmacophore",present:false,desc:"Lipophilic regions for hydrophobic interactions in binding site."},
+  {n:"Aromatic Ring",cat:"Pharmacophore",present:true,desc:"π-stacking and edge-to-face interactions with protein aromatic residues."},
+  // AI/ML
+  {n:"Graph Neural Net",cat:"AI/ML",present:false,desc:"GNN-based molecular property prediction. Gilmer 2017."},
+  {n:"Transformer (BERT)",cat:"AI/ML",present:false,desc:"Attention-based model for SMILES/protein sequence learning."},
+  {n:"AlphaFold2",cat:"AI/ML",present:false,desc:"Structure prediction from sequence. Jumper 2021. Nature."},
+  {n:"Generative Model",cat:"AI/ML",present:false,desc:"VAE/GAN/diffusion for de novo molecular generation."},
+  {n:"Active Learning",cat:"AI/ML",present:false,desc:"Iterative ML loop prioritizing informative experimental datapoints."},
+  {n:"Transfer Learning",cat:"AI/ML",present:false,desc:"Pre-trained models adapted to smaller drug-discovery datasets."},
+];
+
+// Categories
+const ABOUT_CATS = [...new Set(TERMS.map(t=>t.cat))];
+let aboutFilter = '';
+let aboutCatFilter = 'All';
+
+function buildAbout() {
+  const catDiv = document.getElementById('about-cats');
+  const allBtn = document.createElement('button');
+  allBtn.className='acat on'; allBtn.textContent='All';
+  allBtn.onclick = ()=>{aboutCatFilter='All'; updateCatBtns(allBtn); renderAbout();};
+  catDiv.appendChild(allBtn);
+  ABOUT_CATS.forEach(cat=>{
+    const b = document.createElement('button');
+    b.className='acat'; b.textContent=cat;
+    b.onclick = ()=>{aboutCatFilter=cat; updateCatBtns(b); renderAbout();};
+    catDiv.appendChild(b);
+  });
+  updateAboutStats();
+  renderAbout();
+}
+
+function updateCatBtns(active) {
+  document.querySelectorAll('.acat').forEach(b=>b.classList.remove('on'));
+  active.classList.add('on');
+}
+
+function updateAboutStats() {
+  const present = TERMS.filter(t=>t.present).length;
+  const absent = TERMS.length - present;
+  document.getElementById('as-total').textContent = TERMS.length;
+  document.getElementById('as-present').textContent = present;
+  document.getElementById('as-absent').textContent = absent;
+  document.getElementById('as-pct').textContent = Math.round(present/TERMS.length*100)+'%';
+}
+
+function filterAbout() {
+  aboutFilter = document.getElementById('about-search').value.toLowerCase();
+  renderAbout();
+}
+
+function renderAbout() {
+  const list = document.getElementById('about-list');
+  const filtered = TERMS.filter(t=>{
+    const matchCat = aboutCatFilter==='All' || t.cat===aboutCatFilter;
+    const matchSearch = !aboutFilter || t.n.toLowerCase().includes(aboutFilter) || t.desc.toLowerCase().includes(aboutFilter) || t.cat.toLowerCase().includes(aboutFilter);
+    return matchCat && matchSearch;
+  });
+  list.innerHTML = filtered.map(t=>`
+    <div class="aterm ${t.present?'present':'absent'}">
+      <div class="aterm-badge" style="background:${t.present?'#34d399':'rgba(248,113,113,.4)'}"></div>
+      <div class="aterm-name">${t.n}</div>
+      <div class="aterm-desc">${t.desc}</div>
+      <div class="aterm-status ${t.present?'yes':'no'}">${t.present?'✓ LIVE':'✗ PLANNED'}</div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════
+//  CALCULATOR ENGINE
+// ══════════════════════════════════════════════════
+let calcExpr = '';
+let calcResult = 0;
+let calcHistory = [];
+let calcMemory = 0;
+let calcTab = 'basic';
+let calcEditing = false;
+let deg = true; // degrees mode
+
+function setCalcDisplay() {
+  document.getElementById('calc-expr').textContent = calcExpr || '';
+  document.getElementById('calc-val').textContent = calcResult !== undefined ? String(calcResult).slice(0,18) : '0';
+  if (calcHistory.length) {
+    document.getElementById('calc-hist').textContent = '↑ ' + calcHistory[calcHistory.length-1];
+  }
+}
+
+function calcPress(v) {
+  const ops = ['+','-','×','÷','^','%','(',')','.','E'];
+  if (!calcEditing && !ops.includes(v)) {
+    calcExpr = '';
+    calcEditing = true;
+  }
+  calcExpr += v;
+  document.getElementById('calc-expr').textContent = calcExpr;
+}
+
+function calcEval() {
+  try {
+    let expr = calcExpr
+      .replace(/×/g,'*').replace(/÷/g,'/')
+      .replace(/π/g, String(Math.PI))
+      .replace(/e(?![0-9])/g, String(Math.E))
+      .replace(/\^/g,'**')
+      .replace(/sin\(/g, deg?'Math.sin(Math.PI/180*':'Math.sin(')
+      .replace(/cos\(/g, deg?'Math.cos(Math.PI/180*':'Math.cos(')
+      .replace(/tan\(/g, deg?'Math.tan(Math.PI/180*':'Math.tan(')
+      .replace(/asin\(/g, deg?'(180/Math.PI*Math.asin(':'Math.asin(')
+      .replace(/acos\(/g, deg?'(180/Math.PI*Math.acos(':'Math.acos(')
+      .replace(/atan\(/g, deg?'(180/Math.PI*Math.atan(':'Math.atan(')
+      .replace(/sinh\(/g,'Math.sinh(').replace(/cosh\(/g,'Math.cosh(').replace(/tanh\(/g,'Math.tanh(')
+      .replace(/log\(/g,'Math.log10(').replace(/ln\(/g,'Math.log(')
+      .replace(/sqrt\(/g,'Math.sqrt(').replace(/cbrt\(/g,'Math.cbrt(')
+      .replace(/abs\(/g,'Math.abs(').replace(/ceil\(/g,'Math.ceil(')
+      .replace(/floor\(/g,'Math.floor(').replace(/round\(/g,'Math.round(')
+      .replace(/exp\(/g,'Math.exp(').replace(/sign\(/g,'Math.sign(')
+      .replace(/max\(/g,'Math.max(').replace(/min\(/g,'Math.min(')
+      .replace(/pow\(/g,'Math.pow(').replace(/log2\(/g,'Math.log2(')
+      .replace(/fac\((\d+)\)/g,(_,n)=>factorial(parseInt(n)))
+      .replace(/nPr\((\d+),(\d+)\)/g,(_,n,r)=>permutation(parseInt(n),parseInt(r)))
+      .replace(/nCr\((\d+),(\d+)\)/g,(_,n,r)=>combination(parseInt(n),parseInt(r)));
+    const result = Function('"use strict"; return (' + expr + ')')();
+    if (!isFinite(result)) throw new Error('Infinity');
+    calcResult = Math.round(result * 1e12) / 1e12;
+    calcHistory.push(calcExpr + ' = ' + calcResult);
+    if (calcHistory.length > 50) calcHistory.shift();
+    calcEditing = false;
+    setCalcDisplay();
+  } catch(e) {
+    calcResult = 'Error';
+    setCalcDisplay();
+    setTimeout(()=>{calcResult=0;calcEditing=false;setCalcDisplay();},1200);
+  }
+}
+
+function calcClear() { calcExpr=''; calcResult=0; calcEditing=false; setCalcDisplay(); }
+function calcBack() { calcExpr=calcExpr.slice(0,-1); document.getElementById('calc-expr').textContent=calcExpr; }
+function calcFn(fn) {
+  const closeParen = ['sin(','cos(','tan(','asin(','acos(','atan(','sinh(','cosh(','tanh(',
+    'log(','ln(','sqrt(','cbrt(','abs(','ceil(','floor(','round(','exp(','log2('];
+  calcExpr += fn;
+  document.getElementById('calc-expr').textContent = calcExpr;
+}
+function calcConst(c) { calcExpr += c; document.getElementById('calc-expr').textContent = calcExpr; }
+function calcMem(op) {
+  if(op==='MS') { calcMemory = parseFloat(calcResult)||0; document.getElementById('calc-hist').textContent='M = '+calcMemory; }
+  else if(op==='MR') { calcExpr += calcMemory; document.getElementById('calc-expr').textContent = calcExpr; }
+  else if(op==='M+') { calcMemory += parseFloat(calcResult)||0; document.getElementById('calc-hist').textContent='M = '+calcMemory; }
+  else if(op==='MC') { calcMemory=0; document.getElementById('calc-hist').textContent='Memory cleared'; }
+}
+function toggleDeg() {
+  deg = !deg;
+  document.getElementById('calc-hist').textContent = 'Mode: ' + (deg?'DEG':'RAD');
+}
+function factorial(n) { if(n<0||n>170) return 'Error'; let r=1; for(let i=2;i<=n;i++) r*=i; return r; }
+function permutation(n,r) { return factorial(n)/factorial(n-r); }
+function combination(n,r) { return factorial(n)/(factorial(r)*factorial(n-r)); }
+
+// Chem-specific calculations
+function calcChemFn(fn) {
+  try {
+    let r, expr='';
+    const v = parseFloat(calcResult)||0;
+    switch(fn) {
+      case 'mw2logbb': r=0.0148*v-1.026; expr=`LogBB(MW=${v})`; break;
+      case 'logp2cns': r=v>5?'Poor':v>3?'Moderate':'Good CNS'; expr=`CNS(LogP=${v})`; break;
+      case 'esol': r=0.16-0.63*v; expr=`ESOL(LogP=${v})`; break;
+      case 'lle': const logp2=parseFloat(prompt('LogP?')||0); r=v-logp2; expr=`LLE(pAct=${v},LogP=${logp2})`; break;
+      case 'mpo6':
+        const mw=parseFloat(prompt('MW?')||300);
+        const lp=parseFloat(prompt('LogP?')||2);
+        const tp=parseFloat(prompt('tPSA?')||70);
+        const hbd=parseFloat(prompt('HBD?')||1);
+        const pd=parseFloat(prompt('pKa_basic?')||8);
+        const lr=parseFloat(prompt('logD?')||1);
+        let mpo=0;
+        if(mw<=360) mpo++; if(lp<=3) mpo++; if(tp>=40&&tp<=90) mpo++;
+        if(hbd<=0.5) mpo++; if(pd<=8) mpo++; if(lr<=1) mpo++;
+        r=mpo+'/6'; expr='CNS MPO score';
+        break;
+      case 'hba': r=Math.round(v/14); expr=`Est HBA from MW=${v}`; break;
+      case 'bsa': r=(0.007184*Math.pow(v,0.425)*Math.pow(parseFloat(prompt('Height(cm)?')||170),0.725)).toFixed(2); expr=`BSA(Wt=${v}kg)`; break;
+      case 'dosing': r=(v*parseFloat(prompt('Body weight kg?')||70)).toFixed(1); expr=`Dose(${v}mg/kg)`; break;
+      case 'halflife': r=(0.693/v).toFixed(4); expr=`t½(kel=${v})`; break;
+      case 'vd': r=(v*parseFloat(prompt('AUC (mg·h/L)?')||1)).toFixed(2); expr=`Vd calc`; break;
+      case 'cl': r=(0.693*parseFloat(prompt('Vd (L)?')||10)/v).toFixed(3); expr=`CL(t½=${v}h)`; break;
+      case 'bioav': r=((v/parseFloat(prompt('IV AUC?')||1))*100).toFixed(1)+'%'; expr='Bioavailability'; break;
+      case 'ppb': r=(v/(v+parseFloat(prompt('fu?')||0.1))).toFixed(3); expr='PPB ratio'; break;
+      case 'qed': r=Math.min(1,Math.max(0,(0.67-0.0015*v))).toFixed(3); expr=`Est QED(MW=${v})`; break;
+      case 'bmi': const ht=parseFloat(prompt('Height (m)?')||1.7); r=(v/ht/ht).toFixed(1); expr=`BMI(Wt=${v}kg)`; break;
+      default: r='?'; expr=fn;
+    }
+    calcResult=r; calcExpr=expr;
+    calcHistory.push(expr+' = '+r);
+    setCalcDisplay();
+  } catch(e) { calcResult='Error'; setCalcDisplay(); }
+}
+
+// Statistics
+let statData = [];
+function calcStatFn(fn) {
+  try {
+    let r, expr=fn;
+    if(fn==='push') {
+      statData.push(parseFloat(calcResult)||0);
+      r='n='+statData.length+' Σ='+statData.reduce((a,b)=>a+b,0).toFixed(3);
+      expr='Push: '+calcResult;
+    } else if(fn==='clear_data') {
+      statData=[]; r='Cleared'; expr='Data cleared';
+    } else {
+      if(!statData.length) { alert('Push data first (use n button)'); return; }
+      const n=statData.length;
+      const sum=statData.reduce((a,b)=>a+b,0);
+      const mean=sum/n;
+      const sorted=[...statData].sort((a,b)=>a-b);
+      const variance=statData.reduce((a,b)=>a+(b-mean)**2,0)/n;
+      switch(fn) {
+        case 'mean': r=mean.toFixed(6); expr='Mean'; break;
+        case 'median': r=n%2?sorted[~~(n/2)]:((sorted[n/2-1]+sorted[n/2])/2).toFixed(6); expr='Median'; break;
+        case 'mode': const freq={}; sorted.forEach(v=>{freq[v]=(freq[v]||0)+1;}); const mx=Math.max(...Object.values(freq)); r=Object.keys(freq).filter(k=>freq[k]===mx).join(', '); expr='Mode'; break;
+        case 'std': r=Math.sqrt(variance).toFixed(6); expr='StdDev (pop)'; break;
+        case 'var': r=variance.toFixed(6); expr='Variance'; break;
+        case 'min': r=sorted[0]; expr='Min'; break;
+        case 'max': r=sorted[n-1]; expr='Max'; break;
+        case 'range': r=(sorted[n-1]-sorted[0]).toFixed(6); expr='Range'; break;
+        case 'sum': r=sum.toFixed(6); expr='Sum'; break;
+        case 'n': r=n; expr='Count'; break;
+        case 'q1': r=sorted[Math.floor(n*0.25)]; expr='Q1 (25th pct)'; break;
+        case 'q3': r=sorted[Math.floor(n*0.75)]; expr='Q3 (75th pct)'; break;
+        case 'iqr': r=(sorted[Math.floor(n*0.75)]-sorted[Math.floor(n*0.25)]).toFixed(6); expr='IQR'; break;
+        case 'sem': r=(Math.sqrt(variance)/Math.sqrt(n)).toFixed(6); expr='SEM'; break;
+        case 'cv': r=((Math.sqrt(variance)/Math.abs(mean))*100).toFixed(2)+'%'; expr='CV%'; break;
+        case 'skew': const s3=statData.reduce((a,b)=>a+Math.pow((b-mean)/Math.sqrt(variance),3),0)/n; r=s3.toFixed(4); expr='Skewness'; break;
+        case 'kurt': const s4=statData.reduce((a,b)=>a+Math.pow((b-mean)/Math.sqrt(variance),4),0)/n-3; r=s4.toFixed(4); expr='Excess Kurtosis'; break;
+        case 'geo': r=Math.pow(statData.reduce((a,b)=>a*b,1),1/n).toFixed(6); expr='Geometric Mean'; break;
+        case 'har': r=(n/statData.reduce((a,b)=>a+1/b,0)).toFixed(6); expr='Harmonic Mean'; break;
+        case 'rms': r=Math.sqrt(statData.reduce((a,b)=>a+b*b,0)/n).toFixed(6); expr='RMS'; break;
+        default: r='?';
+      }
+    }
+    calcResult=r; calcExpr=expr;
+    calcHistory.push(expr+' = '+r);
+    setCalcDisplay();
+  } catch(e) { calcResult='Error'; setCalcDisplay(); }
+}
+
+// Conversions
+function calcConvert(from,to,factor) {
+  calcResult = (parseFloat(calcResult)||0) * factor;
+  calcExpr = from + '→' + to;
+  calcHistory.push(calcExpr+' = '+calcResult);
+  setCalcDisplay();
+}
+
+// Tab rendering
+const CALC_TABS = {
+  basic: ()=>`
+    <div class="calc-section-lbl">Memory</div>
+    <div class="calc-grid cg-4">
+      ${['MC','MR','M+','MS'].map(b=>`<button class="cb amber" onclick="calcMem('${b}')">${b}</button>`).join('')}
+    </div>
+    <div class="calc-section-lbl">Basic</div>
+    <div class="calc-grid cg-4">
+      ${['C','⌫','%','÷'].map((b,i)=>`<button class="cb ${i<2?'red':'amber'}" onclick="${b==='C'?'calcClear()':b==='⌫'?'calcBack()':b==='%'?'calcPress(\\'%\\')':'calcPress(\\'÷\\')'}">${b}</button>`).join('')}
+      ${['7','8','9','×'].map(b=>`<button class="cb ${b==='×'?'amber':''}" onclick="calcPress('${b}')">${b}</button>`).join('')}
+      ${['4','5','6','-'].map(b=>`<button class="cb ${b==='-'?'amber':''}" onclick="calcPress('${b}')">${b}</button>`).join('')}
+      ${['1','2','3','+'].map(b=>`<button class="cb ${b==='+'?'amber':''}" onclick="calcPress('${b}')">${b}</button>`).join('')}
+      <button class="cb span2" onclick="calcPress('0')">0</button>
+      <button class="cb" onclick="calcPress('.')">.</button>
+      <button class="cb green" onclick="calcEval()">=</button>
+    </div>
+    <div class="calc-section-lbl">Quick Ops</div>
+    <div class="calc-grid cg-4">
+      <button class="cb cyan" onclick="calcExpr=String(-parseFloat(calcResult));setCalcDisplay()">±</button>
+      <button class="cb cyan" onclick="calcExpr=String(1/(parseFloat(calcResult)||1));calcEval()">1/x</button>
+      <button class="cb cyan" onclick="calcExpr=String(Math.pow(parseFloat(calcResult),2));calcEval()">x²</button>
+      <button class="cb cyan" onclick="calcFn('sqrt(')">√</button>
+      <button class="cb violet" onclick="calcPress('('">(</button>
+      <button class="cb violet" onclick="calcPress(')')">)</button>
+      <button class="cb violet" onclick="calcPress('^')">xʸ</button>
+      <button class="cb violet" onclick="calcFn('fac(')">n!</button>
+    </div>`,
+  sci: ()=>`
+    <div class="calc-section-lbl">Mode & Constants</div>
+    <div class="calc-grid cg-4">
+      <button class="cb amber" onclick="toggleDeg()" id="deg-btn">DEG</button>
+      <button class="cb cyan" onclick="calcConst('π')">π</button>
+      <button class="cb cyan" onclick="calcConst('e')">e</button>
+      <button class="cb cyan" onclick="calcConst('φ')">φ=1.618</button>
+    </div>
+    <div class="calc-section-lbl">Trigonometry</div>
+    <div class="calc-grid cg-3">
+      ${['sin(','cos(','tan(','asin(','acos(','atan(','sinh(','cosh(','tanh('].map(f=>`<button class="cb cyan" onclick="calcFn('${f}')">${f.replace('(','')}</button>`).join('')}
+    </div>
+    <div class="calc-section-lbl">Logarithms & Exponentials</div>
+    <div class="calc-grid cg-4">
+      <button class="cb green" onclick="calcFn('log(')">log₁₀</button>
+      <button class="cb green" onclick="calcFn('ln(')">ln</button>
+      <button class="cb green" onclick="calcFn('log2(')">log₂</button>
+      <button class="cb green" onclick="calcFn('exp(')">eˣ</button>
+      <button class="cb green" onclick="calcExpr='10^('+calcExpr+')';calcEval()">10ˣ</button>
+      <button class="cb green" onclick="calcFn('cbrt(')">∛x</button>
+      <button class="cb green" onclick="calcFn('abs(')">|x|</button>
+      <button class="cb green" onclick="calcEval()">=</button>
+    </div>
+    <div class="calc-section-lbl">Rounding & Special</div>
+    <div class="calc-grid cg-4">
+      ${['ceil(','floor(','round(','sign('].map(f=>`<button class="cb violet" onclick="calcFn('${f}')">${f.split('(')[0]}</button>`).join('')}
+      <button class="cb violet" onclick="calcFn('max(')">max</button>
+      <button class="cb violet" onclick="calcFn('min(')">min</button>
+      <button class="cb violet" onclick="calcFn('pow(')">pow</button>
+      <button class="cb violet" onclick="calcFn('nCr(')">nCr</button>
+      <button class="cb violet" onclick="calcFn('nPr(')">nPr</button>
+      <button class="cb violet" onclick="calcPress('E')">EE</button>
+      <button class="cb amber" onclick="calcClear()">C</button>
+      <button class="cb green" onclick="calcEval()">=</button>
+    </div>`,
+  chem: ()=>`
+    <div class="calc-section-lbl">Pharmacokinetics</div>
+    <div class="calc-grid cg-3">
+      <button class="cb cyan" onclick="calcChemFn('halflife')">t½ from kel</button>
+      <button class="cb cyan" onclick="calcChemFn('cl')">Clearance</button>
+      <button class="cb cyan" onclick="calcChemFn('vd')">Vol Dist</button>
+      <button class="cb cyan" onclick="calcChemFn('bioav')">Bioavail %</button>
+      <button class="cb cyan" onclick="calcChemFn('dosing')">Dose (mg)</button>
+      <button class="cb cyan" onclick="calcChemFn('ppb')">PPB ratio</button>
+    </div>
+    <div class="calc-section-lbl">Drug-Likeness Estimators</div>
+    <div class="calc-grid cg-3">
+      <button class="cb green" onclick="calcChemFn('esol')">ESOL logS</button>
+      <button class="cb green" onclick="calcChemFn('qed')">Est QED</button>
+      <button class="cb green" onclick="calcChemFn('lle')">LLE score</button>
+      <button class="cb green" onclick="calcChemFn('mw2logbb')">LogBB(MW)</button>
+      <button class="cb green" onclick="calcChemFn('logp2cns')">CNS(LogP)</button>
+      <button class="cb green" onclick="calcChemFn('mpo6')">CNS MPO</button>
+    </div>
+    <div class="calc-section-lbl">Physiological</div>
+    <div class="calc-grid cg-3">
+      <button class="cb violet" onclick="calcChemFn('bsa')">BSA (DuBois)</button>
+      <button class="cb violet" onclick="calcChemFn('bmi')">BMI</button>
+      <button class="cb violet" onclick="calcChemFn('hba')">Est HBA</button>
+    </div>
+    <div class="calc-section-lbl">Numeric Entry</div>
+    <div class="calc-grid cg-4">
+      ${['7','8','9','C'].map(b=>`<button class="cb ${b==='C'?'red':''}" onclick="${b==='C'?'calcClear()':'calcPress(\\''+b+'\\')' }">${b}</button>`).join('')}
+      ${['4','5','6','.'].map(b=>`<button class="cb" onclick="calcPress('${b}')">${b}</button>`).join('')}
+      ${['1','2','3','0'].map(b=>`<button class="cb" onclick="calcPress('${b}')">${b}</button>`).join('')}
+      <button class="cb red" onclick="calcBack()">⌫</button>
+      <button class="cb span2 green" onclick="calcEval()">=</button>
+      <button class="cb amber" onclick="calcFn('-')">±</button>
+    </div>`,
+  stat: ()=>`
+    <div class="calc-section-lbl">Data Entry (push current result)</div>
+    <div class="calc-grid cg-4">
+      <button class="cb amber span2" onclick="calcStatFn('push')">n↑ Push value</button>
+      <button class="cb red" onclick="calcStatFn('clear_data')">Clear data</button>
+      <button class="cb cyan" onclick="calcStatFn('n')">Count n</button>
+    </div>
+    <div class="calc-section-lbl">Central Tendency</div>
+    <div class="calc-grid cg-4">
+      <button class="cb green" onclick="calcStatFn('mean')">Mean x̄</button>
+      <button class="cb green" onclick="calcStatFn('median')">Median</button>
+      <button class="cb green" onclick="calcStatFn('mode')">Mode</button>
+      <button class="cb green" onclick="calcStatFn('geo')">Geo Mean</button>
+      <button class="cb green" onclick="calcStatFn('har')">Harm Mean</button>
+      <button class="cb green" onclick="calcStatFn('rms')">RMS</button>
+    </div>
+    <div class="calc-section-lbl">Dispersion</div>
+    <div class="calc-grid cg-4">
+      <button class="cb cyan" onclick="calcStatFn('std')">Std Dev σ</button>
+      <button class="cb cyan" onclick="calcStatFn('var')">Variance</button>
+      <button class="cb cyan" onclick="calcStatFn('sem')">SEM</button>
+      <button class="cb cyan" onclick="calcStatFn('cv')">CV %</button>
+      <button class="cb cyan" onclick="calcStatFn('range')">Range</button>
+      <button class="cb cyan" onclick="calcStatFn('iqr')">IQR</button>
+    </div>
+    <div class="calc-section-lbl">Quantiles & Shape</div>
+    <div class="calc-grid cg-4">
+      <button class="cb violet" onclick="calcStatFn('min')">Min</button>
+      <button class="cb violet" onclick="calcStatFn('max')">Max</button>
+      <button class="cb violet" onclick="calcStatFn('q1')">Q1</button>
+      <button class="cb violet" onclick="calcStatFn('q3')">Q3</button>
+      <button class="cb violet" onclick="calcStatFn('skew')">Skewness</button>
+      <button class="cb violet" onclick="calcStatFn('kurt')">Kurtosis</button>
+      <button class="cb violet" onclick="calcStatFn('sum')">Sum Σ</button>
+    </div>
+    <div class="calc-section-lbl">Numeric Input</div>
+    <div class="calc-grid cg-5">
+      ${['7','8','9','.','-'].map(b=>`<button class="cb" onclick="calcPress('${b}')">${b}</button>`).join('')}
+      ${['4','5','6','+','C'].map(b=>`<button class="cb ${b==='C'?'red':''}" onclick="${b==='C'?'calcClear()':'calcPress(\\''+b+'\\')' }">${b}</button>`).join('')}
+      ${['1','2','3','0','⌫'].map(b=>`<button class="cb ${b==='⌫'?'red':''}" onclick="${b==='⌫'?'calcBack()':'calcPress(\\''+b+'\\')' }">${b}</button>`).join('')}
+    </div>`,
+  conv: ()=>`
+    <div class="calc-section-lbl">Mass / Concentration</div>
+    <div class="calc-grid cg-3">
+      <button class="cb cyan" onclick="calcConvert('g','kg',0.001)">g → kg</button>
+      <button class="cb cyan" onclick="calcConvert('kg','g',1000)">kg → g</button>
+      <button class="cb cyan" onclick="calcConvert('mg','g',0.001)">mg → g</button>
+      <button class="cb cyan" onclick="calcConvert('μg','mg',0.001)">μg → mg</button>
+      <button class="cb cyan" onclick="calcConvert('ng','μg',0.001)">ng → μg</button>
+      <button class="cb cyan" onclick="calcConvert('mol/L','mmol/L',1000)">M → mM</button>
+      <button class="cb cyan" onclick="calcConvert('mM','μM',1000)">mM → μM</button>
+      <button class="cb cyan" onclick="calcConvert('μM','nM',1000)">μM → nM</button>
+      <button class="cb cyan" onclick="calcConvert('nM','pM',1000)">nM → pM</button>
+    </div>
+    <div class="calc-section-lbl">Temperature</div>
+    <div class="calc-grid cg-3">
+      <button class="cb green" onclick="calcResult=(parseFloat(calcResult)*9/5+32).toFixed(3);calcExpr='°C→°F';setCalcDisplay()">°C → °F</button>
+      <button class="cb green" onclick="calcResult=((parseFloat(calcResult)-32)*5/9).toFixed(3);calcExpr='°F→°C';setCalcDisplay()">°F → °C</button>
+      <button class="cb green" onclick="calcResult=(parseFloat(calcResult)+273.15).toFixed(3);calcExpr='°C→K';setCalcDisplay()">°C → K</button>
+      <button class="cb green" onclick="calcResult=(parseFloat(calcResult)-273.15).toFixed(3);calcExpr='K→°C';setCalcDisplay()">K → °C</button>
+    </div>
+    <div class="calc-section-lbl">Volume</div>
+    <div class="calc-grid cg-3">
+      <button class="cb violet" onclick="calcConvert('mL','L',0.001)">mL → L</button>
+      <button class="cb violet" onclick="calcConvert('L','mL',1000)">L → mL</button>
+      <button class="cb violet" onclick="calcConvert('μL','mL',0.001)">μL → mL</button>
+    </div>
+    <div class="calc-section-lbl">Pressure</div>
+    <div class="calc-grid cg-3">
+      <button class="cb amber" onclick="calcConvert('atm','Pa',101325)">atm → Pa</button>
+      <button class="cb amber" onclick="calcConvert('bar','Pa',100000)">bar → Pa</button>
+      <button class="cb amber" onclick="calcConvert('mmHg','Pa',133.322)">mmHg → Pa</button>
+    </div>
+    <div class="calc-section-lbl">Energy</div>
+    <div class="calc-grid cg-3">
+      <button class="cb green" onclick="calcConvert('kcal','kJ',4.184)">kcal → kJ</button>
+      <button class="cb green" onclick="calcConvert('kJ','kcal',0.239)">kJ → kcal</button>
+      <button class="cb green" onclick="calcConvert('eV','kJ/mol',96.485)">eV → kJ/mol</button>
+    </div>
+    <div class="calc-section-lbl">Scientific Constants</div>
+    <div class="calc-grid cg-3">
+      <button class="cb violet" onclick="calcExpr='6.022e23';calcResult=6.022e23;setCalcDisplay()">Avogadro</button>
+      <button class="cb violet" onclick="calcExpr='1.38e-23';calcResult=1.38e-23;setCalcDisplay()">Boltzmann</button>
+      <button class="cb violet" onclick="calcExpr='8.314';calcResult=8.314;setCalcDisplay()">R gas</button>
+      <button class="cb violet" onclick="calcExpr='6.626e-34';calcResult=6.626e-34;setCalcDisplay()">Planck h</button>
+      <button class="cb violet" onclick="calcExpr='2.998e8';calcResult=2.998e8;setCalcDisplay()">Speed of light</button>
+      <button class="cb violet" onclick="calcExpr='9.109e-31';calcResult=9.109e-31;setCalcDisplay()">Electron mass</button>
+    </div>
+    <div class="calc-section-lbl">Input</div>
+    <div class="calc-grid cg-5">
+      ${['7','8','9','.','-','4','5','6','+','⌫','1','2','3','0','C'].map(b=>`<button class="cb ${b==='C'?'red':b==='⌫'?'red':''}" onclick="${b==='C'?'calcClear()':b==='⌫'?'calcBack()':'calcPress(\\''+b+'\\')' }">${b}</button>`).join('')}
+    </div>`,
+  hist: ()=>`
+    <div class="calc-section-lbl">Calculation History (last 50)</div>
+    <div style="flex:1;overflow-y:auto;max-height:380px">
+      ${calcHistory.length ? [...calcHistory].reverse().map((h,i)=>`
+        <div style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.025);font-size:.52rem;color:rgba(200,222,255,.6);cursor:pointer;border-radius:4px;transition:background .1s"
+          onmouseover="this.style.background='rgba(232,160,32,.04)'" onmouseout="this.style.background=''"
+          onclick="const p=this.textContent.split('=');if(p[1])calcResult=p[1].trim();setCalcDisplay()">
+          ${h}</div>`).join('') : '<div style="padding:16px;font-size:.52rem;color:rgba(200,222,255,.2);text-align:center">No history yet</div>'}
+    </div>
+    <div class="calc-grid cg-2" style="margin-top:8px">
+      <button class="cb red" onclick="calcHistory=[];showCalcTab('hist',document.querySelector('.ctab:last-child'))">Clear History</button>
+      <button class="cb cyan" onclick="calcDownload('json')">↓ Export JSON</button>
+    </div>`,
+};
+
+function showCalcTab(tab, btn) {
+  calcTab = tab;
+  document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('calc-body').innerHTML = CALC_TABS[tab]();
+}
+
+function calcDownload(fmt) {
+  const ts = new Date().toISOString().slice(0,19).replace('T',' ');
+  let content, mime, ext;
+  if(fmt==='txt') {
+    content = 'ChemoFilter Scientific Calculator — Export\n' + ts + '\n\n' +
+      'History:\n' + calcHistory.join('\n') + '\n\nCurrent: ' + calcResult;
+    mime='text/plain'; ext='txt';
+  } else if(fmt==='csv') {
+    content = 'Expression,Result\n' + calcHistory.map(h=>{const p=h.split(' = ');return `"${p[0]}","${p[1]||''}"`}).join('\n');
+    mime='text/csv'; ext='csv';
+  } else {
+    content = JSON.stringify({timestamp:ts, current:calcResult, history:calcHistory, memory:calcMemory}, null, 2);
+    mime='application/json'; ext='json';
+  }
+  const a=document.createElement('a'); a.href='data:'+mime+';charset=utf-8,'+encodeURIComponent(content);
+  a.download='chemofilter_calc.'+ext; a.click();
+}
+
+// ══════════════════════════════════════════════════
+//  EDITOR ENGINE
+// ══════════════════════════════════════════════════
+let editorZoomLevel = 1;
+let editorDark = true;
+let colorTarget = 'fore';
+
+function updateEditorStats() {
+  const doc = document.getElementById('editor-doc');
+  const text = doc.innerText || '';
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const chars = text.length;
+  const lines = text.split('\n').length;
+  document.getElementById('ed-words').textContent = words + ' words';
+  document.getElementById('ed-chars').textContent = chars + ' chars';
+  document.getElementById('ed-lines').textContent = lines + ' lines';
+  document.getElementById('editor-wordcount').textContent = words + ' words';
+  document.getElementById('ed-saved').textContent = '● Unsaved';
+  document.getElementById('ed-saved').style.color = '#f87171';
+}
+
+function editorZoom(factor) {
+  if(factor===1) editorZoomLevel=1;
+  else editorZoomLevel=Math.min(2,Math.max(0.5,editorZoomLevel*factor));
+  document.getElementById('editor-doc').style.zoom = editorZoomLevel;
+  document.getElementById('ed-zoom').textContent = Math.round(editorZoomLevel*100)+'%';
+}
+
+function toggleEditorDark() {
+  editorDark = !editorDark;
+  const doc = document.getElementById('editor-doc');
+  doc.style.background = editorDark ? '#06090f' : '#f8f9fa';
+  doc.style.color = editorDark ? '#c8deff' : '#1a1a2e';
+}
+
+function toggleSpellcheck() {
+  const doc = document.getElementById('editor-doc');
+  doc.spellcheck = !doc.spellcheck;
+}
+
+function editorColor(type) {
+  colorTarget = type;
+  document.getElementById('color-picker').click();
+}
+document.getElementById('color-picker').addEventListener('input',function(){
+  if(colorTarget==='fore') document.execCommand('foreColor',false,this.value);
+  else document.execCommand('backColor',false,this.value);
+});
+
+function insertEditorContent(type) {
+  const doc = document.getElementById('editor-doc');
+  doc.focus();
+  const templates = {
+    table: '<table style="border-collapse:collapse;width:100%;margin:12px 0"><tr><th style="border:1px solid rgba(232,160,32,.3);padding:8px;background:rgba(232,160,32,.05)">Compound</th><th style="border:1px solid rgba(232,160,32,.3);padding:8px;background:rgba(232,160,32,.05)">MW</th><th style="border:1px solid rgba(232,160,32,.3);padding:8px;background:rgba(232,160,32,.05)">LogP</th><th style="border:1px solid rgba(232,160,32,.3);padding:8px;background:rgba(232,160,32,.05)">Grade</th></tr><tr><td style="border:1px solid rgba(200,222,255,.1);padding:8px">Cpd-1</td><td style="border:1px solid rgba(200,222,255,.1);padding:8px">-</td><td style="border:1px solid rgba(200,222,255,.1);padding:8px">-</td><td style="border:1px solid rgba(200,222,255,.1);padding:8px">-</td></tr></table>',
+    divider: '<hr style="border:none;border-top:1px solid rgba(232,160,32,.2);margin:16px 0">',
+    date: '<span>'+new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})+'</span>',
+    pagebreak: '<div style="page-break-after:always;border-top:1px dashed rgba(200,222,255,.2);margin:20px 0;text-align:center;font-size:.5rem;color:rgba(200,222,255,.2)">— PAGE BREAK —</div>',
+    smiles: '<div style="font-family:monospace;background:rgba(232,160,32,.04);border:1px solid rgba(232,160,32,.12);border-radius:4px;padding:8px 12px;margin:8px 0"><strong style="color:#e8a020">SMILES:</strong> [paste SMILES here]</div>',
+    admet: '<div style="border:1px solid rgba(232,160,32,.15);border-radius:6px;padding:12px;margin:8px 0"><div style="color:#e8a020;font-weight:bold;margin-bottom:6px">ADMET Summary</div><div>MW: — &nbsp;|&nbsp; LogP: — &nbsp;|&nbsp; tPSA: — &nbsp;|&nbsp; QED: —</div><div>HIA: — &nbsp;|&nbsp; BBB: — &nbsp;|&nbsp; hERG: — &nbsp;|&nbsp; Grade: —</div></div>',
+  };
+  document.execCommand('insertHTML',false,templates[type]||'');
+}
+
+function editorFind() {
+  const term = prompt('Find:','');
+  if(!term) return;
+  const replacement = prompt('Replace with (leave blank to just highlight):','');
+  if(replacement!==null&&replacement!=='') {
+    const doc = document.getElementById('editor-doc');
+    doc.innerHTML = doc.innerHTML.replace(new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),
+      `<mark style="background:rgba(232,160,32,.3);color:#e8f0ff">${replacement}</mark>`);
+  }
+}
+
+function editorPrint() {
+  const content = document.getElementById('editor-doc').innerHTML;
+  const title = document.getElementById('editor-title').value;
+  const w = window.open('','_blank');
+  w.document.write(`<html><head><title>${title}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;color:#1a1a2e;font-size:14px;line-height:1.8}h1,h2,h3{color:#1a1a2e}@media print{body{margin:0}}</style></head><body>${content}</body></html>`);
+  w.document.close(); w.print();
+}
+
+function editorDownload(fmt) {
+  const doc = document.getElementById('editor-doc');
+  const title = document.getElementById('editor-title').value || 'research';
+  const html = doc.innerHTML;
+  const text = doc.innerText;
+  let content, mime, ext;
+  switch(fmt) {
+    case 'txt': content=text; mime='text/plain'; ext='txt'; break;
+    case 'md':
+      content = '# '+title+'\n\n' + text.replace(/\n\n+/g,'\n\n');
+      mime='text/markdown'; ext='md'; break;
+    case 'html':
+      content = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;color:#1a1a2e;font-size:14px;line-height:1.8}</style></head><body>${html}</body></html>`;
+      mime='text/html'; ext='html'; break;
+    case 'rtf':
+      content = '{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Georgia;}}\n\\f0\\fs24 ' + text.replace(/\n/g,'\\par\n') + '}';
+      mime='application/rtf'; ext='rtf'; break;
+    case 'json':
+      content = JSON.stringify({title, content:html, text, timestamp:new Date().toISOString()},null,2);
+      mime='application/json'; ext='json'; break;
+  }
+  const a=document.createElement('a'); a.href='data:'+mime+';charset=utf-8,'+encodeURIComponent(content);
+  a.download=title.replace(/\s+/g,'_')+'.'+ext; a.click();
+  document.getElementById('ed-saved').textContent='✓ Saved'; document.getElementById('ed-saved').style.color='#34d399';
+}
+
+// ══════════════════════════════════════════════════
+//  PANEL MANAGER + DRAG
+// ══════════════════════════════════════════════════
+function togglePanel(id) {
+  const p = document.getElementById(id);
+  if(p.classList.contains('open')) { closePanel(id); }
+  else { p.classList.add('open'); bringToFront(p); }
+}
+function closePanel(id) { document.getElementById(id).classList.remove('open'); }
+function bringToFront(el) {
+  document.querySelectorAll('.cf-panel').forEach(p=>p.style.zIndex='99997');
+  el.style.zIndex='99998';
+}
+
+// Drag panels
+function makeDraggable(panel, handle) {
+  let ox=0,oy=0,mx=0,my=0;
+  handle.onmousedown = function(e){
+    e.preventDefault();
+    mx=e.clientX; my=e.clientY;
+    document.onmousemove = function(e){
+      ox=mx-e.clientX; oy=my-e.clientY; mx=e.clientX; my=e.clientY;
+      panel.style.top=(panel.offsetTop-oy)+'px'; panel.style.left=(panel.offsetLeft-ox)+'px';
+      panel.style.right='auto'; panel.style.bottom='auto'; panel.style.transform='none';
+    };
+    document.onmouseup = function(){ document.onmousemove=null; document.onmouseup=null; };
+  };
+}
+
+// ══════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════
+(function init(){
+  buildAbout();
+  showCalcTab('basic', document.querySelector('.ctab'));
+  setCalcDisplay();
+  updateEditorStats();
+  makeDraggable(document.getElementById('calc-panel'),   document.getElementById('calc-hdr'));
+  makeDraggable(document.getElementById('editor-panel'), document.getElementById('editor-hdr'));
+  makeDraggable(document.getElementById('about-panel'),  document.getElementById('about-hdr'));
+  // Click to focus
+  document.querySelectorAll('.cf-panel').forEach(p=>p.addEventListener('mousedown',()=>bringToFront(p)));
+})();
+</script>
+"""
+
+_stc.html(_FLOATING_HTML, height=0, scrolling=False)
+
+
 # 
 # CACHED RESOURCES
 # 
