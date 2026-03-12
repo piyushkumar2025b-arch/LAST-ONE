@@ -1849,41 +1849,130 @@ if input_text.strip():
     _bbb_n    = sum(1 for d in display_data if d["_bbb"])
     _hia_n    = sum(1 for d in display_data if d["_hia"])
 
+    # Build rows JSON for JS sorting
+    import json as _json
+    _rows_for_js = []
+    for _d in sorted(display_data, key=lambda x: x["LeadScore"], reverse=True):
+        _rows_for_js.append({
+            "id": _d["ID"],
+            "grade": _d["Grade"],
+            "lead": _d["LeadScore"],
+            "oral": _d["OralBioScore"],
+            "qed": round(_d["QED"],3),
+            "np": round(_d["NP_Score"],1),
+            "stress": round(_d["Stress"],1),
+            "prom": round(_d["PromiscuityRisk"],0),
+            "mw": _d["MW"],
+            "logp": round(_d["LogP"],2),
+            "tpsa": round(_d["tPSA"],1),
+            "fsp3": round(_d["Fsp3"],2),
+            "sa": round(_d["SA_Score"],2),
+            "sa_lbl": _d["SA_Label"],
+            "cplx": round(_d["Complexity"],1),
+            "cyp": _d["CYP_Hits"],
+            "sim": round(_d["Sim"],3),
+            "herg": _d["_herg"],
+            "ames": _d["_ames"][:12],
+            "hia": _d["_hia"],
+            "bbb": _d["_bbb"],
+            "logs": str(_d["logS"]),
+            "cns": _d["CNS_MPO"],
+        })
+    _rows_json = _json.dumps(_rows_for_js)
+
     st.markdown(f"""
 <style>
-.lb-wrap{{background:rgba(255,255,255,.015);border:1px solid rgba(232,160,32,.1);border-radius:14px;overflow:hidden;margin-bottom:18px;}}
-.lb-statbar{{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;background:rgba(232,160,32,.06);border-bottom:1px solid rgba(232,160,32,.08);}}
-.lb-sc{{background:#05080f;padding:14px 8px;text-align:center;}}
-.lb-sv{{font-family:'DM Serif Display',serif;font-size:1.55rem;font-weight:400;line-height:1;}}
-.lb-sl{{font-family:'JetBrains Mono',monospace;font-size:.42rem;letter-spacing:2px;color:rgba(200,222,255,.3);margin-top:5px;text-transform:uppercase;}}
-/* Table */
-.lb-tbl{{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;}}
-.lb-tbl th{{padding:10px 12px;text-align:left;font-size:.52rem;letter-spacing:1.5px;text-transform:uppercase;color:rgba(232,160,32,.45);background:#090d18;border-bottom:1px solid rgba(232,160,32,.08);white-space:nowrap;cursor:pointer;user-select:none;}}
-.lb-tbl th:hover{{color:rgba(232,160,32,.8);}}
-.lb-tbl td{{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;font-size:.72rem;white-space:nowrap;}}
-.lb-tbl tr:hover td{{background:rgba(232,160,32,.025);}}
-.lb-id{{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:#e8a020;font-weight:500;}}
-.lb-grade{{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font-family:'DM Serif Display',serif;font-size:.95rem;font-weight:400;}}
-.grA{{background:rgba(52,211,153,.1);color:#34d399;border:1px solid rgba(52,211,153,.25);}}
-.grB{{background:rgba(232,160,32,.1);color:#e8a020;border:1px solid rgba(232,160,32,.25);}}
-.grC{{background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25);}}
-.grD{{background:rgba(251,146,60,.1);color:#fb923c;border:1px solid rgba(251,146,60,.25);}}
-.grF{{background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.25);}}
+/* ══════════ LEADERBOARD BASE ══════════ */
+.lb-outer{{position:relative;}}
+.lb-wrap{{background:rgba(5,8,15,.97);border:1px solid rgba(232,160,32,.18);border-radius:16px;overflow:hidden;margin-bottom:18px;box-shadow:0 0 40px rgba(232,160,32,.07);transition:box-shadow .3s;}}
+.lb-wrap:hover{{box-shadow:0 0 60px rgba(232,160,32,.13);}}
+.lb-statbar{{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;background:rgba(232,160,32,.07);border-bottom:1px solid rgba(232,160,32,.1);}}
+.lb-sc{{background:#05080f;padding:14px 8px;text-align:center;transition:background .2s;}}
+.lb-sc:hover{{background:rgba(232,160,32,.06);}}
+.lb-sv{{font-family:"DM Serif Display",serif;font-size:1.55rem;font-weight:400;line-height:1;}}
+.lb-sl{{font-family:"JetBrains Mono",monospace;font-size:.42rem;letter-spacing:2px;color:rgba(200,222,255,.3);margin-top:5px;text-transform:uppercase;}}
+
+/* ══════════ SCROLL CONTAINER ══════════ */
+.lb-scroll{{overflow-x:auto;overflow-y:auto;max-height:480px;position:relative;}}
+.lb-scroll::-webkit-scrollbar{{width:5px;height:5px;}}
+.lb-scroll::-webkit-scrollbar-track{{background:rgba(255,255,255,.02);}}
+.lb-scroll::-webkit-scrollbar-thumb{{background:rgba(232,160,32,.35);border-radius:4px;}}
+.lb-scroll::-webkit-scrollbar-thumb:hover{{background:rgba(232,160,32,.7);}}
+
+/* ══════════ NEON SCROLL BORDER ══════════ */
+.lb-neon-border{{position:absolute;inset:0;pointer-events:none;border-radius:0;z-index:10;}}
+.lb-neon-top{{position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#e8a020,#38bdf8,#a78bfa,transparent);opacity:0;transition:opacity .3s;border-radius:2px 2px 0 0;}}
+.lb-neon-bottom{{position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#a78bfa,#38bdf8,#e8a020,transparent);opacity:0;transition:opacity .3s;}}
+.lb-neon-left{{position:absolute;top:0;bottom:0;left:0;width:3px;background:linear-gradient(180deg,transparent,#34d399,transparent);opacity:0;transition:opacity .3s;}}
+.lb-neon-right{{position:absolute;top:0;bottom:0;right:0;width:3px;background:linear-gradient(180deg,transparent,#e8a020,transparent);opacity:0;transition:opacity .3s;}}
+.lb-scroll.scrolling .lb-neon-top,.lb-scroll.scrolling .lb-neon-bottom,.lb-scroll.scrolling .lb-neon-left,.lb-scroll.scrolling .lb-neon-right{{opacity:1;}}
+
+/* ══════════ TABLE ══════════ */
+.lb-tbl{{width:100%;border-collapse:collapse;font-family:"JetBrains Mono",monospace;}}
+.lb-tbl th{{padding:10px 12px;text-align:left;font-size:.52rem;letter-spacing:1.5px;text-transform:uppercase;color:rgba(232,160,32,.45);background:#090d18;border-bottom:1px solid rgba(232,160,32,.1);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:5;transition:color .15s,background .15s;}}
+.lb-tbl th:hover{{color:#e8a020;background:#0e1628;}}
+.lb-tbl th.sort-asc::after{{content:" ▲";font-size:.5rem;color:#34d399;}}
+.lb-tbl th.sort-desc::after{{content:" ▼";font-size:.5rem;color:#38bdf8;}}
+.lb-tbl td{{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;font-size:.72rem;white-space:nowrap;transition:background .15s;}}
+.lb-tbl tr:hover td{{background:rgba(232,160,32,.04);}}
+.lb-tbl tr.row-highlight td{{background:rgba(56,189,248,.07)!important;border-bottom:1px solid rgba(56,189,248,.15)!important;}}
+
+/* ══════════ CELLS ══════════ */
+.lb-id{{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:#e8a020;font-weight:500;}}
+.lb-grade{{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font-family:"DM Serif Display",serif;font-size:.95rem;font-weight:400;}}
+.grA{{background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3);box-shadow:0 0 8px rgba(52,211,153,.15);}}
+.grB{{background:rgba(232,160,32,.12);color:#e8a020;border:1px solid rgba(232,160,32,.3);box-shadow:0 0 8px rgba(232,160,32,.12);}}
+.grC{{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.3);}}
+.grD{{background:rgba(251,146,60,.12);color:#fb923c;border:1px solid rgba(251,146,60,.3);}}
+.grF{{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.3);box-shadow:0 0 8px rgba(248,113,113,.1);}}
 .lb-bar-wrap{{width:90px;}}
-.lb-bar-track{{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;}}
-.lb-bar-fill{{height:100%;border-radius:2px;}}
+.lb-bar-track{{height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}}
+.lb-bar-fill{{height:100%;border-radius:2px;transition:width .4s ease;}}
 .lb-barval{{font-size:.62rem;color:rgba(200,222,255,.65);text-align:right;margin-top:2px;}}
-.lb-bool-ok{{color:#34d399;font-size:.85rem;}}
-.lb-bool-no{{color:rgba(200,222,255,.2);font-size:.85rem;}}
-.lb-herg-low{{color:#34d399}}.lb-herg-med{{color:#fbbf24}}.lb-herg-hi{{color:#f87171}}
-.lb-dili-low{{color:#34d399}}.lb-dili-mod{{color:#fbbf24}}.lb-dili-hi{{color:#f87171}}
-.lb-footer{{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;background:#090d18;border-top:1px solid rgba(255,255,255,.03);}}
-.lb-footer-l{{font-family:'JetBrains Mono',monospace;font-size:.52rem;color:rgba(200,222,255,.25);letter-spacing:1px;}}
-.lb-footer-r{{display:flex;gap:14px;}}
-.lb-legend{{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:.52rem;}}
+.lb-bool-ok{{color:#34d399;font-size:.9rem;text-shadow:0 0 8px rgba(52,211,153,.5);}}
+.lb-bool-no{{color:rgba(200,222,255,.18);font-size:.9rem;}}
+.lb-herg-low{{color:#34d399}}.lb-herg-med{{color:#fbbf24}}.lb-herg-hi{{color:#f87171;text-shadow:0 0 6px rgba(248,113,113,.4)}}
+.lb-footer{{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;background:#090d18;border-top:1px solid rgba(255,255,255,.04);flex-wrap:wrap;gap:8px;}}
+.lb-footer-l{{font-family:"JetBrains Mono",monospace;font-size:.52rem;color:rgba(200,222,255,.25);letter-spacing:1px;}}
+.lb-footer-r{{display:flex;gap:14px;flex-wrap:wrap;}}
+.lb-legend{{display:flex;align-items:center;gap:5px;font-family:"JetBrains Mono",monospace;font-size:.52rem;}}
 .lb-dot{{width:6px;height:6px;border-radius:50%;display:inline-block;}}
+
+/* ══════════ FULLSCREEN ══════════ */
+.lb-fs-btn{{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:6px;border:1px solid rgba(232,160,32,.3);background:rgba(232,160,32,.06);color:rgba(232,160,32,.8);font-family:"JetBrains Mono",monospace;font-size:.55rem;letter-spacing:1.5px;cursor:pointer;text-transform:uppercase;transition:all .2s;margin-left:10px;}}
+.lb-fs-btn:hover{{background:rgba(232,160,32,.15);border-color:#e8a020;color:#e8a020;box-shadow:0 0 12px rgba(232,160,32,.2);}}
+
+/* ══════════ FULLSCREEN OVERLAY ══════════ */
+#lb-fullscreen-overlay{{display:none;position:fixed;inset:0;z-index:999999;background:#05080f;flex-direction:column;}}
+#lb-fullscreen-overlay.active{{display:flex;}}
+#lb-fs-inner{{flex:1;overflow:auto;padding:0;}}
+#lb-fs-inner .lb-tbl th{{font-size:.58rem;padding:12px 14px;}}
+#lb-fs-inner .lb-tbl td{{font-size:.78rem;padding:11px 14px;}}
+#lb-fs-header{{display:flex;align-items:center;padding:12px 20px;background:#090d18;border-bottom:1px solid rgba(232,160,32,.12);gap:12px;}}
+#lb-fs-title{{font-family:"JetBrains Mono",monospace;font-size:.65rem;letter-spacing:4px;color:rgba(200,222,255,.5);text-transform:uppercase;flex:1;}}
+#lb-fs-close{{padding:5px 14px;border-radius:6px;border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.06);color:#f87171;font-family:"JetBrains Mono",monospace;font-size:.55rem;cursor:pointer;letter-spacing:1px;transition:all .2s;}}
+#lb-fs-close:hover{{background:rgba(248,113,113,.15);box-shadow:0 0 12px rgba(248,113,113,.2);}}
+
+/* ══════════ PULSE ANIM ══════════ */
+@keyframes neon-pulse{{0%,100%{{opacity:.5}}50%{{opacity:1}}}}
+@keyframes row-in{{from{{opacity:0;transform:translateY(4px)}}to{{opacity:1;transform:none}}}}
+.lb-tbl tbody tr{{animation:row-in .25s ease both;}}
+.lb-sort-glow{{box-shadow:inset 0 -2px 0 #e8a020!important;}}
 </style>
-<div class="lb-wrap">
+
+<div class="lb-outer">
+<!-- FULLSCREEN OVERLAY -->
+<div id="lb-fullscreen-overlay">
+  <div id="lb-fs-header">
+    <div id="lb-fs-title">⬡ COMPOUND LEADERBOARD — FULLSCREEN MODE</div>
+    <button id="lb-fs-close" onclick="closeLBFullscreen()">✕  EXIT FULLSCREEN</button>
+  </div>
+  <div id="lb-fs-inner">
+    <div id="lb-fs-table-mount"></div>
+  </div>
+</div>
+
+<div class="lb-wrap" id="lb-main-wrap">
 <div class="lb-statbar">
   <div class="lb-sc"><div class="lb-sv" style="color:#e8f0ff">{len(display_data)}</div><div class="lb-sl">Compounds</div></div>
   <div class="lb-sc"><div class="lb-sv" style="color:#34d399">{_ga}</div><div class="lb-sl">Grade A</div></div>
@@ -1894,48 +1983,50 @@ if input_text.strip():
   <div class="lb-sc"><div class="lb-sv" style="color:#f87171">{sum(1 for d in display_data if d["_herg"]=="HIGH")}</div><div class="lb-sl">hERG High</div></div>
   <div class="lb-sc"><div class="lb-sv" style="color:#fb923c">{sum(1 for d in display_data if d["_pains"])}</div><div class="lb-sl">PAINS Flags</div></div>
 </div>
-<table class="lb-tbl">
-<thead><tr>
-  <th>#</th><th>ID</th><th>Grade</th>
-  <th>Lead Score</th><th>Oral Bio</th><th>QED</th>
-  <th>NP Score</th><th>Stress</th><th>Promiscuity</th>
-  <th>MW</th><th>LogP</th><th>tPSA</th><th>Fsp3</th>
-  <th>SA Score</th><th>Complexity</th><th>CYP Hits</th>
-  <th>Sim</th><th>hERG</th><th>Ames</th>
-  <th>HIA</th><th>BBB</th><th>logS</th><th>CNS MPO</th>
-</tr></thead>
-<tbody>
-""" + "".join([
-    f"""<tr>
-  <td style="color:rgba(200,222,255,.2);font-size:.62rem">{idx+1}</td>
-  <td class="lb-id">{d["ID"]}</td>
-  <td><span class="lb-grade gr{d['Grade']}">{d['Grade']}</span></td>
-  <td><div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:{min(100,d['LeadScore'])}%;background:{'#34d399' if d['LeadScore']>=75 else '#e8a020' if d['LeadScore']>=50 else '#fbbf24' if d['LeadScore']>=25 else '#f87171'}"></div></div><div class="lb-barval">{d['LeadScore']}</div></div></td>
-  <td><div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:{min(100,d['OralBioScore'])}%;background:#60a5fa"></div></div><div class="lb-barval">{d['OralBioScore']}</div></div></td>
-  <td><div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:{d['QED']*100:.0f}%;background:#a78bfa"></div></div><div class="lb-barval">{d['QED']:.3f}</div></div></td>
-  <td><div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:{min(100,d['NP_Score'])}%;background:#c084fc"></div></div><div class="lb-barval">{d['NP_Score']:.1f}</div></div></td>
-  <td><div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:{min(100,d['Stress'])}%;background:{'#f87171' if d['Stress']>60 else '#fbbf24' if d['Stress']>30 else '#34d399'}"></div></div><div class="lb-barval">{d['Stress']:.1f}</div></div></td>
-  <td><div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:{min(100,d['PromiscuityRisk'])}%;background:#f87171"></div></div><div class="lb-barval">{d['PromiscuityRisk']:.0f}</div></div></td>
-  <td style="color:{'#34d399' if d['MW']<500 else '#f87171'}">{d['MW']}</td>
-  <td style="color:{'#34d399' if -1<d['LogP']<5 else '#f87171'}">{d['LogP']:.2f}</td>
-  <td style="color:{'#34d399' if d['tPSA']<90 else '#fbbf24' if d['tPSA']<140 else '#f87171'}">{d['tPSA']:.1f}</td>
-  <td style="color:{'#34d399' if d['Fsp3']>0.25 else '#fbbf24'}">{d['Fsp3']:.2f}</td>
-  <td style="color:{'#34d399' if d['SA_Score']<=3 else '#fbbf24' if d['SA_Score']<=6 else '#f87171'}">{d['SA_Score']:.2f} <span style="font-size:.6rem;opacity:.6">({d['SA_Label']})</span></td>
-  <td style="color:rgba(200,222,255,.65)">{d['Complexity']:.1f}</td>
-  <td style="color:{'#f87171' if d['CYP_Hits']>=3 else '#fbbf24' if d['CYP_Hits']>0 else '#34d399'}">{d['CYP_Hits']}/5</td>
-  <td style="color:{'#34d399' if d['Sim']>0.15 else 'rgba(200,222,255,.4)'}">{d['Sim']:.3f}</td>
-  <td class="lb-herg-{'low' if d['_herg']=='LOW' else 'med' if d['_herg']=='MEDIUM' else 'hi'}">{d['_herg']}</td>
-  <td style="color:{'#34d399' if d['_ames']=='Low Risk' else '#fbbf24' if 'Possible' in d['_ames'] else '#f87171'};font-size:.65rem">{d['_ames'][:12]}</td>
-  <td class="lb-bool-{'ok' if d['_hia'] else 'no'}">{'✓' if d['_hia'] else '✗'}</td>
-  <td class="lb-bool-{'ok' if d['_bbb'] else 'no'}">{'✓' if d['_bbb'] else '✗'}</td>
-  <td style="color:{'#34d399' if isinstance(d['logS'],float) and d['logS']>-2 else '#fbbf24' if isinstance(d['logS'],float) and d['logS']>-4 else '#f87171'}">{d['logS']}</td>
-  <td style="color:{'#34d399' if d['CNS_MPO']>=4 else '#fbbf24'}">{d['CNS_MPO']}/6</td>
-</tr>"""
-    for idx, d in enumerate(sorted(display_data, key=lambda x: x["LeadScore"], reverse=True))
-]) + """
-</tbody></table>
+
+<!-- scroll wrapper with neon border -->
+<div class="lb-scroll" id="lb-scroll-wrap">
+  <div class="lb-neon-border">
+    <div class="lb-neon-top"></div>
+    <div class="lb-neon-bottom"></div>
+    <div class="lb-neon-left"></div>
+    <div class="lb-neon-right"></div>
+  </div>
+  <table class="lb-tbl" id="lb-main-table">
+  <thead><tr>
+    <th data-col="idx" class="sort-asc">#</th>
+    <th data-col="id">ID</th>
+    <th data-col="grade">Grade</th>
+    <th data-col="lead">Lead Score</th>
+    <th data-col="oral">Oral Bio</th>
+    <th data-col="qed">QED</th>
+    <th data-col="np">NP Score</th>
+    <th data-col="stress">Stress</th>
+    <th data-col="prom">Promiscuity</th>
+    <th data-col="mw">MW</th>
+    <th data-col="logp">LogP</th>
+    <th data-col="tpsa">tPSA</th>
+    <th data-col="fsp3">Fsp3</th>
+    <th data-col="sa">SA Score</th>
+    <th data-col="cplx">Complexity</th>
+    <th data-col="cyp">CYP Hits</th>
+    <th data-col="sim">Sim</th>
+    <th data-col="herg">hERG</th>
+    <th data-col="ames">Ames</th>
+    <th data-col="hia">HIA</th>
+    <th data-col="bbb">BBB</th>
+    <th data-col="logs">logS</th>
+    <th data-col="cns">CNS MPO</th>
+  </tr></thead>
+  <tbody id="lb-tbody"></tbody>
+  </table>
+</div>
+
 <div class="lb-footer">
-  <div class="lb-footer-l">SHOWING ALL COLUMNS · RANKED BY LEAD SCORE · HOVER ROW TO HIGHLIGHT</div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="lb-footer-l" id="lb-status-txt">SHOWING ALL COLUMNS · RANKED BY LEAD SCORE · HOVER ROW TO HIGHLIGHT</div>
+    <button class="lb-fs-btn" onclick="openLBFullscreen()">⛶ FULLSCREEN</button>
+  </div>
   <div class="lb-footer-r">
     <div class="lb-legend"><div class="lb-dot" style="background:#34d399"></div><span style="font-family:'JetBrains Mono',monospace;font-size:.5rem;color:rgba(200,222,255,.3)">Grade A: optimal</span></div>
     <div class="lb-legend"><div class="lb-dot" style="background:#e8a020"></div><span style="font-family:'JetBrains Mono',monospace;font-size:.5rem;color:rgba(200,222,255,.3)">Grade B: good</span></div>
@@ -1943,7 +2034,188 @@ if input_text.strip():
     <div class="lb-legend"><div class="lb-dot" style="background:#f87171"></div><span style="font-family:'JetBrains Mono',monospace;font-size:.5rem;color:rgba(200,222,255,.3)">Grade F: fail</span></div>
   </div>
 </div>
-</div>""", unsafe_allow_html=True)
+</div>
+</div>
+
+<script>
+(function(){{
+  // ── Data ──
+  var ROWS = {_rows_json};
+  var sortCol = "lead";
+  var sortDir = -1; // -1 = desc, 1 = asc
+
+  // ── Color helpers ──
+  function barColor(val, col){{
+    if(col==="lead") return val>=75?"#34d399":val>=50?"#e8a020":val>=25?"#fbbf24":"#f87171";
+    if(col==="stress") return val>60?"#f87171":val>30?"#fbbf24":"#34d399";
+    if(col==="prom") return "#f87171";
+    if(col==="oral") return "#60a5fa";
+    if(col==="qed") return "#a78bfa";
+    if(col==="np") return "#c084fc";
+    return "#e8a020";
+  }}
+  function gradeClass(g){{return "lb-grade gr"+g;}}
+  function hergClass(h){{return h==="LOW"?"lb-herg-low":h==="MEDIUM"?"lb-herg-med":"lb-herg-hi";}}
+  function colColor(val,col){{
+    if(col==="mw") return val<500?"#34d399":"#f87171";
+    if(col==="logp") return (val>-1&&val<5)?"#34d399":"#f87171";
+    if(col==="tpsa") return val<90?"#34d399":val<140?"#fbbf24":"#f87171";
+    if(col==="fsp3") return val>0.25?"#34d399":"#fbbf24";
+    if(col==="sa") return val<=3?"#34d399":val<=6?"#fbbf24":"#f87171";
+    if(col==="cplx") return "rgba(200,222,255,.65)";
+    if(col==="cyp") return val>=3?"#f87171":val>0?"#fbbf24":"#34d399";
+    if(col==="sim") return val>0.15?"#34d399":"rgba(200,222,255,.4)";
+    if(col==="logs"){{var n=parseFloat(val);return n>-2?"#34d399":n>-4?"#fbbf24":"#f87171";}}
+    if(col==="cns") return val>=4?"#34d399":"#fbbf24";
+    return "rgba(200,222,255,.65)";
+  }}
+
+  function bar(val, max, col){{
+    var pct = Math.min(100, (val/max)*100);
+    return '<div class="lb-bar-wrap"><div class="lb-bar-track"><div class="lb-bar-fill" style="width:'+pct+'%;background:'+barColor(val,col)+'"></div></div><div class="lb-barval">'+val+'</div></div>';
+  }}
+
+  function renderRows(tbody, rows){{
+    var html = "";
+    rows.forEach(function(d, i){{
+      html += '<tr onmouseenter="this.classList.add(\'row-highlight\')" onmouseleave="this.classList.remove(\'row-highlight\')">';
+      html += '<td style="color:rgba(200,222,255,.2);font-size:.62rem">'+(i+1)+'</td>';
+      html += '<td class="lb-id">'+d.id+'</td>';
+      html += '<td><span class="'+gradeClass(d.grade)+'">'+d.grade+'</span></td>';
+      html += '<td>'+bar(d.lead,100,"lead")+'</td>';
+      html += '<td>'+bar(d.oral,100,"oral")+'</td>';
+      html += '<td>'+bar(parseFloat((d.qed*100).toFixed(1)),100,"qed")+'<div style="font-size:.62rem;color:rgba(200,222,255,.65);text-align:right">'+d.qed+'</div></td>';
+      html += '<td>'+bar(d.np,100,"np")+'</td>';
+      html += '<td>'+bar(d.stress,100,"stress")+'</td>';
+      html += '<td>'+bar(d.prom,100,"prom")+'</td>';
+      html += '<td style="color:'+colColor(d.mw,"mw")+'">'+d.mw+'</td>';
+      html += '<td style="color:'+colColor(d.logp,"logp")+'">'+d.logp+'</td>';
+      html += '<td style="color:'+colColor(d.tpsa,"tpsa")+'">'+d.tpsa+'</td>';
+      html += '<td style="color:'+colColor(d.fsp3,"fsp3")+'">'+d.fsp3+'</td>';
+      html += '<td style="color:'+colColor(d.sa,"sa")+'">'+d.sa+' <span style="font-size:.6rem;opacity:.6">('+d.sa_lbl+')</span></td>';
+      html += '<td style="color:'+colColor(d.cplx,"cplx")+'">'+d.cplx+'</td>';
+      html += '<td style="color:'+colColor(d.cyp,"cyp")+'">'+d.cyp+'/5</td>';
+      html += '<td style="color:'+colColor(d.sim,"sim")+'">'+d.sim+'</td>';
+      html += '<td class="'+hergClass(d.herg)+'">'+d.herg+'</td>';
+      var amesColor = d.ames.indexOf("Low")>=0?"#34d399":d.ames.indexOf("Possible")>=0?"#fbbf24":"#f87171";
+      html += '<td style="color:'+amesColor+';font-size:.65rem">'+d.ames+'</td>';
+      html += '<td class="lb-bool-'+(d.hia?"ok":"no")+'">'+(d.hia?"✓":"✗")+'</td>';
+      html += '<td class="lb-bool-'+(d.bbb?"ok":"no")+'">'+(d.bbb?"✓":"✗")+'</td>';
+      html += '<td style="color:'+colColor(d.logs,"logs")+'">'+d.logs+'</td>';
+      html += '<td style="color:'+colColor(d.cns,"cns")+'">'+d.cns+'/6</td>';
+      html += '</tr>';
+    }});
+    tbody.innerHTML = html;
+  }}
+
+  function sortAndRender(col){{
+    if(sortCol === col){{ sortDir *= -1; }}
+    else{{ sortCol = col; sortDir = -1; }}
+
+    // Update headers
+    document.querySelectorAll(".lb-tbl th").forEach(function(th){{
+      th.classList.remove("sort-asc","sort-desc");
+      if(th.getAttribute("data-col")===col){{
+        th.classList.add(sortDir===-1?"sort-desc":"sort-asc");
+      }}
+    }});
+
+    var sorted = ROWS.slice().sort(function(a,b){{
+      var av = a[col], bv = b[col];
+      if(col==="idx") return sortDir*(ROWS.indexOf(a)-ROWS.indexOf(b));
+      if(col==="id"||col==="herg"||col==="ames") return sortDir*(av<bv?-1:av>bv?1:0);
+      if(col==="hia"||col==="bbb") return sortDir*((a[col]?1:0)-(b[col]?1:0));
+      if(col==="logs"){{ av=parseFloat(av)||0; bv=parseFloat(bv)||0; }}
+      return sortDir*(av-bv);
+    }});
+
+    var tbody = document.getElementById("lb-tbody");
+    if(tbody) renderRows(tbody, sorted);
+    var tbody2 = document.getElementById("lb-fs-tbody");
+    if(tbody2) renderRows(tbody2, sorted);
+
+    var txt = "SORTED BY "+col.toUpperCase()+" · "+(sortDir===-1?"DESCENDING":"ASCENDING");
+    var el = document.getElementById("lb-status-txt");
+    if(el) el.textContent = txt;
+  }}
+
+  // ── Init table ──
+  function initTable(){{
+    var tbody = document.getElementById("lb-tbody");
+    if(tbody){{
+      renderRows(tbody, ROWS);
+      // attach sort handlers
+      document.querySelectorAll("#lb-main-table th").forEach(function(th){{
+        th.addEventListener("click",function(){{ sortAndRender(this.getAttribute("data-col")); }});
+      }});
+    }}
+  }}
+
+  // ── Neon scroll effect ──
+  function initNeonScroll(){{
+    var wrap = document.getElementById("lb-scroll-wrap");
+    if(!wrap) return;
+    var timer;
+    wrap.addEventListener("scroll",function(){{
+      wrap.classList.add("scrolling");
+      clearTimeout(timer);
+      timer = setTimeout(function(){{ wrap.classList.remove("scrolling"); }}, 800);
+    }});
+  }}
+
+  // ── Fullscreen ──
+  window.openLBFullscreen = function(){{
+    var overlay = document.getElementById("lb-fullscreen-overlay");
+    var mount = document.getElementById("lb-fs-table-mount");
+    if(!overlay||!mount) return;
+    // Clone table into fullscreen
+    mount.innerHTML = '<div style="overflow:auto;height:calc(100vh - 60px)"><table class="lb-tbl" id="lb-fs-table"><thead><tr>'
+      + document.querySelector("#lb-main-table thead tr").innerHTML
+      + '</tr></thead><tbody id="lb-fs-tbody"></tbody></table></div>';
+    var tbody2 = document.getElementById("lb-fs-tbody");
+    if(tbody2) renderRows(tbody2, ROWS.slice().sort(function(a,b){{
+      return (b.lead - a.lead);
+    }}));
+    // attach sort to fs headers
+    document.querySelectorAll("#lb-fs-table th").forEach(function(th){{
+      th.addEventListener("click",function(){{ sortAndRender(this.getAttribute("data-col")); }});
+    }});
+    overlay.classList.add("active");
+    document.body.style.overflow = "hidden";
+  }};
+
+  window.closeLBFullscreen = function(){{
+    var overlay = document.getElementById("lb-fullscreen-overlay");
+    if(overlay) overlay.classList.remove("active");
+    document.body.style.overflow = "";
+  }};
+
+  // ── Live neon pulse on stat bar numbers ──
+  function initStatPulse(){{
+    document.querySelectorAll(".lb-sv").forEach(function(el){{
+      setInterval(function(){{
+        el.style.textShadow = "0 0 "+(8+Math.random()*8)+"px currentColor";
+      }}, 1500+Math.random()*1000);
+    }});
+  }}
+
+  // ── Escape key closes fullscreen ──
+  document.addEventListener("keydown",function(e){{
+    if(e.key==="Escape") window.closeLBFullscreen();
+  }});
+
+  // Run on DOM ready
+  function run(){{
+    initTable();
+    initNeonScroll();
+    initStatPulse();
+  }}
+  if(document.readyState==="loading"){{
+    document.addEventListener("DOMContentLoaded",run);
+  }} else {{ run(); }}
+}})();
+</script>
+""", unsafe_allow_html=True)
 
     cols_show=["ID","LeadScore","OralBioScore","NP_Score","Stress","PromiscuityRisk","Grade","QED",
                "SA_Score","Complexity","CYP_Hits","Sim","MW","LogP","tPSA","HIA","BBB"]
