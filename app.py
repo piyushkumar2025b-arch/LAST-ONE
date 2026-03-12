@@ -1845,7 +1845,7 @@ if input_text.strip():
     _avg_qed  = sum(d["QED"] for d in display_data) / len(display_data) if display_data else 0
     _bbb_n    = sum(1 for d in display_data if d["_bbb"])
     _hia_n    = sum(1 for d in display_data if d["_hia"])
-    import json as _json, time as _time
+    import json as _json
     _rows_for_js = []
     for _d in sorted(display_data, key=lambda x: x["LeadScore"], reverse=True):
         _rows_for_js.append({
@@ -1865,128 +1865,160 @@ if input_text.strip():
     _compounds_n = len(display_data)
     _herg_hi = sum(1 for d in display_data if d["_herg"]=="HIGH")
     _pains_n = sum(1 for d in display_data if d["_pains"])
-    _uid = str(int(_time.time()*1000))[-6:]
+    _avg_lead_f = f"{_avg_lead:.1f}"
+    _avg_qed_f  = f"{_avg_qed:.3f}"
 
+    # ── Stat bar above (pure HTML, always renders) ──
     st.markdown(f"""
 <style>
-.lbw{_uid}{{background:#05080f;border:1px solid rgba(232,160,32,.2);border-radius:16px;overflow:hidden;margin-bottom:18px;box-shadow:0 0 40px rgba(232,160,32,.07);font-family:'JetBrains Mono',monospace;}}
-.lbsb{_uid}{{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;background:rgba(232,160,32,.07);border-bottom:1px solid rgba(232,160,32,.12);}}
-.lbsc{_uid}{{background:#05080f;padding:14px 8px;text-align:center;transition:background .2s;cursor:default;}}
-.lbsc{_uid}:hover{{background:rgba(232,160,32,.07);}}
-.lbsv{_uid}{{font-family:'DM Serif Display',serif;font-size:1.55rem;font-weight:400;line-height:1;}}
-.lbsl{_uid}{{font-size:.42rem;letter-spacing:2px;color:rgba(200,222,255,.3);margin-top:5px;text-transform:uppercase;}}
-.lbscroll{_uid}{{overflow:auto;max-height:500px;position:relative;}}
-.lbscroll{_uid}::-webkit-scrollbar{{width:5px;height:5px;}}
-.lbscroll{_uid}::-webkit-scrollbar-track{{background:rgba(255,255,255,.02);}}
-.lbscroll{_uid}::-webkit-scrollbar-thumb{{background:rgba(232,160,32,.4);border-radius:4px;}}
-.lbscroll{_uid}::-webkit-scrollbar-thumb:hover{{background:#e8a020;}}
-.lbneon{_uid}{{position:absolute;inset:0;pointer-events:none;z-index:9;}}
-.lbnt{_uid},.lbnb{_uid}{{position:absolute;left:0;right:0;height:3px;opacity:0;transition:opacity .3s;}}
-.lbnt{_uid}{{top:0;background:linear-gradient(90deg,transparent,#e8a020 30%,#38bdf8 70%,transparent);border-radius:2px 2px 0 0;}}
-.lbnb{_uid}{{bottom:0;background:linear-gradient(90deg,transparent,#a78bfa 30%,#34d399 70%,transparent);}}
-.lbnl{_uid},.lbnr{_uid}{{position:absolute;top:0;bottom:0;width:3px;opacity:0;transition:opacity .3s;}}
-.lbnl{_uid}{{left:0;background:linear-gradient(180deg,transparent,#34d399 50%,transparent);}}
-.lbnr{_uid}{{right:0;background:linear-gradient(180deg,transparent,#e8a020 50%,transparent);}}
-.lbscroll{_uid}.neonon .lbnt{_uid},.lbscroll{_uid}.neonon .lbnb{_uid},.lbscroll{_uid}.neonon .lbnl{_uid},.lbscroll{_uid}.neonon .lbnr{_uid}{{opacity:1;}}
-.lbt{_uid}{{width:100%;border-collapse:collapse;}}
-.lbt{_uid} th{{padding:11px 12px;text-align:left;font-size:.52rem;letter-spacing:1.5px;text-transform:uppercase;color:rgba(232,160,32,.45);background:#090d18;border-bottom:1px solid rgba(232,160,32,.12);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:5;transition:color .15s,background .15s;}}
-.lbt{_uid} th:hover{{color:#e8a020;background:rgba(232,160,32,.06);}}
-.lbt{_uid} th.sasc::after{{content:" ▲";font-size:.5rem;color:#34d399;}}
-.lbt{_uid} th.sdsc::after{{content:" ▼";font-size:.5rem;color:#38bdf8;}}
-.lbt{_uid} td{{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;font-size:.72rem;white-space:nowrap;}}
-.lbt{_uid} tr:hover td{{background:rgba(56,189,248,.06)!important;}}
-.lbgr{{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font-family:'DM Serif Display',serif;font-size:.95rem;}}
+.lbsb2{{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;background:rgba(232,160,32,.07);border:1px solid rgba(232,160,32,.2);border-radius:14px 14px 0 0;overflow:hidden;}}
+.lbsc2{{background:#05080f;padding:14px 8px;text-align:center;}}
+.lbsc2:hover{{background:rgba(232,160,32,.06);}}
+.lbsv2{{font-family:'DM Serif Display',serif;font-size:1.55rem;font-weight:400;line-height:1;animation:pulse2 2s ease-in-out infinite alternate;}}
+@keyframes pulse2{{from{{text-shadow:0 0 4px currentColor}}to{{text-shadow:0 0 16px currentColor,0 0 30px currentColor}}}}
+.lbsl2{{font-size:.42rem;letter-spacing:2px;color:rgba(200,222,255,.3);margin-top:5px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}}
+</style>
+<div class="lbsb2">
+  <div class="lbsc2"><div class="lbsv2" style="color:#e8f0ff">{_compounds_n}</div><div class="lbsl2">Compounds</div></div>
+  <div class="lbsc2"><div class="lbsv2" style="color:#34d399">{_ga}</div><div class="lbsl2">Grade A</div></div>
+  <div class="lbsc2"><div class="lbsv2" style="color:#e8a020">{_avg_lead_f}</div><div class="lbsl2">Avg Lead</div></div>
+  <div class="lbsc2"><div class="lbsv2" style="color:#a78bfa">{_avg_qed_f}</div><div class="lbsl2">Avg QED</div></div>
+  <div class="lbsc2"><div class="lbsv2" style="color:#34d399">{_hia_n}</div><div class="lbsl2">Good HIA</div></div>
+  <div class="lbsc2"><div class="lbsv2" style="color:#38bdf8">{_bbb_n}</div><div class="lbsl2">BBB Cross</div></div>
+  <div class="lbsc2"><div class="lbsv2" style="color:#f87171">{_herg_hi}</div><div class="lbsl2">hERG High</div></div>
+  <div class="lbsc2"><div class="lbsv2" style="color:#fb923c">{_pains_n}</div><div class="lbsl2">PAINS Flags</div></div>
+</div>
+""", unsafe_allow_html=True)
+
+    # ── Interactive table via components.html (JS guaranteed to run) ──
+    import streamlit.components.v1 as _stc
+    _table_html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*{{box-sizing:border-box;margin:0;padding:0;}}
+body{{background:#05080f;font-family:'JetBrains Mono',monospace;overflow:hidden;}}
+::-webkit-scrollbar{{width:5px;height:5px;}}
+::-webkit-scrollbar-track{{background:rgba(255,255,255,.02);}}
+::-webkit-scrollbar-thumb{{background:rgba(232,160,32,.4);border-radius:4px;}}
+::-webkit-scrollbar-thumb:hover{{background:#e8a020;}}
+
+#wrap{{border:1px solid rgba(232,160,32,.2);border-top:none;border-radius:0 0 14px 14px;overflow:hidden;background:#05080f;}}
+#scroll-area{{overflow:auto;max-height:460px;position:relative;}}
+.neon-border{{position:absolute;inset:0;pointer-events:none;z-index:10;}}
+.nb-top,.nb-bot{{position:absolute;left:0;right:0;height:3px;opacity:0;transition:opacity .3s;}}
+.nb-top{{top:0;background:linear-gradient(90deg,transparent,#e8a020 30%,#38bdf8 70%,transparent);}}
+.nb-bot{{bottom:0;background:linear-gradient(90deg,transparent,#a78bfa 30%,#34d399 70%,transparent);}}
+.nb-left,.nb-right{{position:absolute;top:0;bottom:0;width:3px;opacity:0;transition:opacity .3s;}}
+.nb-left{{left:0;background:linear-gradient(180deg,transparent,#34d399 50%,transparent);}}
+.nb-right{{right:0;background:linear-gradient(180deg,transparent,#e8a020 50%,transparent);}}
+#scroll-area.neon .nb-top,#scroll-area.neon .nb-bot,#scroll-area.neon .nb-left,#scroll-area.neon .nb-right{{opacity:1;}}
+
+table{{width:100%;border-collapse:collapse;font-size:.72rem;}}
+thead th{{
+  padding:11px 12px;text-align:left;font-size:.52rem;letter-spacing:1.5px;
+  text-transform:uppercase;color:rgba(232,160,32,.5);background:#090d18;
+  border-bottom:1px solid rgba(232,160,32,.15);white-space:nowrap;cursor:pointer;
+  user-select:none;position:sticky;top:0;z-index:5;transition:color .15s,background .15s;
+}}
+thead th:hover{{color:#e8a020;background:rgba(232,160,32,.08);}}
+thead th.sasc::after{{content:" ▲";font-size:.5rem;color:#34d399;}}
+thead th.sdsc::after{{content:" ▼";font-size:.5rem;color:#38bdf8;}}
+tbody td{{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.03);white-space:nowrap;vertical-align:middle;}}
+tbody tr:hover td{{background:rgba(56,189,248,.06)!important;}}
+
+.gr{{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:5px;font-size:.9rem;}}
 .grA{{background:rgba(52,211,153,.12);color:#34d399;border:1px solid rgba(52,211,153,.3);box-shadow:0 0 8px rgba(52,211,153,.2);}}
 .grB{{background:rgba(232,160,32,.12);color:#e8a020;border:1px solid rgba(232,160,32,.3);}}
 .grC{{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.25);}}
-.grD{{background:rgba(251,146,60,.12);color:#fb923c;border:1px solid rgba(251,146,60,.25);}}
 .grF{{background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.3);box-shadow:0 0 8px rgba(248,113,113,.15);}}
-.lbbar{{width:90px;}}
-.lbtrack{{height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;margin-bottom:2px;}}
-.lbfill{{height:100%;border-radius:2px;}}
-.lbbv{{font-size:.62rem;color:rgba(200,222,255,.6);text-align:right;}}
-.bok{{color:#34d399;text-shadow:0 0 8px rgba(52,211,153,.5);}}
-.bno{{color:rgba(200,222,255,.18);}}
-.lbfooter{_uid}{{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;background:#090d18;border-top:1px solid rgba(255,255,255,.04);flex-wrap:wrap;gap:8px;}}
-.lbftl{{font-size:.52rem;color:rgba(200,222,255,.25);letter-spacing:1px;}}
-.lbftr{{display:flex;gap:14px;align-items:center;flex-wrap:wrap;}}
-.lbleg{{display:flex;align-items:center;gap:5px;font-size:.5rem;color:rgba(200,222,255,.3);}}
-.lbdot{{width:6px;height:6px;border-radius:50%;display:inline-block;}}
-.lbfsbtn{_uid}{{display:inline-flex;align-items:center;gap:5px;padding:5px 13px;border-radius:6px;border:1px solid rgba(232,160,32,.35);background:rgba(232,160,32,.07);color:#e8a020;font-size:.55rem;letter-spacing:1.5px;cursor:pointer;text-transform:uppercase;transition:all .2s;font-family:'JetBrains Mono',monospace;}}
-.lbfsbtn{_uid}:hover{{background:rgba(232,160,32,.18);box-shadow:0 0 14px rgba(232,160,32,.25);}}
-@keyframes rowin{{from{{opacity:0;transform:translateY(3px)}}to{{opacity:1;transform:none}}}}
-#lbfs{_uid}{{display:none;position:fixed;inset:0;z-index:2147483647;background:#05080f;flex-direction:column;}}
-#lbfs{_uid}.fsactive{{display:flex!important;}}
-#lbfsh{_uid}{{display:flex;align-items:center;padding:12px 20px;background:#090d18;border-bottom:1px solid rgba(232,160,32,.14);gap:12px;flex-shrink:0;}}
-#lbfstitle{_uid}{{font-size:.6rem;letter-spacing:4px;color:rgba(200,222,255,.4);text-transform:uppercase;flex:1;font-family:'JetBrains Mono',monospace;}}
-#lbfscls{_uid}{{padding:5px 14px;border-radius:6px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.07);color:#f87171;font-size:.55rem;cursor:pointer;letter-spacing:1px;font-family:'JetBrains Mono',monospace;transition:all .2s;}}
-#lbfscls{_uid}:hover{{background:rgba(248,113,113,.18);box-shadow:0 0 12px rgba(248,113,113,.25);}}
-#lbfsinner{_uid}{{flex:1;overflow:auto;}}
-#lbfsinner{_uid}::-webkit-scrollbar{{width:5px;height:5px;}}
-#lbfsinner{_uid}::-webkit-scrollbar-thumb{{background:rgba(232,160,32,.4);border-radius:4px;}}
-#lbfsinner{_uid} .lbt{_uid} th{{font-size:.56rem;padding:12px 14px;background:#090d18;position:sticky;top:0;z-index:5;}}
-#lbfsinner{_uid} .lbt{_uid} td{{font-size:.76rem;padding:11px 14px;}}
-</style>
+.bar-wrap{{width:88px;}}
+.bar-track{{height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;margin-bottom:2px;}}
+.bar-fill{{height:100%;border-radius:2px;}}
+.bar-val{{font-size:.6rem;color:rgba(200,222,255,.55);text-align:right;}}
+.bok{{color:#34d399;text-shadow:0 0 7px rgba(52,211,153,.5);}}
+.bno{{color:rgba(200,222,255,.15);}}
+@keyframes ri{{from{{opacity:0;transform:translateY(4px)}}to{{opacity:1;transform:none}}}}
+tbody tr{{animation:ri .2s ease both;}}
 
-<!-- FS overlay injected directly (not template) so it works in Streamlit -->
-<div id="lbfs{_uid}">
-  <div id="lbfsh{_uid}">
-    <span id="lbfstitle{_uid}">⬡ COMPOUND LEADERBOARD — FULLSCREEN</span>
-    <button id="lbfscls{_uid}">✕ EXIT FULLSCREEN</button>
+#footer{{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;
+  background:#090d18;border-top:1px solid rgba(255,255,255,.04);flex-wrap:wrap;gap:6px;}}
+#status{{font-size:.5rem;color:rgba(200,222,255,.25);letter-spacing:1px;}}
+#fs-btn{{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;
+  border:1px solid rgba(232,160,32,.35);background:rgba(232,160,32,.07);color:#e8a020;
+  font-size:.52rem;letter-spacing:1.5px;cursor:pointer;text-transform:uppercase;
+  transition:all .2s;font-family:'JetBrains Mono',monospace;}}
+#fs-btn:hover{{background:rgba(232,160,32,.18);box-shadow:0 0 14px rgba(232,160,32,.25);}}
+.leg{{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}}
+.li{{display:flex;align-items:center;gap:4px;font-size:.48rem;color:rgba(200,222,255,.28);}}
+.dot{{width:6px;height:6px;border-radius:50%;}}
+
+/* FULLSCREEN */
+#fs-overlay{{display:none;position:fixed;inset:0;z-index:9999;background:#05080f;flex-direction:column;}}
+#fs-overlay.on{{display:flex;}}
+#fs-hdr{{display:flex;align-items:center;padding:10px 18px;background:#090d18;
+  border-bottom:1px solid rgba(232,160,32,.14);gap:10px;flex-shrink:0;}}
+#fs-title{{font-size:.58rem;letter-spacing:4px;color:rgba(200,222,255,.4);text-transform:uppercase;flex:1;}}
+#fs-close{{padding:4px 12px;border-radius:5px;border:1px solid rgba(248,113,113,.35);
+  background:rgba(248,113,113,.07);color:#f87171;font-size:.52rem;cursor:pointer;
+  letter-spacing:1px;font-family:'JetBrains Mono',monospace;transition:all .2s;}}
+#fs-close:hover{{background:rgba(248,113,113,.18);box-shadow:0 0 12px rgba(248,113,113,.25);}}
+#fs-body{{flex:1;overflow:auto;}}
+#fs-body::-webkit-scrollbar{{width:5px;height:5px;}}
+#fs-body::-webkit-scrollbar-thumb{{background:rgba(232,160,32,.4);border-radius:4px;}}
+#fs-body table{{font-size:.78rem;}}
+#fs-body thead th{{font-size:.56rem;padding:12px 14px;background:#090d18;position:sticky;top:0;z-index:5;}}
+#fs-body tbody td{{padding:11px 14px;}}
+</style>
+</head>
+<body>
+
+<!-- FULLSCREEN OVERLAY -->
+<div id="fs-overlay">
+  <div id="fs-hdr">
+    <span id="fs-title">⬡ COMPOUND LEADERBOARD — FULLSCREEN</span>
+    <button id="fs-close">✕ EXIT FULLSCREEN</button>
   </div>
-  <div id="lbfsinner{_uid}">
-    <table class="lbt{_uid}" id="lbfstbl{_uid}">
-      <thead><tr id="lbfshr{_uid}"></tr></thead>
-      <tbody id="lbfsbody{_uid}"></tbody>
+  <div id="fs-body">
+    <table id="fs-table">
+      <thead><tr id="fs-hr"></tr></thead>
+      <tbody id="fs-body-rows"></tbody>
     </table>
   </div>
 </div>
 
-<div class="lbw{_uid}">
-<div class="lbsb{_uid}">
-  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#e8f0ff">{_compounds_n}</div><div class="lbsl{_uid}">Compounds</div></div>
-  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#34d399">{_ga}</div><div class="lbsl{_uid}">Grade A</div></div>
-  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#e8a020">{_avg_lead:.1f}</div><div class="lbsl{_uid}">Avg Lead</div></div>
-  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#a78bfa">{_avg_qed:.3f}</div><div class="lbsl{_uid}">Avg QED</div></div>
-  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#34d399">{_hia_n}</div><div class="lbsl{_uid}">Good HIA</div></div>
-  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#38bdf8">{_bbb_n}</div><div class="lbsl{_uid}">BBB Cross</div></div>
-  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#f87171">{_herg_hi}</div><div class="lbsl{_uid}">hERG High</div></div>
-  <div class="lbsc{_uid}"><div class="lbsv{_uid}" style="color:#fb923c">{_pains_n}</div><div class="lbsl{_uid}">PAINS Flags</div></div>
-</div>
-
-<div class="lbscroll{_uid}" id="lbscroll{_uid}">
-  <div class="lbneon{_uid}">
-    <div class="lbnt{_uid}"></div><div class="lbnb{_uid}"></div>
-    <div class="lbnl{_uid}"></div><div class="lbnr{_uid}"></div>
+<div id="wrap">
+  <div id="scroll-area">
+    <div class="neon-border">
+      <div class="nb-top"></div><div class="nb-bot"></div>
+      <div class="nb-left"></div><div class="nb-right"></div>
+    </div>
+    <table id="main-table">
+      <thead><tr id="main-hr"></tr></thead>
+      <tbody id="main-body"></tbody>
+    </table>
   </div>
-  <table class="lbt{_uid}" id="lbtbl{_uid}">
-    <thead><tr id="lbhr{_uid}"></tr></thead>
-    <tbody id="lbbody{_uid}"></tbody>
-  </table>
-</div>
-
-<div class="lbfooter{_uid}">
-  <div style="display:flex;align-items:center;gap:8px">
-    <span class="lbftl" id="lbstatus{_uid}">SHOWING ALL COLUMNS · RANKED BY LEAD SCORE · HOVER TO HIGHLIGHT</span>
-    <button class="lbfsbtn{_uid}" id="lbfsbtn{_uid}">⛶ FULLSCREEN</button>
+  <div id="footer">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="status">SHOWING ALL COLUMNS · RANKED BY LEAD SCORE</span>
+      <button id="fs-btn">⛶ FULLSCREEN</button>
+    </div>
+    <div class="leg">
+      <div class="li"><div class="dot" style="background:#34d399"></div>Grade A: optimal</div>
+      <div class="li"><div class="dot" style="background:#e8a020"></div>Grade B: good</div>
+      <div class="li"><div class="dot" style="background:#fbbf24"></div>Grade C: marginal</div>
+      <div class="li"><div class="dot" style="background:#f87171"></div>Grade F: fail</div>
+    </div>
   </div>
-  <div class="lbftr">
-    <div class="lbleg"><div class="lbdot" style="background:#34d399"></div>Grade A: optimal</div>
-    <div class="lbleg"><div class="lbdot" style="background:#e8a020"></div>Grade B: good</div>
-    <div class="lbleg"><div class="lbdot" style="background:#fbbf24"></div>Grade C: marginal</div>
-    <div class="lbleg"><div class="lbdot" style="background:#f87171"></div>Grade F: fail</div>
-  </div>
-</div>
 </div>
 
 <script>
-(function(){{
-var U="{_uid}";
-var ROWS={_rj};
-var sortCol="lead",sortDir=-1;
-var cur=ROWS.slice();
+var ROWS = {_rj};
+var sortCol = "lead", sortDir = -1;
+var cur = ROWS.slice();
 
-var COLS=[
+var COLS = [
   {{k:"idx",l:"#"}},{{k:"id",l:"ID"}},{{k:"grade",l:"Grade"}},
   {{k:"lead",l:"Lead Score"}},{{k:"oral",l:"Oral Bio"}},{{k:"qed",l:"QED"}},
   {{k:"np",l:"NP Score"}},{{k:"stress",l:"Stress"}},{{k:"prom",l:"Promiscuity"}},
@@ -2019,31 +2051,31 @@ function txtC(v,col){{
 }}
 function bar(v,col){{
   var pct=Math.min(100,Math.max(0,col==="qed"?v*100:v));
-  return '<div class="lbbar"><div class="lbtrack"><div class="lbfill" style="width:'+pct+'%;background:'+barC(v,col)+'"></div></div><div class="lbbv">'+v+'</div></div>';
+  return '<div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+barC(v,col)+'"></div></div><div class="bar-val">'+v+'</div></div>';
 }}
-function hergS(h){{return h==="LOW"?"color:#34d399":h==="MEDIUM"?"color:#fbbf24":"color:#f87171";}}
-function amesC(a){{return a.indexOf("Low")>=0?"#34d399":a.indexOf("Possible")>=0?"#fbbf24":"#f87171";}}
+function hS(h){{return h==="LOW"?"color:#34d399":h==="MEDIUM"?"color:#fbbf24":"color:#f87171";}}
+function aC(a){{return a.indexOf("Low")>=0?"#34d399":a.indexOf("Possible")>=0?"#fbbf24":"#f87171";}}
 
 function buildHdr(tr){{
   tr.innerHTML="";
   COLS.forEach(function(c){{
     var th=document.createElement("th");
-    th.setAttribute("data-col",c.k);
+    th.setAttribute("data-k",c.k);
     th.textContent=c.l;
     if(c.k===sortCol) th.classList.add(sortDir===-1?"sdsc":"sasc");
-    th.onclick=function(){{doSort(c.k);}};
+    th.addEventListener("click",function(){{doSort(c.k);}});
     tr.appendChild(th);
   }});
 }}
 
-function buildBody(tbody, rows){{
+function buildBody(tbody,rows){{
   var h="";
   rows.forEach(function(d,i){{
-    var delay=(i*0.025).toFixed(3);
-    h+='<tr style="animation:rowin .22s ease '+delay+'s both">';
-    h+='<td style="color:rgba(200,222,255,.2);font-size:.62rem">'+(i+1)+'</td>';
+    var dl=(i*0.022).toFixed(3);
+    h+='<tr style="animation-delay:'+dl+'s">';
+    h+='<td style="color:rgba(200,222,255,.2);font-size:.6rem">'+(i+1)+'</td>';
     h+='<td style="color:#e8a020;font-weight:500">'+d.id+'</td>';
-    h+='<td><span class="lbgr gr'+d.grade+'">'+d.grade+'</span></td>';
+    h+='<td><span class="gr gr'+d.grade+'">'+d.grade+'</span></td>';
     h+='<td>'+bar(d.lead,"lead")+'</td>';
     h+='<td>'+bar(d.oral,"oral")+'</td>';
     h+='<td>'+bar(d.qed,"qed")+'</td>';
@@ -2054,12 +2086,12 @@ function buildBody(tbody, rows){{
     h+='<td style="color:'+txtC(d.logp,"logp")+'">'+d.logp+'</td>';
     h+='<td style="color:'+txtC(d.tpsa,"tpsa")+'">'+d.tpsa+'</td>';
     h+='<td style="color:'+txtC(d.fsp3,"fsp3")+'">'+d.fsp3+'</td>';
-    h+='<td style="color:'+txtC(d.sa,"sa")+'">'+d.sa+' <span style="font-size:.6rem;opacity:.5">('+d.sa_lbl+')</span></td>';
+    h+='<td style="color:'+txtC(d.sa,"sa")+'">'+d.sa+' <span style="font-size:.58rem;opacity:.5">('+d.sa_lbl+')</span></td>';
     h+='<td style="color:rgba(200,222,255,.65)">'+d.cplx+'</td>';
     h+='<td style="color:'+txtC(d.cyp,"cyp")+'">'+d.cyp+'/5</td>';
     h+='<td style="color:'+txtC(d.sim,"sim")+'">'+d.sim+'</td>';
-    h+='<td style="'+hergS(d.herg)+'">'+d.herg+'</td>';
-    h+='<td style="color:'+amesC(d.ames)+';font-size:.65rem">'+d.ames+'</td>';
+    h+='<td style="'+hS(d.herg)+'">'+d.herg+'</td>';
+    h+='<td style="color:'+aC(d.ames)+';font-size:.64rem">'+d.ames+'</td>';
     h+='<td class="'+(d.hia?"bok":"bno")+'">'+(d.hia?"✓":"✗")+'</td>';
     h+='<td class="'+(d.bbb?"bok":"bno")+'">'+(d.bbb?"✓":"✗")+'</td>';
     h+='<td style="color:'+txtC(d.logs,"logs")+'">'+d.logs+'</td>';
@@ -2067,17 +2099,12 @@ function buildBody(tbody, rows){{
     h+='</tr>';
   }});
   tbody.innerHTML=h;
-  // hover via event delegation
-  tbody.querySelectorAll("tr").forEach(function(tr){{
-    tr.addEventListener("mouseenter",function(){{this.querySelectorAll("td").forEach(function(td){{td.style.background="rgba(56,189,248,.06)";}});}});
-    tr.addEventListener("mouseleave",function(){{this.querySelectorAll("td").forEach(function(td){{td.style.background="";}});}});
-  }});
 }}
 
 function updHdrs(){{
-  document.querySelectorAll("[data-col]").forEach(function(th){{
+  document.querySelectorAll("[data-k]").forEach(function(th){{
     th.classList.remove("sasc","sdsc");
-    if(th.getAttribute("data-col")===sortCol) th.classList.add(sortDir===-1?"sdsc":"sasc");
+    if(th.getAttribute("data-k")===sortCol) th.classList.add(sortDir===-1?"sdsc":"sasc");
   }});
 }}
 
@@ -2091,89 +2118,45 @@ function doSort(col){{
     if(col==="logs"){{av=parseFloat(av)||0;bv=parseFloat(bv)||0;}}
     return sortDir*(av-bv);
   }});
-  var b=document.getElementById("lbbody"+U);
-  if(b) buildBody(b,cur);
-  var fb=document.getElementById("lbfsbody"+U);
-  if(fb) buildBody(fb,cur);
+  buildBody(document.getElementById("main-body"),cur);
+  var fb=document.getElementById("fs-body-rows");
+  if(fb&&fb.children.length>0) buildBody(fb,cur);
   updHdrs();
-  var st=document.getElementById("lbstatus"+U);
-  if(st) st.textContent="SORTED BY "+col.toUpperCase()+" · "+(sortDir===-1?"DESC":"ASC");
+  document.getElementById("status").textContent="SORTED BY "+col.toUpperCase()+" · "+(sortDir===-1?"DESCENDING":"ASCENDING");
 }}
 
 // Neon scroll
-function initNeon(){{
-  var sw=document.getElementById("lbscroll"+U);
-  if(!sw) return;
-  var t;
-  sw.addEventListener("scroll",function(){{
-    sw.classList.add("neonon");
-    clearTimeout(t);
-    t=setTimeout(function(){{sw.classList.remove("neonon");}},900);
-  }});
-}}
-
-// Stat pulse
-function initPulse(){{
-  var els=document.querySelectorAll(".lbsv"+U);
-  els.forEach(function(el){{
-    setInterval(function(){{
-      el.style.textShadow="0 0 "+(5+Math.random()*12)+"px currentColor";
-    }},1000+Math.random()*2000);
-  }});
-}}
+var st2=document.getElementById("scroll-area"),nt;
+st2.addEventListener("scroll",function(){{
+  st2.classList.add("neon");
+  clearTimeout(nt);
+  nt=setTimeout(function(){{st2.classList.remove("neon");}},900);
+}});
 
 // Fullscreen
-function initFS(){{
-  var btn=document.getElementById("lbfsbtn"+U);
-  var ov=document.getElementById("lbfs"+U);
-  var cls=document.getElementById("lbfscls"+U);
-  if(!btn||!ov||!cls) return;
+document.getElementById("fs-btn").addEventListener("click",function(){{
+  var ov=document.getElementById("fs-overlay");
+  var fhr=document.getElementById("fs-hr");
+  var fbr=document.getElementById("fs-body-rows");
+  if(fhr.children.length===0) buildHdr(fhr);
+  buildBody(fbr,cur);
+  updHdrs();
+  ov.classList.add("on");
+}});
+document.getElementById("fs-close").addEventListener("click",function(){{
+  document.getElementById("fs-overlay").classList.remove("on");
+}});
+document.addEventListener("keydown",function(e){{
+  if(e.key==="Escape") document.getElementById("fs-overlay").classList.remove("on");
+}});
 
-  btn.addEventListener("click",function(){{
-    // Build FS headers if needed
-    var fshr=document.getElementById("lbfshr"+U);
-    if(fshr&&fshr.children.length===0) buildHdr(fshr);
-    // Build FS body
-    var fsb=document.getElementById("lbfsbody"+U);
-    if(fsb) buildBody(fsb,cur);
-    // Move overlay to document.body so it escapes all stacking contexts
-    if(ov.parentElement!==document.body) document.body.appendChild(ov);
-    ov.classList.add("fsactive");
-    document.body.style.overflow="hidden";
-    updHdrs();
-  }});
-
-  cls.addEventListener("click",closeFS);
-  document.addEventListener("keydown",function(e){{if(e.key==="Escape")closeFS();}});
-
-  function closeFS(){{
-    ov.classList.remove("fsactive");
-    document.body.style.overflow="";
-  }}
-}}
-
-// Boot with retry — handles Streamlit async rendering
-var tries=0;
-function boot(){{
-  var hr=document.getElementById("lbhr"+U);
-  var body=document.getElementById("lbbody"+U);
-  if(!hr||!body){{
-    if(++tries<40) setTimeout(boot,200);
-    return;
-  }}
-  buildHdr(hr);
-  buildBody(body,cur);
-  // also init FS header early
-  var fshr=document.getElementById("lbfshr"+U);
-  if(fshr) buildHdr(fshr);
-  initNeon();
-  initPulse();
-  initFS();
-}}
-boot();
-}})();
+// Init
+buildHdr(document.getElementById("main-hr"));
+buildBody(document.getElementById("main-body"),cur);
 </script>
-""", unsafe_allow_html=True)
+</body></html>"""
+
+    _stc.html(_table_html, height=580, scrolling=False)
 
     cols_show=["ID","LeadScore","OralBioScore","NP_Score","Stress","PromiscuityRisk","Grade","QED",
                "SA_Score","Complexity","CYP_Hits","Sim","MW","LogP","tPSA","HIA","BBB"]
@@ -3008,7 +2991,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.markdown(f'<div class="rrow"><span class="rk">Egan v2</span><span class="rv">{mv["Egan_v2"]}</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="rrow"><span class="rk">Pfizer 3/75</span><span class="rv">{mv["Pfizer_3_75"]}</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="rrow"><span class="rk">GSK 4/400</span><span class="rv">{mv["GSK_4_400"]}</span></div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="rrow"><span class="rk">Muegge Filter</span><span class="rv">{mv["Muegge Filter"] if "Muegge Filter" in mv else "Check Lab"}</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="rrow"><span class="rk">Muegge Filter</span><span class="rv">{mv.get("Muegge Filter","N/A") if "Muegge Filter" in mv else "Check Lab"}</span></div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
             st.markdown('<div class="ai-panel" style="margin-top:14px"><div class="ai-head"> Topology</div>', unsafe_allow_html=True)
@@ -3029,7 +3012,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.markdown('</div>', unsafe_allow_html=True)
 
             st.markdown('<div class="ai-panel" style="margin-top:14px"><div class="ai-head"> Elemental</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="rrow"><span class="rk">N-Sp3 Saturation</span><span class="rv">{mv["Nitrogen_Sat"]}%</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="rrow"><span class="rk">N-Sp3 Saturation</span><span class="rv">{mv.get("Nitrogen_Sat_%", mv.get("Nitrogen_Sat","N/A"))}%</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="rrow"><span class="rk">Hetero-Ratio</span><span class="rv">{mv["Heteroatom_Ratio"]}</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="rrow"><span class="rk">Halogen-Ratio</span><span class="rv">{mv["Halogen_Ratio"]}</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="rrow"><span class="rk">Sulphur Count</span><span class="rv">{mv["S_Count"]}</span></div>', unsafe_allow_html=True)
