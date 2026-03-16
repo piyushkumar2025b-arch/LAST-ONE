@@ -16,13 +16,13 @@ def render_landing() -> bool:
 
     c1, c2, c3 = st.columns([1.5, 1, 1.5])
     with c2:
-        hero = st.button("⬡  Launch ChemoFilter", key="_lp_hero", use_container_width=True)
+        hero = st.button("⬡  Launch ChemoFilter", key="_lp_hero", width='stretch')
 
     st.markdown(_AFTER_HERO_BTN, unsafe_allow_html=True)
 
     c4, c5, c6 = st.columns([1.5, 1, 1.5])
     with c5:
-        cta = st.button("Begin Discovery →", key="_lp_cta", use_container_width=True)
+        cta = st.button("Begin Discovery →", key="_lp_cta", width='stretch')
 
     st.markdown(_FOOTER_SCRIPT, unsafe_allow_html=True)
     st.markdown(_ENGINE_CARDS_SECTION, unsafe_allow_html=True)

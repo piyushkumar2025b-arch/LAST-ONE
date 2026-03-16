@@ -65,7 +65,7 @@ def render_dashboard_sidebar():
             placeholder="drug name, scaffold, SMILES...",
             key="dashboard_search_input",
         )
-        if st.button("Search All DBs", key="dashboard_search_btn", use_container_width=True):
+        if st.button("Search All DBs", key="dashboard_search_btn", width='stretch'):
             if search_query.strip():
                 st.session_state["dashboard_search_query"] = search_query.strip()
                 st.session_state["show_search_results"] = True
@@ -80,7 +80,7 @@ def render_dashboard_sidebar():
                               key="perf_mode_toggle")
         st.session_state["perf_mode"] = perf_mode
 
-        if st.button("Clear Cache", key="clear_cache_btn", use_container_width=True):
+        if st.button("Clear Cache", key="clear_cache_btn", width='stretch'):
             cm = _safe_import("cache_manager")
             if cm:
                 n = cm.cache_clear_all()
@@ -180,7 +180,7 @@ def render_analytics_tab():
         if summary:
             if viz:
                 fig = viz.engine_stats_bar(summary)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
             import pandas as pd
             rows = [
                 {
@@ -205,7 +205,7 @@ def render_analytics_tab():
         events = pm.get_recent_events(100)
         if events:
             fig = viz.performance_timeline(events)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         else:
             st.info("No performance events recorded yet.")
 

@@ -564,7 +564,7 @@ section[data-testid="stSidebar"] label {
 # ══════════════════════════════════════════════════════════════════
 import streamlit.components.v1 as _stc_panels
 
-_FLOATING_HTML = """
+_FLOATING_HTML = r"""
 <style>
 /* ── FLOATING TRIGGER BUTTONS ── */
 #cf-fab-bar {
@@ -1259,7 +1259,7 @@ function calcEval() {
       .replace(/×/g,'*').replace(/÷/g,'/')
       .replace(/π/g, String(Math.PI))
       .replace(/e(?![0-9])/g, String(Math.E))
-      .replace(/\^/g,'**')
+      .replace(/\\^/g,'**')
       .replace(/sin\(/g, deg?'Math.sin(Math.PI/180*':'Math.sin(')
       .replace(/cos\(/g, deg?'Math.cos(Math.PI/180*':'Math.cos(')
       .replace(/tan\(/g, deg?'Math.tan(Math.PI/180*':'Math.tan(')
@@ -3639,9 +3639,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                             unsafe_allow_html=True)
 
                     g1,g2 = st.columns(2)
-                    with g1: st.plotly_chart(fig_gauge(res["LeadScore"],"LEAD SCORE"), use_container_width=True, key=f"glead_{i}")
-                    with g2: st.plotly_chart(fig_gauge(res["OralBioScore"],"ORAL BIO"), use_container_width=True, key=f"goral_{i}")
-                    st.plotly_chart(fig_elem(res["_elems"], res["ID"]), use_container_width=True, key=f"elem_{i}")
+                    with g1: st.plotly_chart(fig_gauge(res["LeadScore"],"LEAD SCORE"), width='stretch', key=f"glead_{i}")
+                    with g2: st.plotly_chart(fig_gauge(res["OralBioScore"],"ORAL BIO"), width='stretch', key=f"goral_{i}")
+                    st.plotly_chart(fig_elem(res["_elems"], res["ID"]), width='stretch', key=f"elem_{i}")
 
                 #  COL 2: Descriptor Table + Bars
                 with c2:
@@ -3726,7 +3726,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                         "color:rgba(245,166,35,.3);text-align:center;letter-spacing:2px;"
                         "margin-bottom:4px;text-transform:uppercase'>Drug-Likeness Radar</div>",
                         unsafe_allow_html=True)
-                    st.plotly_chart(fig_radar(res), use_container_width=True, key=f"rad_{i}")
+                    st.plotly_chart(fig_radar(res), width='stretch', key=f"rad_{i}")
 
                     # Tox pills
                     def tpill(cls,icon,label,detail):
@@ -3876,15 +3876,15 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
           <div class="sec-line"></div>
           <span class="sec-tag">Daina & Zoete, ChemMedChem 2016  Bubble size  Lead Score</span>
         </div>""", unsafe_allow_html=True)
-        st.plotly_chart(fig_boiled_egg(display_data), use_container_width=True)
+        st.plotly_chart(fig_boiled_egg(display_data), width='stretch')
 
         q1,q2 = st.columns(2)
         with q1:
             st.markdown('<div class="sec" style="margin-top:8px"><span class="sec-num">02b</span><span class="sec-title">QED Distribution</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
-            st.plotly_chart(fig_qed_sa(display_data), use_container_width=True)
+            st.plotly_chart(fig_qed_sa(display_data), width='stretch')
         with q2:
             st.markdown('<div class="sec" style="margin-top:8px"><span class="sec-num">03c</span><span class="sec-title">SA Score</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
-            st.plotly_chart(fig_sa(display_data), use_container_width=True)
+            st.plotly_chart(fig_sa(display_data), width='stretch')
 
     #  TAB 5  ANALYSIS SUITE 
     with TABS[5]:
@@ -3906,22 +3906,22 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             at1,at2,at3,at4 = st.tabs(["Similarity Matrix","Parallel Coordinates","PCA Space","vs Approved Drugs"])
             with at1:
                 st.caption("Tanimoto pairwise similarity of Morgan fingerprints (ECFP4)")
-                st.plotly_chart(fig_similarity(display_data), use_container_width=True)
+                st.plotly_chart(fig_similarity(display_data), width='stretch')
             with at2:
                 st.caption("Drag axes to filter  Colour = Lead Score (red  amber  green)")
-                st.plotly_chart(fig_parallel(display_data), use_container_width=True)
+                st.plotly_chart(fig_parallel(display_data), width='stretch')
             with at3:
                 st.caption("PCA of 2048-bit Morgan fingerprints  closer = more similar")
                 p=fig_pca(display_data)
-                if p: st.plotly_chart(p, use_container_width=True)
+                if p: st.plotly_chart(p, width='stretch')
             with at4:
                 sel=st.selectbox("Select compound",[d["ID"] for d in display_data])
                 sr=next(d for d in display_data if d["ID"]==sel)
-                st.plotly_chart(fig_approved(sr), use_container_width=True)
+                st.plotly_chart(fig_approved(sr), width='stretch')
             with st.expander(" 3D Chemical Space Radar"):
                 st.markdown('<div class="ai-panel">3D Principal Component projection of all matched compounds.</div>', unsafe_allow_html=True)
                 pca3d = fig_pca(display_data, is_3d=True)
-                if pca3d: st.plotly_chart(pca3d, use_container_width=True, key="pca3d_tab")
+                if pca3d: st.plotly_chart(pca3d, width='stretch', key="pca3d_tab")
         else:
             st.info("Add 2 or more compounds to unlock comparison charts.")
 
