@@ -5,10 +5,11 @@ quote section, system status, metrics band, workflow steps, engine deep-dive,
 tech stack, scientific references, CTA — all styled premium dark/light.
 """
 import streamlit as st
+import assets
 
 
 def render_landing() -> bool:
-    st.markdown(_CSS, unsafe_allow_html=True)
+    st.markdown(_CSS.replace("{assets.HERO_B64}", assets.HERO_B64), unsafe_allow_html=True)
     st.markdown(_ENHANCEMENT_CSS, unsafe_allow_html=True)
     st.markdown(_MOL_CANVAS, unsafe_allow_html=True)
     st.markdown(_SCIENTIST_SCENE, unsafe_allow_html=True)
@@ -25,6 +26,7 @@ def render_landing() -> bool:
         cta = st.button("Begin Discovery →", key="_lp_cta", width='stretch')
 
     st.markdown(_FOOTER_SCRIPT, unsafe_allow_html=True)
+    st.markdown(_PULSE_SECTION, unsafe_allow_html=True)
     st.markdown(_ENGINE_CARDS_SECTION, unsafe_allow_html=True)
     st.markdown(_WORKFLOW_VIZ, unsafe_allow_html=True)
     st.markdown(_CHEM_NETWORK, unsafe_allow_html=True)
@@ -71,33 +73,32 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"],[data-testid
 .cf-dots{position:fixed;inset:0;pointer-events:none;z-index:0;background-image:radial-gradient(rgba(255,255,255,.035) 1px,transparent 1px);background-size:30px 30px;}
 #cf-root.lm .cf-dots{background-image:radial-gradient(rgba(0,0,0,.05) 1px,transparent 1px);}
 
-.cf-nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;justify-content:space-between;padding:14px 52px;background:var(--nav-bg);backdrop-filter:blur(28px) saturate(1.5);border-bottom:1px solid var(--bdr2);transition:background .3s;}
-.cf-brand{display:flex;align-items:center;gap:12px;font-family:'Instrument Serif',serif;font-size:1.4rem;color:var(--tx);letter-spacing:-.3px;}
-.cf-hexbadge{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:grid;place-items:center;font-size:1rem;box-shadow:0 4px 16px var(--glow);}
-.cf-navlinks{display:flex;align-items:center;gap:30px}
-.cf-nl{font-size:.77rem;color:var(--tx2);font-weight:400;cursor:default;}
-.cf-ver{font-family:'DM Mono',monospace;font-size:.54rem;letter-spacing:2px;text-transform:uppercase;padding:5px 14px;border-radius:20px;background:rgba(232,160,32,.1);border:1px solid rgba(232,160,32,.24);color:var(--ac2);}
-.cf-status{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:.54rem;color:var(--green);letter-spacing:1.5px;}
-.cf-pulse{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s ease-in-out infinite;}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.4)}50%{box-shadow:0 0 0 6px rgba(52,211,153,0)}}
+.cf-nav{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;align-items:center;justify-content:space-between;padding:18px 60px;background:rgba(4,4,10,0.7);backdrop-filter:blur(32px) saturate(1.8);border-bottom:1px solid rgba(255,255,255,0.06);transition:all .3s;}
+.cf-brand{display:flex;align-items:center;gap:14px;font-family:'Instrument Serif',serif;font-size:1.6rem;color:var(--tx);letter-spacing:-0.5px;font-weight:400;}
+.cf-hexbadge{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--ac),var(--ac2));display:grid;place-items:center;font-size:1.1rem;color:#04040a;box-shadow:0 8px 24px var(--glow);font-weight:900;}
+.cf-navlinks{display:flex;align-items:center;gap:40px}
+.cf-nl{font-size:.75rem;color:var(--tx2);font-weight:500;cursor:default;letter-spacing:0.5px;transition:color .2s;}
+.cf-nl:hover{color:var(--ac)}
+.cf-ver{font-family:'DM Mono',monospace;font-size:.56rem;letter-spacing:2px;text-transform:uppercase;padding:6px 16px;border-radius:20px;background:rgba(232,160,32,0.08);border:1px solid rgba(232,160,32,0.2);color:var(--ac2);font-weight:500;}
 
-.cf-hero{position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:160px 52px 80px;max-width:1200px;margin:0 auto;}
-.cf-eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--ac2);padding:8px 20px;border-radius:20px;background:rgba(232,160,32,.08);border:1px solid rgba(232,160,32,.22);margin-bottom:48px;animation:fadeUp .6s ease both;}
-.cf-edot{width:6px;height:6px;border-radius:50%;background:var(--ac);animation:pulse 2s ease-in-out infinite;}
-.cf-headline{font-family:'Instrument Serif',serif;font-size:clamp(3.5rem,9vw,8rem);line-height:1.0;letter-spacing:-3px;color:var(--tx);margin:0;animation:fadeUp .65s .08s ease both;}
-.cf-headline em{font-style:italic;background:linear-gradient(125deg,var(--ac3) 0%,var(--ac) 40%,var(--ac2) 80%,#f7c9a0 100%);background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 4s linear infinite;}
-@keyframes shimmer{0%{background-position:0%}100%{background-position:200%}}
-.cf-headline2{font-family:'Instrument Serif',serif;font-size:clamp(3.5rem,9vw,8rem);line-height:1.0;letter-spacing:-3px;color:var(--tx2);margin:0 0 48px;animation:fadeUp .65s .16s ease both;}
-.cf-desc{font-size:1.1rem;line-height:1.85;font-weight:300;color:var(--tx2);max-width:580px;margin:0 auto 56px;animation:fadeUp .65s .24s ease both;}
-.cf-desc strong{color:var(--tx);font-weight:500}
-.cf-note{font-family:'DM Mono',monospace;font-size:.57rem;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);margin-top:12px;animation:fadeUp .65s .38s ease both;}
+.cf-hero{position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:180px 60px 100px;max-width:1300px;margin:0 auto;}
+.cf-eyebrow{display:inline-flex;align-items:center;gap:12px;font-family:'DM Mono',monospace;font-size:.65rem;letter-spacing:4px;text-transform:uppercase;color:var(--ac);padding:10px 24px;border-radius:30px;background:rgba(232,160,32,0.05);border:1px solid rgba(232,160,32,0.15);margin-bottom:56px;animation:fadeUp .8s cubic-bezier(0.2, 0.8, 0.2, 1) both;font-weight:500;}
+.cf-edot{width:8px;height:8px;border-radius:50%;background:var(--ac);box-shadow:0 0 12px var(--ac);}
+.cf-headline{font-family:'Instrument Serif',serif;font-size:clamp(4rem,10vw,9rem);line-height:0.95;letter-spacing:-4px;color:var(--tx);margin:0;animation:fadeUp .9s .1s cubic-bezier(0.2, 0.8, 0.2, 1) both;font-weight:400;}
+.cf-headline em{font-style:italic;background:linear-gradient(135deg,#fff 0%,var(--ac) 50%,var(--ac2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200%;animation:shimmer 6s linear infinite;padding-right:10px;}
+.cf-headline2{font-family:'Instrument Serif',serif;font-size:clamp(4rem,10vw,9rem);line-height:0.95;letter-spacing:-4px;color:var(--tx2);margin:0 0 64px;animation:fadeUp .9s .2s cubic-bezier(0.2, 0.8, 0.2, 1) both;opacity:0.6;}
+.cf-desc{font-size:1.2rem;line-height:1.8;font-weight:300;color:var(--tx2);max-width:680px;margin:0 auto 64px;animation:fadeUp .9s .3s cubic-bezier(0.2, 0.8, 0.2, 1) both;letter-spacing:0.1px;}
+.cf-desc strong{color:var(--tx);font-weight:500;border-bottom:1px solid var(--ac-bdr)}
+.cf-note{font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--tx3);margin-top:20px;animation:fadeUp .9s .5s cubic-bezier(0.2, 0.8, 0.2, 1) both;}
 
-.cf-stats{display:flex;border:1px solid var(--bdr);border-radius:18px;overflow:hidden;background:var(--bdr2);gap:1px;margin-top:68px;width:100%;max-width:900px;animation:fadeUp .65s .46s ease both;}
-.cf-stat{flex:1;background:var(--bg1);padding:26px 10px;text-align:center;transition:background .2s;cursor:default;}
-.cf-stat:hover{background:var(--bg2)}
-.cf-sv{font-family:'Instrument Serif',serif;font-size:2.3rem;color:var(--tx);line-height:1;letter-spacing:-1px;}
+.cf-stats{display:flex;border:1px solid var(--bdr);border-radius:24px;overflow:hidden;background:rgba(255,255,255,0.02);backdrop-filter:blur(20px);gap:1px;margin-top:80px;width:100%;max-width:1100px;animation:fadeUp .9s .6s cubic-bezier(0.2, 0.8, 0.2, 1) both;}
+.cf-stat{flex:1;background:rgba(8,8,15,0.4);padding:32px 15px;text-align:center;transition:all .3s ease;cursor:default;position:relative;}
+.cf-stat::after{content:'';position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle at 50% 0%,rgba(232,160,32,0.05),transparent 70%);opacity:0;transition:opacity .3s;}
+.cf-stat:hover{background:rgba(255,255,255,0.03)}
+.cf-stat:hover::after{opacity:1}
+.cf-sv{font-family:'Instrument Serif',serif;font-size:2.8rem;color:var(--tx);line-height:1;letter-spacing:-1.5px;}
 .cf-sv span{color:var(--ac);font-style:italic}
-.cf-sl{font-family:'DM Mono',monospace;font-size:.5rem;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);margin-top:8px;}
+.cf-sl{font-family:'DM Mono',monospace;font-size:.55rem;letter-spacing:3px;text-transform:uppercase;color:var(--tx3);margin-top:12px;font-weight:500;}
 .cf-hr{height:1px;background:var(--bdr2);margin:0 52px}
 
 .cf-sh{text-align:center;padding:88px 52px 48px;max-width:1200px;margin:0 auto}
@@ -115,20 +116,17 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"],[data-testid
 .cf-tk.v{color:rgba(167,139,250,.5)}.cf-tk.v::before{background:var(--violet)}
 .cf-tk.g{color:rgba(52,211,153,.5)}.cf-tk.g::before{background:var(--green)}
 
-.cf-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding:0 52px 88px;max-width:1200px;margin:0 auto;}
-.cf-card{background:var(--bg1);border:1px solid var(--bdr3);border-radius:var(--r);padding:32px 28px;transition:all .3s ease;position:relative;overflow:hidden;cursor:default;}
-.cf-card::before{content:'';position:absolute;inset:0;border-radius:var(--r);background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(232,160,32,.07),transparent);opacity:0;transition:opacity .3s;}
-.cf-card::after{content:'';position:absolute;top:0;left:15%;right:15%;height:1px;background:linear-gradient(90deg,transparent,var(--ac),transparent);opacity:0;transition:opacity .3s;}
-.cf-card:hover{border-color:rgba(232,160,32,.3);transform:translateY(-6px);box-shadow:0 24px 64px rgba(0,0,0,.45),0 0 0 1px rgba(232,160,32,.1);}
-.cf-card:hover::before,.cf-card:hover::after{opacity:1}
-.cf-card-acc{position:absolute;top:0;left:0;width:3px;height:100%;}
-.cf-ico{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:1.35rem;margin-bottom:20px;}
-.ia{background:rgba(232,160,32,.1)}.ib{background:rgba(56,189,248,.09)}.ic{background:rgba(167,139,250,.1)}
-.id{background:rgba(52,211,153,.09)}.ie{background:rgba(251,191,36,.09)}.if{background:rgba(248,113,113,.09)}
-.ig{background:rgba(232,160,32,.09)}.ih{background:rgba(56,189,248,.1)}.ii{background:rgba(167,139,250,.08)}
-.cf-ct{font-family:'Instrument Serif',serif;font-size:1.1rem;color:var(--tx);margin-bottom:11px;letter-spacing:-.2px;line-height:1.3;}
-.cf-cb{font-size:.8rem;color:var(--tx2);line-height:1.8;font-weight:300}
-.cf-cp{display:inline-block;margin-top:18px;font-family:'DM Mono',monospace;font-size:.53rem;letter-spacing:1.5px;padding:4px 12px;border-radius:4px;background:rgba(232,160,32,.07);border:1px solid rgba(232,160,32,.16);color:var(--ac2);text-transform:uppercase;}
+.cf-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;padding:0 60px 100px;max-width:1300px;margin:0 auto;}
+.cf-card{background:rgba(12,12,22,0.6);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.06);border-radius:var(--r);padding:40px 32px;transition:all .4s cubic-bezier(0.2, 0.8, 0.2, 1);position:relative;overflow:hidden;cursor:default;}
+.cf-card::before{content:'';position:absolute;inset:0;border-radius:var(--r);background:radial-gradient(circle at 50% 0%,var(--card-glow,rgba(232,160,32,0.1)),transparent 70%);opacity:0;transition:opacity .4s;}
+.cf-card:hover{border-color:rgba(232,160,32,0.4);transform:translateY(-10px) scale(1.02);box-shadow:0 32px 64px rgba(0,0,0,0.6),0 0 0 1px rgba(232,160,32,0.15);}
+.cf-card:hover::before{opacity:1}
+.cf-ico{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;font-size:1.6rem;margin-bottom:28px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);transition:transform .3s ease;}
+.cf-card:hover .cf-ico{transform:scale(1.1) rotate(-5deg);border-color:var(--ac)}
+.cf-ct{font-family:'Instrument Serif',serif;font-size:1.4rem;color:var(--tx);margin-bottom:14px;letter-spacing:-0.4px;line-height:1.2;font-weight:400;}
+.cf-cb{font-size:.88rem;color:var(--tx2);line-height:1.75;font-weight:300;letter-spacing:0.1px;}
+.cf-cp{display:inline-block;margin-top:24px;font-family:'DM Mono',monospace;font-size:.58rem;letter-spacing:2px;padding:6px 16px;border-radius:30px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--tx3);text-transform:uppercase;transition:all .2s;}
+.cf-card:hover .cf-cp{background:rgba(232,160,32,0.12);border-color:rgba(232,160,32,0.3);color:var(--ac2)}
 
 .cf-cascade-wrap{padding:56px 52px 88px;max-width:1200px;margin:0 auto;}
 .cf-cascade-title{font-family:'Instrument Serif',serif;font-size:2.2rem;color:var(--tx);text-align:center;margin-bottom:10px;letter-spacing:-.5px;}
@@ -143,6 +141,51 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"],[data-testid
 .cf-cd{background:var(--bg1);border:1px solid var(--bdr3);border-radius:10px;padding:18px 16px;}
 .cf-cd-n{font-family:'DM Mono',monospace;font-size:.55rem;color:var(--ac2);letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase;}
 .cf-cd-v{font-size:.72rem;color:var(--tx2);line-height:1.7;font-weight:300;}
+
+/* TICKER */
+.cf-ticker-wrap {
+  width: 100%; border-top: 1px solid var(--bdr2); border-bottom: 1px solid var(--bdr2);
+  background: rgba(0,0,0,0.2); padding: 12px 0; overflow: hidden;
+  margin-top: 60px; position: relative; z-index: 10;
+}
+.cf-ticker { display: flex; gap: 40px; animation: ticker 40s linear infinite; width: max-content; }
+@keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+.cf-ti { font-family: 'DM Mono', monospace; font-size: .65rem; color: var(--tx3); white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.cf-ti span { color: var(--ac); }
+
+/* CRT FLICKER */
+.cf-crt {
+  position: fixed; inset: 0; z-index: 5; pointer-events: none;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 2px, 3px 100%;
+  animation: crt 0.15s infinite;
+}
+@keyframes crt {
+  0% { opacity: 0.1; }
+  50% { opacity: 0.12; }
+  100% { opacity: 0.1; }
+}
+
+.cf-data-line {
+  height: 2px; width: 100%; position: relative; margin: 20px 0;
+  background: linear-gradient(90deg, transparent, var(--bdr2), transparent);
+}
+.cf-data-line::after {
+  content: ''; position: absolute; left: 0; top: 0; height: 100%; width: 60px;
+  background: linear-gradient(90deg, transparent, var(--ac), transparent);
+  animation: dataStream 3s infinite linear;
+}
+@keyframes dataStream { 0% { left: -100px; } 100% { left: 110%; } }
+
+/* GOLD PULSE */
+.cf-gold-pulse {
+  animation: cfGoldPulse 2s infinite alternate;
+  text-shadow: 0 0 10px rgba(232,160,32,0.4);
+}
+@keyframes cfGoldPulse {
+  0% { text-shadow: 0 0 5px rgba(232,160,32,0.4); filter: brightness(1); }
+  100% { text-shadow: 0 0 20px rgba(232,160,32,0.8); filter: brightness(1.3); }
+}
 
 /* QUOTE SECTION */
 .cf-quote-section{padding:0 52px 88px;max-width:1200px;margin:0 auto;}
@@ -225,15 +268,47 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"],[data-testid
 .cf-fc{font-size:.7rem;color:var(--tx3);font-weight:300}
 #cf-thm{position:fixed;bottom:28px;right:28px;z-index:600;width:48px;height:48px;border-radius:50%;background:var(--bg2);border:1px solid var(--bdr);display:grid;place-items:center;cursor:pointer;font-size:1.15rem;backdrop-filter:blur(16px);transition:transform .2s;box-shadow:0 8px 32px rgba(0,0,0,.5);}
 #cf-thm:hover{transform:scale(1.15)}
-@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+.cf-hero {
+  position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:180px 60px 100px;max-width:1300px;margin:0 auto;
+}
+.cf-hero-bg {
+  position:absolute; inset:0; z-index:-1;
+  background-image: linear-gradient(to bottom, rgba(5,8,15,0.7), rgba(5,8,15,1)), url("data:image/png;base64,{assets.HERO_B64}");
+  background-size: cover; background-position: center; filter: blur(4px) brightness(0.4);
+  opacity: 0.4; animation: zoomIn 20s infinite alternate;
+}
+@keyframes zoomIn {{ from {{ transform: scale(1); }} to {{ transform: scale(1.1); }} }}
+@keyframes shimmer {{ 0% {{ background-position: 0% 50%; }} 50% {{ background-position: 100% 50%; }} 100% {{ background-position: 0% 50%; }} }}
+.cf-hologram {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size: 100% 2px, 3px 100%; opacity: 0.15;
+}
+.cf-grid {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background-image: linear-gradient(rgba(232,160,32,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(232,160,32,0.05) 1px, transparent 1px);
+  background-size: 50px 50px; [mask-image:radial-gradient(circle,black,transparent 80%)]
+}
+.cf-cta-p { position: relative; overflow: hidden; }
+.cf-cta-p::after {
+  content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent);
+  transform: rotate(45deg); animation: cfBtnShimmer 3s infinite;
+}
+@keyframes cfBtnShimmer { 0% { transform: translateX(-100%) rotate(45deg); } 100% { transform: translateX(100%) rotate(45deg); } }
 </style>"""
 
-_ABOVE_HERO_BTN = """
+_ABOVE_HERO_BTN = f"""
 <div class="cf-wrap" id="cf-root">
 <div class="cf-orbs"><div class="cf-o cf-o1"></div><div class="cf-o cf-o2"></div><div class="cf-o cf-o3"></div><div class="cf-o cf-o4"></div><div class="cf-o cf-o5"></div></div>
 <div class="cf-dots"></div>
 <nav class="cf-nav" id="cf-nav">
-  <div class="cf-brand"><span class="cf-hexbadge">⬡</span>ChemoFilter</div>
+  <div class="cf-brand">
+    <div class="cf-hexbadge" style="background:none; border:1px solid rgba(232,160,32,0.3); padding:4px;">
+      <img src="data:image/png;base64,{assets.ICON_B64}" style="width:100%; height:100%; object-fit:contain; filter: drop-shadow(0 0 8px var(--ac));">
+    </div>
+    ChemoFilter
+  </div>
   <div class="cf-navlinks">
     <span class="cf-nl">ADMET Engine</span>
     <span class="cf-nl">Drug Atlas</span>
@@ -241,10 +316,17 @@ _ABOVE_HERO_BTN = """
     <span class="cf-nl">AI Lab</span>
     <span class="cf-nl">Reports</span>
     <span class="cf-ver">v1,000,000</span>
-    <div class="cf-status"><div class="cf-pulse"></div>LIVE</div>
+    <div class="cf-status">
+      <div class="cf-pulse"></div>
+      <span style="font-family:'DM Mono',monospace; font-size:0.55rem; letter-spacing:2px; color:var(--green); margin-left:8px;">SYSTEM ONLINE</span>
+    </div>
   </div>
 </nav>
 <div class="cf-hero">
+  <div class="cf-hero-bg"></div>
+  <div class="cf-hologram"></div>
+  <div class="cf-grid"></div>
+  <div class="cf-crt"></div>
   <div class="cf-eyebrow"><div class="cf-edot"></div>VIT Chennai MDP 2026 &nbsp;·&nbsp; Omnipotent Edition &nbsp;·&nbsp; 100,000+ Features</div>
   <h1 class="cf-headline">The Future of</h1>
   <h1 class="cf-headline"><em>Drug Discovery</em></h1>
@@ -268,8 +350,16 @@ _AFTER_HERO_BTN = """
 <!-- TICKER -->
 <div class="cf-ticker-wrap">
   <div class="cf-ticker">
-    <span class="cf-tk">Lipinski Ro5</span><span class="cf-tk c">BOILED-EGG</span><span class="cf-tk">QED Score</span><span class="cf-tk v">SA Score</span><span class="cf-tk">CYP Panel ×5</span><span class="cf-tk c">hERG Risk</span><span class="cf-tk">CNS MPO</span><span class="cf-tk v">PAINS Filter</span><span class="cf-tk g">Lead Score™</span><span class="cf-tk">Oral Bio Score</span><span class="cf-tk c">Celestial v1000</span><span class="cf-tk">Xenon v5000</span><span class="cf-tk v">Aether v10000</span><span class="cf-tk g">Claude AI</span><span class="cf-tk">PBPK Kinetics</span><span class="cf-tk c">Retrosynthesis</span><span class="cf-tk">Omega-Zenith</span><span class="cf-tk v">Singularity v200</span><span class="cf-tk g">Tissue Mapping</span><span class="cf-tk">Nanotoxicity</span><span class="cf-tk c">Epigenetic Risk</span><span class="cf-tk">BBB Flux</span><span class="cf-tk v">Covalent Warheads</span><span class="cf-tk g">Carbon Footprint</span>
-    <span class="cf-tk">Lipinski Ro5</span><span class="cf-tk c">BOILED-EGG</span><span class="cf-tk">QED Score</span><span class="cf-tk v">SA Score</span><span class="cf-tk">CYP Panel ×5</span><span class="cf-tk c">hERG Risk</span><span class="cf-tk">CNS MPO</span><span class="cf-tk v">PAINS Filter</span><span class="cf-tk g">Lead Score™</span><span class="cf-tk">Oral Bio Score</span><span class="cf-tk c">Celestial v1000</span><span class="cf-tk">Xenon v5000</span><span class="cf-tk v">Aether v10000</span><span class="cf-tk g">Claude AI</span><span class="cf-tk">PBPK Kinetics</span><span class="cf-tk c">Retrosynthesis</span><span class="cf-tk">Omega-Zenith</span><span class="cf-tk v">Singularity v200</span><span class="cf-tk g">Tissue Mapping</span><span class="cf-tk">Nanotoxicity</span><span class="cf-tk c">Epigenetic Risk</span><span class="cf-tk">BBB Flux</span><span class="cf-tk v">Covalent Warheads</span><span class="cf-tk g">Carbon Footprint</span>
+    <div class="cf-ti">SCANNING <span>OLAPARIB</span> · C24H23FN4O3 · 434.4g/mol · QED 0.72 · LogP 1.83</div>
+    <div class="cf-ti">SCANNING <span>REMDESIVIR</span> · C27H35N6O8P · 602.6g/mol · QED 0.45 · LogP 1.95</div>
+    <div class="cf-ti">SCANNING <span>IBRUTINIB</span> · C25H24N6O2 · 440.5g/mol · QED 0.68 · LogP 4.01</div>
+    <div class="cf-ti">SCANNING <span>NIRMATRELVIR</span> · C23H32F3N5O4 · 499.5g/mol · QED 0.61 · LogP 1.45</div>
+    <div class="cf-ti">SCANNING <span>SORAFENIB</span> · C21H16ClF3N4O3 · 464.8g/mol · QED 0.75 · LogP 4.12</div>
+    <div class="cf-ti">SCANNING <span>OLAPARIB</span> · C24H23FN4O3 · 434.4g/mol · QED 0.72 · LogP 1.83</div>
+    <div class="cf-ti">SCANNING <span>REMDESIVIR</span> · C27H35N6O8P · 602.6g/mol · QED 0.45 · LogP 1.95</div>
+    <div class="cf-ti">SCANNING <span>IBRUTINIB</span> · C25H24N6O2 · 440.5g/mol · QED 0.68 · LogP 4.01</div>
+    <div class="cf-ti">SCANNING <span>NIRMATRELVIR</span> · C23H32F3N5O4 · 499.5g/mol · QED 0.61 · LogP 1.45</div>
+    <div class="cf-ti">SCANNING <span>SORAFENIB</span> · C21H16ClF3N4O3 · 464.8g/mol · QED 0.75 · LogP 4.12</div>
   </div>
 </div>
 
@@ -321,8 +411,8 @@ _AFTER_HERO_BTN = """
     <div class="cf-cs"><div class="cf-ctag">v10k</div><div class="cf-cn">Aether</div></div>
     <div class="cf-arr">›</div>
     <div class="cf-cs" style="background:rgba(232,160,32,.06);border-left:1px solid rgba(232,160,32,.2)">
-      <div class="cf-ctag" style="color:#f5b942">v1M</div>
-      <div class="cf-cn" style="color:rgba(232,160,32,.7)">Omnipotent</div>
+      <div class="cf-ctag cf-gold-pulse" style="color:#f5b942">v1M</div>
+      <div class="cf-cn" style="color:rgba(232,160,32,0.7)">Omnipotent</div>
     </div>
   </div>
   <div class="cf-cascade-details">

@@ -14,6 +14,7 @@ Then call inject_ui() once at the very start of your app (before any st.* calls)
 """
 
 import streamlit as st
+import assets
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -43,47 +44,51 @@ def _inject_theme_system():
 /* ════════════════════════════════════
    THEME TOKEN SYSTEM
    ════════════════════════════════════ */
-:root {
-  /* Dark theme (default) */
-  --cf-bg:        #09090e;
-  --cf-bg1:       #0f0f16;
-  --cf-bg2:       #141420;
-  --cf-bg3:       #1c1c2a;
-  --cf-bg4:       #212132;
-  --cf-surface:   rgba(255,255,255,0.03);
-  --cf-border:    rgba(255,255,255,0.08);
-  --cf-border2:   rgba(255,255,255,0.05);
-  --cf-border3:   rgba(255,255,255,0.03);
+  /* Dark theme (default) - Deep Onyx & Gold */
+  --cf-bg:        #04040a;
+  --cf-bg1:       #08080f;
+  --cf-bg2:       #0d0d18;
+  --cf-bg3:       #121222;
+  --cf-bg4:       #18182b;
+  --cf-surface:   rgba(255,255,255,0.02);
+  --cf-glass:     rgba(255,255,255,0.035);
+  --cf-glass-bdr: rgba(255,255,255,0.08);
+  --cf-border:    rgba(255,255,255,0.07);
+  --cf-border2:   rgba(255,255,255,0.04);
+  --cf-border3:   rgba(255,255,255,0.02);
 
-  --cf-text:      #ededf5;
-  --cf-text2:     rgba(237,237,245,0.6);
-  --cf-text3:     rgba(237,237,245,0.35);
-  --cf-text4:     rgba(237,237,245,0.18);
+  --cf-text:      #f0f0f8;
+  --cf-text2:     rgba(240,240,248,0.65);
+  --cf-text3:     rgba(240,240,248,0.38);
+  --cf-text4:     rgba(240,240,248,0.15);
 
-  /* Brand — warm terracotta gold */
-  --cf-acc:       #d4845a;
-  --cf-acc2:      #e8a07a;
-  --cf-acc3:      #f5c4a0;
-  --cf-acc-bg:    rgba(212,132,90,0.10);
-  --cf-acc-bdr:   rgba(212,132,90,0.22);
+  /* Brand — Rich Terracotta & Burnt Amber */
+  --cf-acc:       #e8a020;
+  --cf-acc2:      #f5b942;
+  --cf-acc3:      #fdd88a;
+  --cf-acc-bg:    rgba(232,160,32,0.12);
+  --cf-acc-bdr:   rgba(232,160,32,0.28);
+  --cf-glow:      rgba(232,160,32,0.18);
 
-  /* Status colors */
-  --cf-green:     #52d99a;
-  --cf-green-bg:  rgba(82,217,154,0.10);
+  /* Status colors - Vibrant */
+  --cf-green:     #34d399;
+  --cf-green-bg:  rgba(52,211,153,0.12);
   --cf-red:       #f87171;
-  --cf-red-bg:    rgba(248,113,113,0.10);
+  --cf-red-bg:    rgba(248,113,113,0.12);
   --cf-yellow:    #fbbf24;
-  --cf-yellow-bg: rgba(251,191,36,0.10);
-  --cf-teal:      #5dd4c8;
-  --cf-teal-bg:   rgba(93,212,200,0.10);
-  --cf-purple:    #a68afb;
-  --cf-purple-bg: rgba(166,138,251,0.10);
+  --cf-yellow-bg: rgba(251,191,36,0.12);
+  --cf-teal:      #2dd4bf;
+  --cf-teal-bg:   rgba(45,212,191,0.12);
+  --cf-blue:      #38bdf8;
+  --cf-blue-bg:   rgba(56,189,248,0.12);
+  --cf-purple:    #a78bfa;
+  --cf-purple-bg: rgba(167,139,250,0.12);
 
-  --cf-r:  16px;
-  --cf-r2: 10px;
-  --cf-r3: 6px;
-  --cf-shadow: 0 4px 24px rgba(0,0,0,0.4);
-  --cf-shadow2: 0 1px 3px rgba(0,0,0,0.3);
+  --cf-r:  20px;
+  --cf-r2: 12px;
+  --cf-r3: 8px;
+  --cf-shadow: 0 12px 48px rgba(0,0,0,0.6);
+  --cf-shadow2: 0 4px 12px rgba(0,0,0,0.4);
 
   --cf-font-head: 'Instrument Serif', serif;
   --cf-font-body: 'DM Sans', sans-serif;
@@ -117,11 +122,16 @@ html, body {
 }
 
 /* Streamlit containers */
-[data-testid="stAppViewContainer"],
-[data-testid="stMain"],
-.main, .block-container {
   background: var(--cf-bg) !important;
   color: var(--cf-text) !important;
+}
+[data-testid="stAppViewContainer"]::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: radial-gradient(var(--cf-border) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none; z-index: 0;
+  opacity: 0.4;
 }
 
 /* Sidebar */
@@ -159,6 +169,34 @@ p, .stMarkdown p, label, span {
   border-color: var(--cf-acc) !important;
   box-shadow: 0 0 0 2px var(--cf-acc-bg) !important;
   outline: none !important;
+}
+
+/* Animations */
+@keyframes cfPulse {
+  0% { box-shadow: 0 0 0 0 rgba(232,160,32,0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(232,160,32,0); }
+  100% { box-shadow: 0 0 0 0 rgba(232,160,32,0); }
+}
+
+@keyframes cfShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.cf-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.cf-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  transform: translateX(-100%);
+  transition: none;
+}
+.cf-shimmer:hover::after {
+  animation: cfShimmer 1.5s infinite;
 }
 
 /* Buttons */
@@ -258,20 +296,36 @@ p, .stMarkdown p, label, span {
   background: var(--cf-bg1) !important;
   border: 1px solid var(--cf-border) !important;
   border-radius: var(--cf-r) !important;
-  padding: 18px 20px !important;
+  padding: 24px 28px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+[data-testid="stMetric"]:hover {
+  transform: translateY(-4px) !important;
+  border-color: var(--cf-acc-bdr) !important;
+  background: var(--cf-bg2) !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5) !important;
+}
+[data-testid="stMetric"]::before {
+  content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+  background: linear-gradient(90deg, var(--cf-acc), transparent);
+  opacity: 0.3;
 }
 [data-testid="stMetricLabel"] {
   font-family: var(--cf-font-mono) !important;
-  font-size: 0.62rem !important;
-  letter-spacing: 1.5px !important;
+  font-size: 0.65rem !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
   color: var(--cf-text3) !important;
+  margin-bottom: 12px !important;
 }
 [data-testid="stMetricValue"] {
   font-family: var(--cf-font-head) !important;
-  font-size: 1.8rem !important;
+  font-size: 2.2rem !important;
   color: var(--cf-text) !important;
-  letter-spacing: -0.5px !important;
+  letter-spacing: -1px !important;
+  line-height: 1.1 !important;
 }
 
 /* Dividers */
@@ -310,6 +364,22 @@ code, .stCode {
 
 /* Selection */
 ::selection { background: var(--cf-acc-bg); color: var(--cf-acc2); }
+
+/* Animation Overlay */
+[data-testid="stMain"] .block-container {
+  opacity: 0;
+  animation: cfFadeUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes cfFadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+[data-testid="stSidebar"] {
+  background-color: var(--cf-bg1) !important;
+  border-right: 1px solid var(--cf-border) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -427,10 +497,19 @@ def _inject_component_styles():
   background: linear-gradient(90deg, var(--cf-line-col, var(--cf-acc)), transparent);
 }
 .cf-metric-card:hover {
-  border-color: var(--cf-border);
-  transform: translateY(-1px);
-  box-shadow: var(--cf-shadow);
+  border-color: var(--cf-acc-bdr);
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 0 1px var(--cf-acc-bg);
+  background: var(--cf-bg2);
 }
+.cf-metric-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at center, var(--cf-acc-bg), transparent 70%);
+  opacity: 0; transition: opacity 0.3s;
+  pointer-events: none;
+}
+.cf-metric-card:hover::before { opacity: 0.4; }
 .cf-mc-lbl {
   font-family: var(--cf-font-mono);
   font-size: 0.58rem; letter-spacing: 1.8px; text-transform: uppercase;
@@ -523,6 +602,43 @@ def _inject_component_styles():
 .cf-fail::before{content:'✗';font-size:.7rem}
 .cf-warn::before{content:'⚠';font-size:.65rem}
 
+/* ── SCIENTIFIC COMPONENTS ── */
+.cf-medallion-wrap { text-align: center; margin-bottom: 24px; }
+.cf-medallion {
+  width: 80px; height: 80px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--cf-font-head); font-size: 2.5rem; font-weight: 400;
+  position: relative; transition: all 0.4s ease;
+}
+.cf-medallion::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1px solid currentColor; opacity: .2; }
+.cf-medallion:hover { transform: scale(1.05); }
+
+.cf-score-A { background: rgba(52,211,153,.1); color: var(--cf-green); box-shadow: 0 0 40px var(--cf-green-bg); }
+.cf-score-B { background: rgba(56,189,248,.1); color: var(--cf-blue); box-shadow: 0 0 40px var(--cf-blue-bg); }
+.cf-score-C { background: rgba(251,191,36,.1); color: var(--cf-yellow); box-shadow: 0 0 32px var(--cf-yellow-bg); }
+.cf-score-F { background: rgba(248,113,113,.1); color: var(--cf-red); box-shadow: 0 0 40px var(--cf-red-bg); }
+
+.cf-desc-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+.cf-desc-table tr { border-bottom: 1px solid var(--cf-border3); }
+.cf-desc-table td { padding: 8px 4px; vertical-align: middle; font-family: var(--cf-font-mono); font-size: 0.75rem; }
+.cf-desc-key { color: var(--cf-text3); }
+.cf-desc-val { color: var(--cf-text); text-align: right; font-weight: 500; }
+
+.cf-cyp-row { 
+  display: flex; align-items: center; justify-content: space-between; 
+  padding: 10px 16px; border-radius: 8px; margin: 4px 0; gap: 12px;
+  background: var(--cf-bg3); border-left: 3px solid transparent; transition: all 0.2s;
+}
+.cf-cyp-safe { border-left-color: var(--cf-green); color: var(--cf-green); }
+.cf-cyp-warn { border-left-color: var(--cf-red); color: var(--cf-red); }
+
+.cf-meta-pulse { 
+  display: inline-block; padding: 6px 14px; border-radius: 6px; 
+  background: var(--cf-bg2); border: 1px solid var(--cf-border);
+  font-family: var(--cf-font-mono); font-size: 0.7rem; color: var(--cf-text2);
+  margin: 4px; transition: all 0.3s;
+}
+.cf-meta-active { border-color: var(--cf-acc); color: var(--cf-acc); box-shadow: 0 0 12px var(--cf-glow); }
 /* ── INFO PANEL ── */
 .cf-info-panel {
   background: var(--cf-bg1); border: 1px solid var(--cf-border);
@@ -583,32 +699,49 @@ def _inject_component_styles():
 
 /* ── AI RESPONSE BOX ── */
 .cf-ai-box {
-  background: linear-gradient(135deg, var(--cf-bg1), var(--cf-bg2));
+  background: linear-gradient(145deg, var(--cf-bg1), var(--cf-bg2));
   border: 1px solid var(--cf-border);
-  border-radius: var(--cf-r); padding: 24px 28px;
-  margin: 16px 0; position: relative; overflow: hidden;
+  border-radius: var(--cf-r); 
+  padding: 32px 36px;
+  margin: 24px 0; 
+  position: relative; overflow: hidden;
+  box-shadow: var(--cf-shadow);
+  backdrop-filter: blur(12px);
 }
 .cf-ai-box::before {
   content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
   background: linear-gradient(90deg, var(--cf-purple), var(--cf-acc), var(--cf-teal));
+  z-index: 2;
+}
+.cf-ai-scanner {
+  position: absolute; top: 0; left: 0; right: 0; height: 100%;
+  background: linear-gradient(to bottom, transparent, var(--cf-purple-bg), transparent);
+  opacity: 0.1; height: 40px;
+  animation: cfScanner 4s linear infinite;
+  pointer-events: none;
+}
+@keyframes cfScanner {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(800%); }
 }
 .cf-ai-header {
-  display: flex; align-items: center; gap: 10px;
-  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 20px;
 }
 .cf-ai-icon {
-  width: 32px; height: 32px; border-radius: 8px;
+  width: 40px; height: 40px; border-radius: 12px;
   background: var(--cf-purple-bg); display: grid; place-items: center;
-  font-size: 0.9rem; border: 1px solid rgba(166,138,251,0.2);
+  font-size: 1.1rem; border: 1px solid rgba(166,138,251,0.25);
+  box-shadow: 0 4px 12px rgba(166,138,251,0.2);
 }
 .cf-ai-label {
   font-family: var(--cf-font-mono);
-  font-size: 0.62rem; letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--cf-purple);
+  font-size: 0.68rem; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--cf-purple); font-weight: 500;
 }
 .cf-ai-content {
-  font-size: 0.88rem; line-height: 1.75; color: var(--cf-text2);
+  font-size: 0.94rem; line-height: 1.85; color: var(--cf-text2);
   font-weight: 300;
 }
 
@@ -625,24 +758,53 @@ def _inject_component_styles():
 
 /* ── SIDEBAR ENHANCEMENTS ── */
 .cf-sidebar-brand {
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 0 20px;
+  padding: 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   border-bottom: 1px solid var(--cf-border2);
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
-.cf-sidebar-hex {
-  width: 30px; height: 30px; border-radius: 8px;
-  background: linear-gradient(135deg, var(--cf-acc), var(--cf-acc2));
-  display: grid; place-items: center; font-size: 0.9rem;
+.cf-sidebar-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--cf-border);
+  border-radius: 6px;
+  background: var(--cf-bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+.cf-sidebar-icon-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 .cf-sidebar-name {
-  font-family: var(--cf-font-head);
-  font-size: 1.1rem; color: var(--cf-text); letter-spacing: -0.2px;
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--cf-text);
+  line-height: 1.1;
+  letter-spacing: -0.3px;
 }
 .cf-sidebar-ver {
-  font-family: var(--cf-font-mono);
-  font-size: 0.58rem; letter-spacing: 1.5px; color: var(--cf-acc2);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 1.5px;
+  color: var(--cf-acc2);
+  margin-top: 4px;
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cf-live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--cf-green);
+  box-shadow: 0 0 8px var(--cf-green);
+  animation: cfPulse 2s infinite;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -806,9 +968,10 @@ def render_tox_alert(name: str, detail: str = "", severity: str = "High"):
 
 
 def render_ai_response(content: str, label: str = "Claude AI Analysis"):
-    """Render an AI response in a styled box."""
+    """Render an AI response in a styled box with holographic scanning effect."""
     st.markdown(f"""
 <div class="cf-ai-box">
+  <div class="cf-ai-scanner"></div>
   <div class="cf-ai-header">
     <div class="cf-ai-icon">✦</div>
     <div class="cf-ai-label">{label}</div>
@@ -854,13 +1017,15 @@ def render_filter_results_table(compounds: list, columns: list):
 
 
 def render_sidebar_brand():
-    """Render the professional sidebar brand header."""
-    st.sidebar.markdown("""
+    """Render the professional sidebar brand header with the custom icon."""
+    st.sidebar.markdown(f"""
 <div class="cf-sidebar-brand">
-  <div class="cf-sidebar-hex">⬡</div>
+  <div class="cf-sidebar-icon-wrap">
+    <img src="data:image/png;base64,{assets.ICON_B64}">
+  </div>
   <div>
     <div class="cf-sidebar-name">ChemoFilter</div>
-    <div class="cf-sidebar-ver">v1,000,000 · Omnipotent</div>
+    <div class="cf-sidebar-ver"><div class="cf-live-dot"></div>v1,000,000 · Omnipotent</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -873,4 +1038,17 @@ def theme_toggle_sidebar():
     with col1:
         st.markdown('<span style="font-size:.78rem;color:var(--cf-text3)">Dark / Light Mode</span>', unsafe_allow_html=True)
     with col2:
-        st.markdown('<button onclick="cfMainTheme()" style="background:var(--cf-bg2);border:1px solid var(--cf-border);border-radius:8px;padding:4px 10px;cursor:pointer;font-size:.85rem;color:var(--cf-text2)">⬡</button>', unsafe_allow_html=True)
+        st.markdown(f'''
+<button onclick="cfMainTheme()" style="
+  background: var(--cf-bg2);
+  border: 1px solid var(--cf-border);
+  border-radius: 6px;
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--cf-shadow2);
+" onmouseover="this.style.borderColor='var(--cf-acc)'" onmouseout="this.style.borderColor='var(--cf-border)'">
+  <span style="font-size: 1rem; color: var(--cf-text2);">⬡</span>
+</button>
+''', unsafe_allow_html=True)

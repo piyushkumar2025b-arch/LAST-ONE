@@ -36,8 +36,12 @@ def get_batch_statistics(data_list):
     if not data_list: return {}
     
     import pandas as pd
+    from collections import Counter
+    import chemo_filters as cf
+    
     df = pd.DataFrame(data_list)
     
+    # Basic Stats
     stats = {
         "count": len(df),
         "avg_chemoscore": df["ChemoScore"].mean() if "ChemoScore" in df else 0,
@@ -55,6 +59,28 @@ def get_batch_statistics(data_list):
                 "avg": round(df[p].mean(), 2)
             }
     stats["property_ranges"] = ranges
+    
+    # Dataset Diversity
+    mols = [d.get("_mol") for d in data_list if d.get("_mol")]
+    stats["diversity_score"] = cf.get_dataset_diversity(mols)
+    
+    # Scaffold Analysis
+    scaffolds = []
+    for d in data_list:
+        if "_chemo_tests" in d and "scaffold_smiles" in d["_chemo_tests"]:
+            scaffolds.append(d["_chemo_tests"]["scaffold_smiles"])
+    
+    scaf_counts = Counter(scaffolds).most_common(10)
+    stats["top_scaffolds"] = [{"smiles": s, "count": c} for s, c in scaf_counts if s]
+    
+    # Functional Group Distribution
+    fg_counts = Counter()
+    for d in data_list:
+        if "_chemo_tests" in d:
+            for k, v in d["_chemo_tests"].items():
+                if k.startswith("has_") and v:
+                    fg_counts[k.replace("has_", "")] += 1
+    stats["fg_distribution"] = dict(fg_counts.most_common(15))
     
     # Top Leads
     if "ChemoScore" in df:
