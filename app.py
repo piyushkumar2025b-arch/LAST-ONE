@@ -3277,9 +3277,9 @@ tbody tr{{animation:ri .2s ease both;}}
 </div>
 
 <style>
-.grp-btn { background:rgba(232,160,32,0.05); border:1px solid rgba(232,160,32,0.2); color:#e8a020; padding:3px 10px; border-radius:4px; font-size:0.5rem; cursor:pointer; font-family:'JetBrains Mono',monospace; letter-spacing:0.5px; transition:all 0.2s;}
-.grp-btn:hover { background:rgba(232,160,32,0.1); }
-.grp-btn.active { background:rgba(232,160,32,0.15); box-shadow:0 0 8px rgba(232,160,32,0.3); border-color:rgba(232,160,32,0.5); }
+.grp-btn {{ background:rgba(232,160,32,0.05); border:1px solid rgba(232,160,32,0.2); color:#e8a020; padding:3px 10px; border-radius:4px; font-size:0.5rem; cursor:pointer; font-family:'JetBrains Mono',monospace; letter-spacing:0.5px; transition:all 0.2s;}}
+.grp-btn:hover {{ background:rgba(232,160,32,0.1); }}
+.grp-btn.active {{ background:rgba(232,160,32,0.15); box-shadow:0 0 8px rgba(232,160,32,0.3); border-color:rgba(232,160,32,0.5); }}
 </style>
 
 <script>
@@ -3406,49 +3406,45 @@ function bar(v,col){{
 function hS(h){{return h==="LOW"?"color:#34d399":h==="MEDIUM"?"color:#fbbf24":"color:#f87171";}}
 function aC(a){{return a.indexOf("Low")>=0?"#34d399":a.indexOf("Possible")>=0?"#fbbf24":"#f87171";}}
 
-function buildHdr(tr){{
-  tr.innerHTML="";
-  COLS.forEach(function(c){{
-    var th=document.createElement("th");
-    th.setAttribute("data-k",c.k);
-    th.textContent=c.l;
-    if(c.k===sortCol) th.classList.add(sortDir===-1?"sdsc":"sasc");
-    th.addEventListener("click",function(){{doSort(c.k);}});
-    tr.appendChild(th);
+function buildBody(tbody, rows) {{
+  var h = "";
+  rows.forEach(function(d, i) {{
+    var dl = (i * 0.005).toFixed(3); // Fast staggered animation for 200 rows
+    h += '<tr style="animation-delay:' + dl + 's">';
+    
+    COLS.forEach(function(c) {{
+      if (c.hide) return;
+      var v = d[c.k];
+      
+      // Core specific renders
+      if (c.k === "idx") {{ h += '<td style="color:rgba(200,222,255,.2);font-size:.6rem">' + (i + 1) + '</td>'; return; }}
+      if (c.k === "id") {{ h += '<td style="color:#e8a020;font-weight:500">' + v + '</td>'; return; }}
+      if (c.k === "grade") {{ h += '<td><span class="gr gr' + v + '">' + v + '</span></td>'; return; }}
+      if (c.k === "dl_badge") {{ h += '<td style="color:' + d.dl_color + '"><span style="border:1px solid ' + d.dl_color + '40;background:' + d.dl_color + '11;padding:2px 6px;border-radius:10px;font-size:0.55rem;letter-spacing:0.5px">' + v + '</span></td>'; return; }}
+      
+      if (["lead", "oral", "qed", "np", "stress", "prom", "lig_eff", "frag_eff", "lip_eff", "bio_score"].includes(c.k)) {{ h += '<td>' + bar(v, c.k) + '</td>'; return; }}
+      if (["mw", "logp", "tpsa", "fsp3", "cyp", "sim", "logs", "ext_logs", "cns"].includes(c.k)) {{ h += '<td style="color:' + txtC(v, c.k) + '">' + v + '</td>'; return; }}
+      if (c.k === "sa") {{ h += '<td style="color:' + txtC(v, "sa") + '">' + v + ' <span style="font-size:.58rem;opacity:.5">(' + d.sa_lbl + ')</span></td>'; return; }}
+      if (c.k === "herg") {{ h += '<td style="' + hS(v) + '">' + v + '</td>'; return; }}
+      if (c.k === "ames") {{ h += '<td style="color:' + aC(v) + ';font-size:.64rem">' + v + '</td>'; return; }}
+      if (["hia", "bbb_p"].includes(c.k)) {{ 
+          if (typeof v === "boolean") {{ h += '<td class="' + (v ? "bok" : "bno") + '">' + (v ? "✓" : "✗") + '</td>'; return; }}
+      }}
+      
+      // Advanced columns auto-color
+      if (c.grp) {{
+          var colHex = genericColor(v);
+          h += '<td style="color:' + colHex + '">' + v + '</td>';
+          return;
+      }}
+      
+      // Fallback
+      h += '<td style="color:rgba(200,222,255,0.7)">' + v + '</td>';
+    }});
+    
+    h += '</tr>';
   }});
-}}
-
-function buildBody(tbody,rows){{
-  var h="";
-  rows.forEach(function(d,i){{
-    var dl=(i*0.022).toFixed(3);
-    h+='<tr style="animation-delay:'+dl+'s">';
-    h+='<td style="color:rgba(200,222,255,.2);font-size:.6rem">'+(i+1)+'</td>';
-    h+='<td style="color:#e8a020;font-weight:500">'+d.id+'</td>';
-    h+='<td><span class="gr gr'+d.grade+'">'+d.grade+'</span></td>';
-    h+='<td>'+bar(d.lead,"lead")+'</td>';
-    h+='<td>'+bar(d.oral,"oral")+'</td>';
-    h+='<td>'+bar(d.qed,"qed")+'</td>';
-    h+='<td>'+bar(d.np,"np")+'</td>';
-    h+='<td>'+bar(d.stress,"stress")+'</td>';
-    h+='<td>'+bar(d.prom,"prom")+'</td>';
-    h+='<td style="color:'+txtC(d.mw,"mw")+'">'+d.mw+'</td>';
-    h+='<td style="color:'+txtC(d.logp,"logp")+'">'+d.logp+'</td>';
-    h+='<td style="color:'+txtC(d.tpsa,"tpsa")+'">'+d.tpsa+'</td>';
-    h+='<td style="color:'+txtC(d.fsp3,"fsp3")+'">'+d.fsp3+'</td>';
-    h+='<td style="color:'+txtC(d.sa,"sa")+'">'+d.sa+' <span style="font-size:.58rem;opacity:.5">('+d.sa_lbl+')</span></td>';
-    h+='<td style="color:rgba(200,222,255,.65)">'+d.cplx+'</td>';
-    h+='<td style="color:'+txtC(d.cyp,"cyp")+'">'+d.cyp+'/5</td>';
-    h+='<td style="color:'+txtC(d.sim,"sim")+'">'+d.sim+'</td>';
-    h+='<td style="'+hS(d.herg)+'">'+d.herg+'</td>';
-    h+='<td style="color:'+aC(d.ames)+';font-size:.64rem">'+d.ames+'</td>';
-    h+='<td class="'+(d.hia?"bok":"bno")+'">'+(d.hia?"✓":"✗")+'</td>';
-    h+='<td class="'+(d.bbb?"bok":"bno")+'">'+(d.bbb?"✓":"✗")+'</td>';
-    h+='<td style="color:'+txtC(d.logs,"logs")+'">'+d.logs+'</td>';
-    h+='<td style="color:'+txtC(d.cns,"cns")+'">'+d.cns+'/6</td>';
-    h+='</tr>';
-  }});
-  tbody.innerHTML=h;
+  tbody.innerHTML = h;
 }}
 
 function updHdrs(){{
