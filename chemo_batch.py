@@ -147,3 +147,45 @@ def extract_dataset_intelligence(df):
     intel["property_ranges"] = ranges
 
     return intel
+
+
+def get_batch_statistics(data):
+    """
+    Compute summary statistics from a list of compound dicts (from analyze()).
+    Returns a JSON-serialisable dict for st.json() display.
+    """
+    if not data:
+        return {"count": 0, "message": "No data available"}
+
+    import numpy as np
+
+    stats = {"count": len(data)}
+    numeric_keys = ["MW", "LogP", "TPSA", "QED", "SA_Score", "HBD", "HBA", "RotBonds", "Fsp3"]
+
+    for key in numeric_keys:
+        vals = []
+        for d in data:
+            v = d.get(key)
+            try:
+                vals.append(float(v))
+            except (TypeError, ValueError):
+                pass
+        if vals:
+            stats[f"{key}_avg"]  = round(float(np.mean(vals)), 3)
+            stats[f"{key}_min"]  = round(float(np.min(vals)),  3)
+            stats[f"{key}_max"]  = round(float(np.max(vals)),  3)
+            stats[f"{key}_std"]  = round(float(np.std(vals)),  3)
+
+    # Grade distribution
+    grades = [d.get("Grade", "?") for d in data]
+    from collections import Counter
+    stats["grade_distribution"] = dict(Counter(grades))
+
+    # Rule compliance
+    for rule in ["Lipinski", "Veber", "Ghose", "Egan", "Muegge"]:
+        compliant = sum(1 for d in data if d.get(rule) is True or
+                        (isinstance(d.get("rules"), dict) and d["rules"].get(rule)))
+        stats[f"{rule}_compliant"] = compliant
+        stats[f"{rule}_pct"] = round(100 * compliant / len(data), 1)
+
+    return stats

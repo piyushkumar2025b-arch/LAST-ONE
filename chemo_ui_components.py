@@ -191,3 +191,22 @@ def plot_chemo_scatter(df, x_prop, y_prop):
                      color_discrete_sequence=px.colors.qualitative.Bold)
     fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
     return fig
+
+
+def render_preset_selector():
+    """Renders a preset mode selector in the sidebar and returns the selected mode name."""
+    import streamlit as st
+    modes = ["Drug-Like (Ro5)", "Fragment-Like", "CNS Penetrant", "Natural Product-Like", "Custom"]
+    mode = st.selectbox("Filter Preset", modes, index=0, key="preset_mode_selector")
+    return mode
+
+def get_preset_parameters(mode):
+    """Returns slider default parameters dict for the given preset mode."""
+    presets = {
+        "Drug-Like (Ro5)":       {"mw_max": 500,  "logp_min": -2.0, "logp_max": 5.0,  "tpsa_max": 140, "hbd_max": 5,  "hba_max": 10, "rot_max": 10},
+        "Fragment-Like":          {"mw_max": 300,  "logp_min": -2.0, "logp_max": 3.0,  "tpsa_max": 100, "hbd_max": 3,  "hba_max": 6,  "rot_max": 5},
+        "CNS Penetrant":          {"mw_max": 450,  "logp_min": 0.0,  "logp_max": 5.0,  "tpsa_max": 90,  "hbd_max": 3,  "hba_max": 7,  "rot_max": 8},
+        "Natural Product-Like":   {"mw_max": 600,  "logp_min": -3.0, "logp_max": 6.0,  "tpsa_max": 160, "hbd_max": 6,  "hba_max": 12, "rot_max": 12},
+        "Custom":                 {"mw_max": 800,  "logp_min": -5.0, "logp_max": 10.0, "tpsa_max": 250, "hbd_max": 15, "hba_max": 20, "rot_max": 20},
+    }
+    return presets.get(mode, presets["Drug-Like (Ro5)"])
