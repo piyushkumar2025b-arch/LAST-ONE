@@ -1,10 +1,5 @@
 
 # VANGUARD ENGINE v2.0 - CORE MODULE
-def run_comprehensive_screening(smi):
-    """Entry point for Vanguard screening."""
-    from rdkit import Chem
-    mol = Chem.MolFromSmiles(smi)
-    return _run_vanguard_core(mol, smi)
 
 import math
 import numpy as np
@@ -238,6 +233,11 @@ def _run_vanguard_core(mol, smi):
 # =============================================================================
 # 4. LEGACY COMPATIBILITY LAYER
 # =============================================================================
+
+def run_comprehensive_screening(smi):
+    """Entry point for Vanguard screening."""
+    mol = Chem.MolFromSmiles(smi)
+    return _run_vanguard_core(mol, smi)
 
 def run_all_chemo_tests(mol, ref_mol=None):
     if mol is None: return {}
