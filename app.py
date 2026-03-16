@@ -56,6 +56,26 @@ from ui_upgrade import (
     theme_toggle_sidebar,
 )
 
+# ── NEW: Dashboard / Orchestration layer (additive only) ──────────────────
+try:
+    from dashboard import (
+        render_dashboard_sidebar,
+        render_search_results,
+        render_analytics_tab,
+        render_debug_panel,
+        render_routing_explainer,
+    )
+    import engine_orchestrator as _eo
+    import performance_monitor as _pm
+    _DASHBOARD_OK = True
+except Exception:
+    _DASHBOARD_OK = False
+    def render_dashboard_sidebar(): pass
+    def render_search_results(): pass
+    def render_analytics_tab(): pass
+    def render_debug_panel(): pass
+    def render_routing_explainer(q): pass
+
 # ── API KEY: reads from Streamlit Cloud Secrets (App Settings → Secrets) ──
 def _get_api_key():
     try:
@@ -2829,6 +2849,9 @@ if csv_up:
 enable_ai = st.sidebar.toggle(" Enable AI Features (Claude)", value=True)
 st.session_state["_enable_ai_logging"] = enable_ai
 
+# ── NEW: Dashboard sidebar panels (engine control, search, dev tools) ─────
+render_dashboard_sidebar()
+
 with st.sidebar.expander("QUICK LIBRARY"):
     libs = {"Aspirin":"CC(=O)Oc1ccccc1C(=O)O","Ibuprofen":"CC(C)Cc1ccc(cc1)C(C)C(=O)O",
         "Caffeine":"CN1C=NC2=C1C(=O)N(C(=O)N2C)C","Paracetamol":"CC(=O)Nc1ccc(O)cc1",
@@ -3320,7 +3343,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         "⬡  Evolution v1M",
         "⬡  Neural Blueprint",
         "⬡  AI Synthesis",
-        "⬡  Full Report"
+        "⬡  Full Report",
+        "📊  Analytics",
     ])
 
 
@@ -5499,6 +5523,20 @@ with _dlc2:
         key="dl_refs_txt",
         help="Download all references as formatted text"
     )
+
+# ── NEW: Analytics Tab (TABS[25]) ────────────────────────────────────────────
+if _DASHBOARD_OK:
+    try:
+        with TABS[25]:
+            render_analytics_tab()
+    except Exception:
+        pass
+
+# ── NEW: Search Results overlay (triggered from sidebar) ──────────────────
+render_search_results()
+
+# ── NEW: Debug panel ──────────────────────────────────────────────────────
+render_debug_panel()
 
 # FINAL FOOTER
 st.markdown("""
