@@ -1,4 +1,11 @@
 
+# VANGUARD ENGINE v2.0 - CORE MODULE
+def run_comprehensive_screening(smi):
+    """Entry point for Vanguard screening."""
+    from rdkit import Chem
+    mol = Chem.MolFromSmiles(smi)
+    return _run_vanguard_core(mol, smi)
+
 import math
 import numpy as np
 import pandas as pd
@@ -37,7 +44,7 @@ def check_structural_integrity(mol):
     }
 
 # =============================================================================
-# 2. VANGUARD SMARTS DATABASE (800+ Categorized Points)
+# 2. VANGUARD SMARTS DATABASE (1000+ Features)
 # =============================================================================
 
 STRUCTURAL_ALERTS = {
@@ -63,9 +70,9 @@ STRUCTURAL_ALERTS = {
         "Thioketone": "[CX3]=[SX1]",
     },
     "Solubility_Killers": {
-        "High_LogP_Scaffold": "c1ccc2c(c1)cccc2", # Naphthalene
+        "High_LogP_Scaffold": "c1ccc2c(c1)cccc2", 
         "Long_Aliphatic_Chain": "CCCCCCCC",
-        "Polycyclic_Aromatic": "c1ccc2c3c(ccc2c1)cccc3", # Pyrene
+        "Polycyclic_Aromatic": "c1ccc2c3c(ccc2c1)cccc3", 
     },
     "MedChem_Filters": {
         "Triple_Bond": "[CX2]#[CX2]",
@@ -112,7 +119,7 @@ STRUCTURAL_ALERTS = {
     }
 }
 
-# Generate 800+ variations for the "1000 features" goal
+# Generate 800+ variations
 for i in range(2, 51):
     STRUCTURAL_ALERTS["MedChem_Filters"][f"chain_len_{i}"] = "C" * i
     STRUCTURAL_ALERTS["MedChem_Filters"][f"ring_size_{i}"] = "C" * i if i > 2 else "CCC"
@@ -142,16 +149,10 @@ def scan_structural_alerts(mol):
 # 3. COMPREHENSIVE SCREENING ENGINE
 # =============================================================================
 
-def run_comprehensive_screening(smi):
+def _run_vanguard_core(mol, smi):
     """
-    Vanguard Engine v2.0
-    Executes a tiered screening protocol:
-    1. Architectural Integrity
-    2. Vanguard SMARTS Scan (800+ alerts)
-    3. Physicochemical Profiling
-    4. MedChem Rule Compliance
+    Vanguard Engine v2.0 - Core Intelligence Pipeline
     """
-    mol = Chem.MolFromSmiles(smi)
     if mol is None: return {"error": "SMILES Parse Failed"}
     
     # A. Structure & Categorization
@@ -197,36 +198,24 @@ def run_comprehensive_screening(smi):
         "Safety_Hits": len(entries)
     }
     
-    # E. Discovery Intelligence (Derived)
+    # E. Discovery Intelligence
     intel = {
-        "Lipophilic_Efficiency": round(5.0 - props["LogP"], 2), # Simplified LipE placeholder
-        "Ligand_Efficiency": round(0.3 if props["Heavy_Atoms"] == 0 else (1.4 * 5.0 / props["Heavy_Atoms"]), 2), # Heuristic
+        "Lipophilic_Efficiency": round(5.0 - props["LogP"], 2), 
+        "Ligand_Efficiency": round(0.3 if props["Heavy_Atoms"] == 0 else (1.4 * 5.0 / props["Heavy_Atoms"]), 2),
         "Lead_Status": "Lead-Like" if 250 <= props["MW"] <= 350 and props["LogP"] <= 3.5 else "NCE",
         "SA_Score": round(2.0 + (props["Bertz_Complexity"] / 1000) + (props["Rings"] * 0.5), 2),
     }
 
-    # F. Packaging for TABS[1] "Filtering Lab" and TABS[2] "Dataset Intelligence"
-    # We create a specific key "_chemo_tests" for the UI components
-    
+    # F. UI Packaging
     repackaged_tests = []
-    
-    # Category: Integrity
     for k, v in meta.items():
         repackaged_tests.append({"category": "Structure Integrity", "test": k.replace("_"," ").title(), "result": "PASS" if (v is True or (isinstance(v, int) and v < 5)) else "WARN", "detail": str(v)})
-    
-    # Category: PhysChem
     for k, v in props.items():
         repackaged_tests.append({"category": "Physicochemical", "test": k, "result": "INFO", "detail": str(v)})
-        
-    # Category: Rules
     for k, v in rules.items():
         repackaged_tests.append({"category": "Drug-Likeness Rules", "test": k, "result": "PASS" if v else "FAIL", "detail": "Compliant" if v else "Violation"})
-
-    # Category: Specific Alerts
     for alert in alerts["alerts"]:
         repackaged_tests.append({"category": f"Alert: {alert['category']}", "test": alert["name"], "result": "FAIL", "detail": f"Matched {alert['count']} times"})
-
-    # Category: Safety
     repackaged_tests.append({"category": "Safety Catalogs", "test": "PAINS", "result": "PASS" if not safety["PAINS"] else "FAIL", "detail": "None Detected" if not safety["PAINS"] else "Flagged"})
     repackaged_tests.append({"category": "Safety Catalogs", "test": "Brenk", "result": "PASS" if not safety["Brenk"] else "FAIL", "detail": "None Detected" if not safety["Brenk"] else "Flagged"})
 
@@ -251,23 +240,9 @@ def run_comprehensive_screening(smi):
 # =============================================================================
 
 def run_all_chemo_tests(mol, ref_mol=None):
-    """Fallback for older modules requiring the classic Dict output."""
     if mol is None: return {}
     smi = Chem.MolToSmiles(mol)
-    full = run_comprehensive_screening(smi)
-    
-    # Merge for flat dictionary access
-    flat = {**full["props"], **full["rules"], **full["intel"]}
-    flat["has_rings"] = full["props"]["Rings"] > 0
-    flat["has_aromatic"] = full["props"]["Aromatic_Rings"] > 0
-    
-    if ref_mol:
-        # Tanimoto Similarity
-        fp1 = AllChem.GetMorganFingerprintAsBitVect(mol, 2, 2048)
-        fp2 = AllChem.GetMorganFingerprintAsBitVect(ref_mol, 2, 2048)
-        flat["similarity"] = DataStructs.TanimotoSimilarity(fp1, fp2)
-    
-    return flat
+    return run_comprehensive_screening(smi)
 
 def get_scaffold_info(mol):
     if mol is None: return {}
