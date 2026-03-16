@@ -699,6 +699,7 @@ _SCIENTIST_SCENE = """
 </div>
 <script>
 (function(){
+  // v2-fixed
   var canvas=document.getElementById('cf-sci-canvas');
   if(!canvas) return;
   var ctx=canvas.getContext('2d');
