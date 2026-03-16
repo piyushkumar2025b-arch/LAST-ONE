@@ -2843,6 +2843,22 @@ with st.container():
 #  SIDEBAR
 # 
 render_sidebar_brand()
+st.sidebar.markdown("""
+<div style="padding:4px 0 20px">
+  <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;font-weight:400;
+  color:var(--amber);margin-bottom:4px;letter-spacing:0.5px">⬡ Discovery Lab</div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:.48rem;
+  color:rgba(232,160,32,.25);letter-spacing:3px;text-transform:uppercase">
+  ChemoFilter · ADMET Screening · 21 Parameters</div>
+  <div style="height:1px;background:linear-gradient(90deg,rgba(232,160,32,.2),transparent);margin-top:16px"></div>
+</div>
+""", unsafe_allow_html=True)
+
+DEFAULTS = ("CN1CCN(CC1)C2=C3C=C(C=CS3)NC4=CC=CC=C24, "
+            "S(C1=CC=C(N)C=C1)(=O)(=O)N, "
+            "CN1C=NC2=C1C(=O)N(C(=O)N2C)C, "
+            "[Na+].[Cl-], CC(=O)Oc1ccccc1C(=O)O")
+
 # ── Consolidated Input Methods ───────────────────────────────────────────────
 with st.sidebar.expander("📥 INPUT METHODS", expanded=True):
     input_method = st.radio("Primary Input", ["Single/Batch SMILES", "Upload CSV/Excel", "Upload SDF/MOL"], index=0)
