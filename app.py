@@ -23,6 +23,13 @@ import xenon_data_v5000 as xdata
 import aether_engine_v10000 as aether
 import aether_data_v10000 as adata
 
+# ── NEW: Mega Feature Expansion Modules ──────────────────────────────────────
+import drug_discovery_extended as dde
+import advanced_testing_modes as atm
+import molecular_analysis_modes as mam
+import scientific_plots as sp
+import deep_analysis_panel as dap
+
 from rdkit import Chem
 from rdkit.Chem import (Descriptors, AllChem, DataStructs, QED,
                         rdMolDescriptors, Crippen)
@@ -2396,6 +2403,11 @@ def analyze(smiles_list):
         r["OralBioScore"]=oral_bio_score(r)
         r["PromiscuityRisk"]=promiscuity(r)
         r["_tips"]=opt_tips(r)
+
+        # ── NEW: Extended Drug Discovery Analysis ──
+        r["_ext"] = dde.get_full_extended_analysis(mol, qed)
+        r["_deep"] = dap.build_deep_analysis(mol, r, r["_ext"])
+
         results.append(r)
         
         #  CLOUD EDGE LOGGING (v1M) - only if session state flag is set
@@ -3344,6 +3356,10 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         "⬡  Neural Blueprint",
         "⬡  AI Synthesis",
         "⬡  Full Report",
+        "🧪  Chem Testing",
+        "🔬  Mol Analysis",
+        "📈  Sci Plots",
+        "💊  Drug Discovery+",
         "📊  Analytics",
     ])
 
@@ -5524,10 +5540,443 @@ with _dlc2:
         help="Download all references as formatted text"
     )
 
-# ── NEW: Analytics Tab (TABS[25]) ────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════════════════
+    #  TAB 25 — CHEMICAL TESTING LAB (15 Modes)
+    # ══════════════════════════════════════════════════════════════════════════
+    with TABS[25]:
+        st.markdown("""<div class="sec">
+          <span class="sec-num">25</span>
+          <span class="sec-title">Advanced Chemical Testing Lab — 15 Simulation Modes</span>
+          <div class="sec-line"></div>
+          <span class="sec-tag">Reaction Conditions · Solvent Effects · Catalyst · pH · Kinetics · Equilibrium · Degradation · Sensitivity</span>
+        </div>""", unsafe_allow_html=True)
+
+        ct_sel = st.selectbox("Select compound", [d["ID"] for d in display_data], key="ct_sel")
+        ct_res = next(d for d in display_data if d["ID"]==ct_sel)
+        ct_mol = ct_res["_mol"]
+
+        ct_mode = st.selectbox("Testing Mode", [
+            "1. Reaction Condition Simulator",
+            "2. Solvent Effect Simulation",
+            "3. Catalyst Testing",
+            "4. pH Variation Testing",
+            "5. Reaction Rate Simulation (Kinetics)",
+            "6. Equilibrium Testing",
+            "7. Multi-Reagent Compatibility",
+            "8. Thermodynamic Stability",
+            "9. Sensitivity Analysis",
+            "10. Side Reaction Exploration",
+            "11. Chemical Degradation",
+            "12. Environmental Conditions",
+            "13. Concentration Variation",
+            "14. Repeatability Testing",
+            "15. Error Sensitivity",
+        ], key="ct_mode")
+
+        mode_num = int(ct_mode.split(".")[0])
+
+        if mode_num == 1:
+            c1, c2 = st.columns(2)
+            with c1: temp = st.slider("Temperature (°C)", -20, 200, 25, key="ct_temp")
+            with c2: pres = st.slider("Pressure (atm)", 0.1, 10.0, 1.0, key="ct_pres")
+            result = atm.reaction_condition_simulator(ct_mol, temp, pres)
+            for k, v in result.items():
+                st.markdown(f'<div class="rrow"><span class="rk">{k}</span><span class="rv">{v}</span></div>', unsafe_allow_html=True)
+
+        elif mode_num == 2:
+            result = atm.solvent_effect_simulation(ct_mol)
+            df_solv = pd.DataFrame(result)
+            st.dataframe(df_solv, use_container_width=True, hide_index=True)
+            fig = sp.plot_solvent_radar(result)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif mode_num == 3:
+            result = atm.catalyst_testing(ct_mol)
+            df_cat = pd.DataFrame(result)
+            st.dataframe(df_cat, use_container_width=True, hide_index=True)
+            fig = sp.plot_yield_vs_catalyst(result)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif mode_num == 4:
+            result = atm.ph_variation_testing(ct_mol)
+            df_ph = pd.DataFrame(result)
+            st.dataframe(df_ph, use_container_width=True, hide_index=True)
+            fig = sp.plot_ph_stability(result)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif mode_num == 5:
+            result = atm.reaction_rate_simulation(ct_mol)
+            st.markdown(f'<div class="rrow"><span class="rk">Activation Energy</span><span class="rv">{result["Activation_Energy_kJ"]} kJ/mol</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="rrow"><span class="rk">Pre-Exponential</span><span class="rv">{result["Pre_Exponential"]}</span></div>', unsafe_allow_html=True)
+            df_kin = pd.DataFrame(result["Data"])
+            st.dataframe(df_kin, use_container_width=True, hide_index=True)
+            fig = sp.plot_kinetics(result)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif mode_num == 6:
+            result = atm.equilibrium_testing(ct_mol)
+            for k, v in result.items():
+                st.markdown(f'<div class="rrow"><span class="rk">{k}</span><span class="rv">{v}</span></div>', unsafe_allow_html=True)
+            fig = sp.plot_equilibrium(result)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif mode_num == 7:
+            result = atm.multi_reagent_compatibility(ct_mol)
+            df_compat = pd.DataFrame(result)
+            st.dataframe(df_compat, use_container_width=True, hide_index=True)
+
+        elif mode_num == 8:
+            result = atm.thermodynamic_stability(ct_mol)
+            for k, v in result.items():
+                st.markdown(f'<div class="rrow"><span class="rk">{k}</span><span class="rv">{v}</span></div>', unsafe_allow_html=True)
+
+        elif mode_num == 9:
+            s_param = st.selectbox("Parameter", ["temperature", "concentration", "pressure", "pH"], key="ct_sparam")
+            result = atm.sensitivity_analysis(ct_mol, s_param)
+            st.markdown(f'<div class="rrow"><span class="rk">Sensitivity</span><span class="rv">{result["Sensitivity_Coefficient"]} ({result["Classification"]})</span></div>', unsafe_allow_html=True)
+            df_sens = pd.DataFrame(result["Data"])
+            st.dataframe(df_sens, use_container_width=True, hide_index=True)
+            fig = sp.plot_sensitivity_tornado(atm.error_sensitivity_testing(ct_mol))
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif mode_num == 10:
+            result = atm.side_reaction_exploration(ct_mol)
+            df_side = pd.DataFrame(result)
+            st.dataframe(df_side, use_container_width=True, hide_index=True)
+
+        elif mode_num == 11:
+            result = atm.degradation_testing(ct_mol)
+            df_deg = pd.DataFrame(result)
+            st.dataframe(df_deg, use_container_width=True, hide_index=True)
+
+        elif mode_num == 12:
+            result = atm.environmental_condition_testing(ct_mol)
+            for k, v in result.items():
+                st.markdown(f'<div class="rrow"><span class="rk">{k}</span><span class="rv">{v}</span></div>', unsafe_allow_html=True)
+
+        elif mode_num == 13:
+            result = atm.concentration_variation(ct_mol)
+            st.markdown(f'<div class="rrow"><span class="rk">Optimal Concentration</span><span class="rv">{result["Optimal_Concentration_M"]} M</span></div>', unsafe_allow_html=True)
+            df_conc = pd.DataFrame(result["Data"])
+            st.dataframe(df_conc, use_container_width=True, hide_index=True)
+
+        elif mode_num == 14:
+            n_runs = st.slider("Number of Runs", 5, 50, 10, key="ct_nruns")
+            result = atm.repeatability_testing(ct_mol, n_runs)
+            st.markdown(f'<div class="rrow"><span class="rk">Mean Yield</span><span class="rv">{result["Mean_Yield"]}%</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="rrow"><span class="rk">CV</span><span class="rv">{result["CV_Pct"]}% ({result["Reproducibility"]})</span></div>', unsafe_allow_html=True)
+            fig = sp.plot_repeatability(result)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif mode_num == 15:
+            result = atm.error_sensitivity_testing(ct_mol)
+            st.markdown(f'<div class="rrow"><span class="rk">Overall Robustness</span><span class="rv">{result["Overall_Robustness"]}</span></div>', unsafe_allow_html=True)
+            df_err = pd.DataFrame(result["Parameters"])
+            st.dataframe(df_err, use_container_width=True, hide_index=True)
+            fig = sp.plot_sensitivity_tornado(result)
+            st.plotly_chart(fig, use_container_width=True)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  TAB 26 — MOLECULAR ANALYSIS (10 Modes)
+    # ══════════════════════════════════════════════════════════════════════════
+    with TABS[26]:
+        st.markdown("""<div class="sec">
+          <span class="sec-num">26</span>
+          <span class="sec-title">Deep Molecular Analysis — 10 Analysis Modes</span>
+          <div class="sec-line"></div>
+          <span class="sec-tag">Bond Strength · Geometry · Steric Hindrance · Electron Density · H-Bonds · VdW · Flexibility · Conformers</span>
+        </div>""", unsafe_allow_html=True)
+
+        ma_sel = st.selectbox("Select compound", [d["ID"] for d in display_data], key="ma_sel")
+        ma_res = next(d for d in display_data if d["ID"]==ma_sel)
+        ma_mol = ma_res["_mol"]
+
+        ma_mode = st.selectbox("Analysis Mode", [
+            "16. Bond Strength Estimation",
+            "17. Molecular Geometry Analyzer",
+            "18. Steric Hindrance Detection",
+            "19. Electron Density Distribution",
+            "20. Charge Distribution",
+            "21. Functional Group Reactivity",
+            "22. Hydrogen Bond Detection",
+            "23. Van der Waals Interaction",
+            "24. Molecular Flexibility",
+            "25. Conformer Comparison",
+        ], key="ma_mode")
+
+        ma_num = int(ma_mode.split(".")[0])
+
+        if ma_num == 16:
+            result = mam.bond_strength_estimation(ma_mol)
+            st.markdown(f'<div class="rrow"><span class="rk">Total Bonds</span><span class="rv">{result["Total_Bonds"]}</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="rrow"><span class="rk">Average BDE</span><span class="rv">{result["Average_BDE"]} kJ/mol</span></div>', unsafe_allow_html=True)
+            if result["Weakest_Bond"]:
+                st.markdown(f'<div class="rrow"><span class="rk">Weakest Bond</span><span class="rv" style="color:#f87171">{result["Weakest_Bond"]["Bond"]} ({result["Weakest_Bond"]["BDE_kJ_mol"]} kJ/mol)</span></div>', unsafe_allow_html=True)
+            df_bonds = pd.DataFrame(result["All_Bonds"])
+            st.dataframe(df_bonds[["Bond", "Type", "BDE_kJ_mol", "Strength"]], use_container_width=True, hide_index=True)
+            fig = sp.plot_bond_strength_distribution(result)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif ma_num == 17:
+            result = mam.molecular_geometry_analyzer(ma_mol)
+            for k, v in result.items():
+                st.markdown(f'<div class="rrow"><span class="rk">{k}</span><span class="rv">{v}</span></div>', unsafe_allow_html=True)
+
+        elif ma_num == 18:
+            result = mam.steric_hindrance_detection(ma_mol)
+            st.markdown(f'<div class="rrow"><span class="rk">Overall</span><span class="rv">{result["Overall"]}</span></div>', unsafe_allow_html=True)
+            df_ster = pd.DataFrame(result["Details"])
+            st.dataframe(df_ster, use_container_width=True, hide_index=True)
+
+        elif ma_num == 19:
+            result = mam.electron_density_analysis(ma_mol)
+            if "Error" not in result:
+                st.markdown(f'<div class="rrow"><span class="rk">Dipole Estimate</span><span class="rv">{result["Dipole_Estimate"]} D</span></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="rrow"><span class="rk">Polarized Atoms</span><span class="rv">{result["Polarized_Atoms"]}</span></div>', unsafe_allow_html=True)
+                if result["Most_Electrophilic"]:
+                    st.markdown(f'<div class="rrow"><span class="rk">Most Electrophilic</span><span class="rv" style="color:#f87171">{result["Most_Electrophilic"]["Atom"]} (idx {result["Most_Electrophilic"]["Idx"]}, q={result["Most_Electrophilic"]["Charge"]})</span></div>', unsafe_allow_html=True)
+                if result["Most_Nucleophilic"]:
+                    st.markdown(f'<div class="rrow"><span class="rk">Most Nucleophilic</span><span class="rv" style="color:#38bdf8">{result["Most_Nucleophilic"]["Atom"]} (idx {result["Most_Nucleophilic"]["Idx"]}, q={result["Most_Nucleophilic"]["Charge"]})</span></div>', unsafe_allow_html=True)
+                charge_data = mam.charge_distribution_data(ma_mol)
+                fig = sp.plot_charge_scatter(charge_data)
+                st.plotly_chart(fig, use_container_width=True)
+
+        elif ma_num == 20:
+            charge_data = mam.charge_distribution_data(ma_mol)
+            fig = sp.plot_charge_scatter(charge_data)
+            st.plotly_chart(fig, use_container_width=True)
+            if charge_data.get("charge_histogram"):
+                df_ch = pd.DataFrame(charge_data["charge_histogram"])
+                st.dataframe(df_ch, use_container_width=True, hide_index=True)
+
+        elif ma_num == 21:
+            result = mam.functional_group_reactivity(ma_mol)
+            df_fg = pd.DataFrame(result)
+            st.dataframe(df_fg, use_container_width=True, hide_index=True)
+
+        elif ma_num == 22:
+            result = mam.hydrogen_bond_detection(ma_mol)
+            for k, v in result.items():
+                st.markdown(f'<div class="rrow"><span class="rk">{k}</span><span class="rv">{v}</span></div>', unsafe_allow_html=True)
+
+        elif ma_num == 23:
+            result = mam.vdw_interaction_analysis(ma_mol)
+            for k, v in result.items():
+                if k != "Atom_Composition":
+                    st.markdown(f'<div class="rrow"><span class="rk">{k}</span><span class="rv">{v}</span></div>', unsafe_allow_html=True)
+            st.markdown('<div class="rh">Atom Composition</div>', unsafe_allow_html=True)
+            for atom, count in result["Atom_Composition"].items():
+                st.markdown(f'<div class="rrow"><span class="rk">{atom}</span><span class="rv">{count}</span></div>', unsafe_allow_html=True)
+
+        elif ma_num == 24:
+            result = mam.molecular_flexibility_analysis(ma_mol)
+            for k, v in result.items():
+                st.markdown(f'<div class="rrow"><span class="rk">{k}</span><span class="rv">{v}</span></div>', unsafe_allow_html=True)
+
+        elif ma_num == 25:
+            n_conf = st.slider("Number of Conformers", 3, 20, 5, key="ma_nconf")
+            result = mam.conformer_comparison(ma_mol, n_conf)
+            if result.get("Error"):
+                st.warning(result["Error"])
+            else:
+                st.markdown(f'<div class="rrow"><span class="rk">Generated</span><span class="rv">{result["Total_Generated"]} conformers</span></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="rrow"><span class="rk">Energy Range</span><span class="rv">{result["Energy_Range"]} kcal/mol</span></div>', unsafe_allow_html=True)
+                df_conf = pd.DataFrame(result["Conformers"])
+                st.dataframe(df_conf, use_container_width=True, hide_index=True)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  TAB 27 — SCIENTIFIC PLOTS (15 Chart Types)
+    # ══════════════════════════════════════════════════════════════════════════
+    with TABS[27]:
+        st.markdown("""<div class="sec">
+          <span class="sec-num">27</span>
+          <span class="sec-title">Scientific Visualization Suite — 15 Plot Types</span>
+          <div class="sec-line"></div>
+          <span class="sec-tag">Energy Profiles · Kinetics · Heatmaps · Radar Charts · Parameter Sweeps · Compound Comparison</span>
+        </div>""", unsafe_allow_html=True)
+
+        sp_sel = st.selectbox("Select compound", [d["ID"] for d in display_data], key="sp_sel")
+        sp_res = next(d for d in display_data if d["ID"]==sp_sel)
+        sp_mol = sp_res["_mol"]
+        sp_smiles = sp_res["SMILES"]
+
+        sp_type = st.selectbox("Plot Type", [
+            "Reaction Energy Profile",
+            "Rate vs Temperature (Arrhenius)",
+            "Concentration vs Time",
+            "Compound Property Radar",
+            "Compound Heatmap (All)",
+            "Multi-Compound Radar",
+            "Parameter Sweep",
+            "Equilibrium Diagram",
+        ], key="sp_type")
+
+        if sp_type == "Reaction Energy Profile":
+            fig = sp.plot_reaction_energy_profile(sp_smiles)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif sp_type == "Rate vs Temperature (Arrhenius)":
+            fig = sp.plot_rate_vs_temperature(sp_smiles)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif sp_type == "Concentration vs Time":
+            fig = sp.plot_concentration_vs_time(sp_smiles)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif sp_type == "Compound Property Radar":
+            radar = sp_res["_ext"]["Radar_Data"]
+            fig = sp.plot_compound_radar(radar, sp_res["ID"])
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif sp_type == "Compound Heatmap (All)":
+            fig = sp.plot_compound_heatmap(display_data, ["MW", "LogP", "tPSA", "QED", "LeadScore", "SA_Score"])
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif sp_type == "Multi-Compound Radar":
+            fig = sp.plot_multi_radar(display_data)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif sp_type == "Parameter Sweep":
+            sweep_param = st.selectbox("Sweep Parameter", ["temperature", "concentration", "pH"], key="sp_sweep_p")
+            sweep_data = sp.parameter_sweep_data(sp_smiles, sweep_param)
+            fig = sp.plot_parameter_sweep(sweep_data)
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif sp_type == "Equilibrium Diagram":
+            eq_data = atm.equilibrium_testing(sp_mol)
+            fig = sp.plot_equilibrium(eq_data)
+            st.plotly_chart(fig, use_container_width=True)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  TAB 28 — DRUG DISCOVERY EXTENDED
+    # ══════════════════════════════════════════════════════════════════════════
+    with TABS[28]:
+        st.markdown("""<div class="sec">
+          <span class="sec-num">28</span>
+          <span class="sec-title">Drug Discovery Extended — Deep Analysis & Lead Optimization</span>
+          <div class="sec-line"></div>
+          <span class="sec-tag">ADMET Predictions · Structural Metrics · Lead Optimization · Drug-Likeness Badges · Deep Analysis Panel</span>
+        </div>""", unsafe_allow_html=True)
+
+        # ── Extended Columns Table ──
+        st.markdown('<div class="ai-panel"><div class="ai-head">📋 Extended Drug Discovery Metrics</div>', unsafe_allow_html=True)
+        ext_cols = []
+        for d in display_data:
+            ext = d["_ext"]
+            ext_cols.append({
+                "ID": d["ID"], "Grade": d["Grade"],
+                "Badge": ext.get("Drug_Likeness_Badge", ""),
+                "HBD": ext.get("HBD"), "HBA": ext.get("HBA"),
+                "RotBonds": ext.get("Rotatable_Bonds"),
+                "Rings": ext.get("Ring_Count"), "ArRings": ext.get("Aromatic_Ring_Count"),
+                "HeavyAtoms": ext.get("Heavy_Atom_Count"),
+                "FracArom": ext.get("Fraction_Aromatic"),
+                "Lip.Viol": ext.get("Lipinski_Violations"),
+                "Veber": ext.get("Veber_Rule_Score"),
+                "Ghose": ext.get("Ghose_Filter_Score"),
+                "LogS": ext.get("LogS_ESOL"), "Sol.Class": ext.get("Solubility_Class"),
+                "HIA": ext.get("HIA"), "BBB": ext.get("BBB_Penetration"),
+                "CYP Risk": ext.get("CYP450_Risk"), "PPB": ext.get("Plasma_Protein_Binding"),
+                "Clearance": ext.get("Clearance"), "Half-Life": ext.get("Half_Life"),
+                "BioAvail": ext.get("Bioavailability_Score"),
+                "Tox Risk": ext.get("Toxicity_Risk"), "Mutagen": ext.get("Mutagenicity_Risk"),
+            })
+        df_ext = pd.DataFrame(ext_cols)
+        st.dataframe(df_ext, use_container_width=True, hide_index=True, height=350)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── Structural + Lead Optimization Table ──
+        st.markdown('<div class="ai-panel"><div class="ai-head">🧬 Structural Metrics & Lead Optimization Indicators</div>', unsafe_allow_html=True)
+        struct_cols = []
+        for d in display_data:
+            ext = d["_ext"]
+            struct_cols.append({
+                "ID": d["ID"],
+                "Chiral": ext.get("Chiral_Centers"), "RingStrain": ext.get("Ring_Strain_Score"),
+                "TopoComplex": ext.get("Topological_Complexity"),
+                "FragDiv": ext.get("Fragment_Diversity"),
+                "Symmetry": ext.get("Molecular_Symmetry"),
+                "Shape3D": ext.get("Shape_Index_3D"),
+                "LeadPot": ext.get("Lead_Optimization_Potential"),
+                "FragEff": ext.get("Fragment_Efficiency"),
+                "LigEff": ext.get("Ligand_Efficiency"),
+                "LipE": ext.get("Lipophilic_Efficiency"),
+                "SynthDiff": ext.get("Synthetic_Difficulty"),
+                "OptPriority": ext.get("Optimization_Priority"),
+            })
+        df_struct = pd.DataFrame(struct_cols)
+        st.dataframe(df_struct, use_container_width=True, hide_index=True, height=300)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── Deep Analysis Panel ──
+        st.markdown('<div style="margin-top:24px"></div>', unsafe_allow_html=True)
+        dd_sel = st.selectbox("Select compound for Deep Analysis", [d["ID"] for d in display_data], key="dd_sel")
+        dd_res = next(d for d in display_data if d["ID"]==dd_sel)
+        dd_ext = dd_res["_ext"]
+        dd_deep = dd_res["_deep"]
+
+        # Badge + Warnings
+        badge, badge_color = dd_ext["Drug_Likeness_Badge"], dd_ext["Badge_Color"]
+        st.markdown(f"""
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+            <span style="font-family:'DM Serif Display',serif;font-size:1.4rem;color:white">{dd_res["ID"]}</span>
+            <span style="padding:4px 16px;border-radius:20px;font-size:0.7rem;font-weight:700;
+            background:{badge_color}22;color:{badge_color};border:1px solid {badge_color}44">{badge}</span>
+        </div>""", unsafe_allow_html=True)
+
+        # Warning pills
+        for w in dd_ext.get("Property_Warnings", []):
+            st.markdown(f'<div class="tpill" style="background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.3);display:inline-block;margin:2px">{w}</div>', unsafe_allow_html=True)
+
+        # Radar Chart
+        radar = dd_ext["Radar_Data"]
+        fig = sp.plot_compound_radar(radar, dd_res["ID"])
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Deep Analysis Sections
+        dd1, dd2 = st.columns(2)
+        with dd1:
+            st.markdown('<div class="ai-panel"><div class="ai-head">🔬 Functional Group Breakdown</div>', unsafe_allow_html=True)
+            for fg in dd_deep["Functional_Groups"]:
+                st.markdown(f'<div class="rrow"><span class="rk">{fg["Group"]}</span><span class="rv">{fg["Count"]}x</span></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            st.markdown('<div class="ai-panel"><div class="ai-head">⚡ Reactivity Hotspots</div>', unsafe_allow_html=True)
+            for hs in dd_deep["Reactivity_Hotspots"]:
+                st.markdown(f'<div class="rrow"><span class="rk">{hs["Nature"]}</span><span class="rv">{hs["Description"]} ({hs["Sites"]} sites)</span></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with dd2:
+            st.markdown('<div class="ai-panel"><div class="ai-head">💊 Predicted Metabolism Sites</div>', unsafe_allow_html=True)
+            for ms in dd_deep["Metabolism_Sites"]:
+                st.markdown(f'<div class="rrow"><span class="rk">{ms["Reaction"]}</span><span class="rv">{ms["Responsible_Enzyme"]} · {ms["Phase"]} · {ms["Sites"]} sites</span></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            st.markdown('<div class="ai-panel"><div class="ai-head">🧪 Synthetic Pathway Suggestions</div>', unsafe_allow_html=True)
+            for i, sug in enumerate(dd_deep["Synthetic_Suggestions"], 1):
+                st.markdown(f'<div class="rrow"><span class="rk">Step {i}</span><span class="rv">{sug}</span></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── Compound Comparison ──
+        st.markdown('<div style="margin-top:24px"></div>', unsafe_allow_html=True)
+        if len(display_data) >= 2:
+            st.markdown('<div class="ai-panel"><div class="ai-head">🔀 Compound Ranking & Comparison</div>', unsafe_allow_html=True)
+            rank_metric = st.selectbox("Rank by", ["LeadScore", "QED", "MW", "SA_Score", "OralBioScore"], key="dd_rank")
+            rankings = dap.get_compound_ranking(display_data, rank_metric)
+            df_rank = pd.DataFrame(rankings)
+            st.dataframe(df_rank, use_container_width=True, hide_index=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── Downloadable Report ──
+        report_text = sp.generate_report_text(dd_res, dd_ext)
+        st.download_button("↓ Download Deep Analysis Report",
+            data=report_text.encode(), file_name=f"chemofilter_deep_{dd_res['ID']}.txt",
+            mime="text/plain", key="dl_deep_report")
+
+# ── NEW: Analytics Tab (TABS[29]) ────────────────────────────────────────────
 if _DASHBOARD_OK:
     try:
-        with TABS[25]:
+        with TABS[29]:
             render_analytics_tab()
     except Exception:
         pass
