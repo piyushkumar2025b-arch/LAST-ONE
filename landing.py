@@ -9,6 +9,9 @@ import streamlit as st
 
 def render_landing() -> bool:
     st.markdown(_CSS, unsafe_allow_html=True)
+    st.markdown(_ENHANCEMENT_CSS, unsafe_allow_html=True)
+    st.markdown(_MOL_CANVAS, unsafe_allow_html=True)
+    st.markdown(_SCIENTIST_SCENE, unsafe_allow_html=True)
     st.markdown(_ABOVE_HERO_BTN, unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns([1.5, 1, 1.5])
@@ -22,6 +25,10 @@ def render_landing() -> bool:
         cta = st.button("Begin Discovery →", key="_lp_cta", use_container_width=True)
 
     st.markdown(_FOOTER_SCRIPT, unsafe_allow_html=True)
+    st.markdown(_ENGINE_CARDS_SECTION, unsafe_allow_html=True)
+    st.markdown(_WORKFLOW_VIZ, unsafe_allow_html=True)
+    st.markdown(_CHEM_NETWORK, unsafe_allow_html=True)
+    st.markdown(_SCROLL_REVEAL_INIT, unsafe_allow_html=True)
     return hero or cta
 
 
@@ -524,6 +531,750 @@ _FOOTER_SCRIPT = """
     if(!isDark){root.classList.add('lm');if(btn)btn.innerHTML='☀️';}
     else{root.classList.remove('lm');if(btn)btn.innerHTML='🌙';}
   };
+})();
+</script>
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════
+# NEW ENHANCEMENT BLOCKS — all additive, nothing existing is touched
+# ═══════════════════════════════════════════════════════════════════════════
+
+_ENHANCEMENT_CSS = """
+<style>
+/* ── Molecular background canvas ── */
+#cf-mol-bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;opacity:.55;}
+
+/* ── Scientist scene ── */
+.cf-sci-wrap{position:relative;z-index:8;display:flex;justify-content:center;align-items:flex-end;padding:120px 52px 0;pointer-events:none;}
+#cf-sci-canvas{display:block;margin:0 auto;}
+
+/* ── Scroll-reveal base ── */
+.cf-reveal{opacity:0;transform:translateY(40px);transition:opacity .7s ease,transform .7s ease;}
+.cf-reveal.visible{opacity:1;transform:translateY(0);}
+
+/* ── Engine glowing cards ── */
+.cf-eng-section{position:relative;z-index:10;padding:88px 52px 60px;max-width:1400px;margin:0 auto;}
+.cf-eng-title{font-family:'Instrument Serif',serif;font-size:2.8rem;color:var(--tx);letter-spacing:-1px;margin-bottom:8px;}
+.cf-eng-sub{font-family:'DM Sans',sans-serif;font-size:.95rem;color:var(--tx2);margin-bottom:52px;}
+.cf-eng-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;}
+.cf-ec{position:relative;padding:28px 24px 24px;border-radius:16px;background:linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.07);cursor:default;transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease;overflow:hidden;}
+.cf-ec::before{content:'';position:absolute;inset:0;border-radius:16px;opacity:0;transition:opacity .3s ease;background:radial-gradient(circle at 50% 0%,var(--ec-glow,rgba(232,160,32,.15)),transparent 70%);}
+.cf-ec:hover{transform:translateY(-6px) scale(1.015);box-shadow:0 20px 60px var(--ec-glow,rgba(232,160,32,.2)),0 0 0 1px var(--ec-border,rgba(232,160,32,.35));}
+.cf-ec:hover::before{opacity:1;}
+.cf-ec:hover .cf-ec-icon{transform:scale(1.15) rotate(-5deg);}
+.cf-ec-tag{font-family:'DM Mono',monospace;font-size:.48rem;letter-spacing:3px;text-transform:uppercase;color:var(--ec-color,var(--ac2));margin-bottom:12px;opacity:.7;}
+.cf-ec-icon{font-size:2.2rem;margin-bottom:12px;display:block;transition:transform .3s ease;}
+.cf-ec-name{font-family:'Instrument Serif',serif;font-size:1.35rem;color:var(--tx);margin-bottom:8px;letter-spacing:-.3px;}
+.cf-ec-desc{font-size:.8rem;color:var(--tx2);line-height:1.65;}
+.cf-ec-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--ec-color,var(--ac)),transparent);}
+
+/* ── 4-step workflow ── */
+.cf-wf-section{position:relative;z-index:10;padding:72px 52px 60px;max-width:1200px;margin:0 auto;}
+.cf-wf-title{font-family:'Instrument Serif',serif;font-size:2.5rem;color:var(--tx);letter-spacing:-1px;margin-bottom:8px;text-align:center;}
+.cf-wf-sub{text-align:center;color:var(--tx2);font-size:.9rem;margin-bottom:56px;}
+.cf-wf-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative;}
+.cf-wf-steps::before{content:'';position:absolute;top:40px;left:12.5%;right:12.5%;height:1px;background:linear-gradient(90deg,transparent,var(--ac),var(--cyan),var(--violet),transparent);opacity:.35;}
+.cf-wf-step{display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 16px;}
+.cf-wf-num{width:80px;height:80px;border-radius:50%;display:grid;place-items:center;font-size:1.8rem;margin-bottom:20px;position:relative;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);box-shadow:0 0 0 6px rgba(232,160,32,.05),0 8px 32px rgba(0,0,0,.3);}
+.cf-wf-step:nth-child(1) .cf-wf-num{border-color:rgba(232,160,32,.4);box-shadow:0 0 24px rgba(232,160,32,.2),0 0 0 6px rgba(232,160,32,.05);}
+.cf-wf-step:nth-child(2) .cf-wf-num{border-color:rgba(56,189,248,.4);box-shadow:0 0 24px rgba(56,189,248,.2),0 0 0 6px rgba(56,189,248,.05);}
+.cf-wf-step:nth-child(3) .cf-wf-num{border-color:rgba(167,139,250,.4);box-shadow:0 0 24px rgba(167,139,250,.2),0 0 0 6px rgba(167,139,250,.05);}
+.cf-wf-step:nth-child(4) .cf-wf-num{border-color:rgba(52,211,153,.4);box-shadow:0 0 24px rgba(52,211,153,.2),0 0 0 6px rgba(52,211,153,.05);}
+.cf-wf-label{font-family:'Instrument Serif',serif;font-size:1.1rem;color:var(--tx);margin-bottom:8px;}
+.cf-wf-desc{font-size:.78rem;color:var(--tx2);line-height:1.6;}
+.cf-wf-badge{display:inline-block;margin-top:10px;font-family:'DM Mono',monospace;font-size:.48rem;letter-spacing:2px;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--tx3);}
+
+/* ── Chemical network canvas ── */
+.cf-net-section{position:relative;z-index:10;padding:72px 52px 40px;text-align:center;}
+.cf-net-title{font-family:'Instrument Serif',serif;font-size:2.2rem;color:var(--tx);margin-bottom:8px;}
+.cf-net-sub{color:var(--tx2);font-size:.85rem;margin-bottom:36px;}
+#cf-net-canvas{border-radius:20px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.015);}
+
+/* ── Lab aesthetic overlays ── */
+.cf-lab-grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(56,189,248,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,.025) 1px,transparent 1px);background-size:60px 60px;opacity:1;}
+.cf-float-atom{position:fixed;pointer-events:none;z-index:2;border-radius:50%;animation:floatAtom linear infinite;}
+@keyframes floatAtom{0%{transform:translateY(0) rotate(0deg);opacity:.6}50%{opacity:.2}100%{transform:translateY(-100vh) rotate(360deg);opacity:0}}
+
+/* ── Animated counter ── */
+.cf-counter-val{font-variant-numeric:tabular-nums;}
+
+/* ── Glass reflection effect on cards ── */
+.cf-ec::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.04) 50%,transparent 60%);transform:skewX(-15deg);transition:left .6s ease;pointer-events:none;}
+.cf-ec:hover::after{left:130%;}
+</style>
+"""
+
+# ── Animated molecular background (Canvas 2D, zero dependencies) ─────────────
+_MOL_CANVAS = """
+<canvas id="cf-mol-bg"></canvas>
+<div class="cf-lab-grid"></div>
+<script>
+(function(){
+  var c=document.getElementById('cf-mol-bg');
+  if(!c)return;
+  var ctx=c.getContext('2d');
+  var W,H;
+  var NODES=55, BONDS_DIST=140;
+  var nodes=[];
+  function resize(){
+    W=c.width=window.innerWidth;
+    H=c.height=window.innerHeight;
+  }
+  function mkNode(){
+    var colors=['#e8a020','#38bdf8','#a78bfa','#34d399','#fbbf24'];
+    return{
+      x:Math.random()*W, y:Math.random()*H,
+      vx:(Math.random()-.5)*.35, vy:(Math.random()-.5)*.35,
+      r:Math.random()*3+1.5,
+      col:colors[Math.floor(Math.random()*colors.length)]
+    };
+  }
+  resize();
+  for(var i=0;i<NODES;i++) nodes.push(mkNode());
+  window.addEventListener('resize',resize);
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // bonds
+    for(var i=0;i<nodes.length;i++){
+      for(var j=i+1;j<nodes.length;j++){
+        var dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y;
+        var d=Math.sqrt(dx*dx+dy*dy);
+        if(d<BONDS_DIST){
+          var alpha=(1-d/BONDS_DIST)*0.18;
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x,nodes[i].y);
+          ctx.lineTo(nodes[j].x,nodes[j].y);
+          ctx.strokeStyle='rgba(232,160,32,'+alpha+')';
+          ctx.lineWidth=.8;
+          ctx.stroke();
+        }
+      }
+    }
+    // nodes
+    for(var k=0;k<nodes.length;k++){
+      var n=nodes[k];
+      ctx.beginPath();
+      ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+      ctx.fillStyle=n.col;
+      ctx.globalAlpha=.45;
+      ctx.fill();
+      ctx.globalAlpha=1;
+      // glow ring
+      ctx.beginPath();
+      ctx.arc(n.x,n.y,n.r+3,0,Math.PI*2);
+      ctx.strokeStyle=n.col;
+      ctx.globalAlpha=.08;
+      ctx.lineWidth=2;
+      ctx.stroke();
+      ctx.globalAlpha=1;
+      // move
+      n.x+=n.vx; n.y+=n.vy;
+      if(n.x<-20||n.x>W+20) n.vx*=-1;
+      if(n.y<-20||n.y>H+20) n.vy*=-1;
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+  // Floating atoms
+  function spawnAtom(){
+    var el=document.createElement('div');
+    el.className='cf-float-atom';
+    var size=Math.random()*8+4;
+    var colors=['rgba(232,160,32,','rgba(56,189,248,','rgba(167,139,250,'];
+    var col=colors[Math.floor(Math.random()*colors.length)];
+    el.style.cssText='width:'+size+'px;height:'+size+'px;left:'+Math.random()*100+'vw;bottom:-20px;background:'+col+'0.5);box-shadow:0 0 '+size*2+'px '+col+'0.4);animation-duration:'+(Math.random()*12+8)+'s;animation-delay:'+Math.random()*5+'s;';
+    document.body.appendChild(el);
+    setTimeout(function(){el.remove();},20000);
+  }
+  for(var s=0;s<8;s++) spawnAtom();
+  setInterval(spawnAtom,2500);
+})();
+</script>
+"""
+
+# ── Scientist 3D hero scene (Canvas 2D stylized illustration) ────────────────
+_SCIENTIST_SCENE = """
+<div class="cf-sci-wrap">
+<canvas id="cf-sci-canvas" width="820" height="340"></canvas>
+</div>
+<script>
+(function(){
+  var canvas=document.getElementById('cf-sci-canvas');
+  if(!canvas) return;
+  var ctx=canvas.getContext('2d');
+  var t=0;
+
+  // Color palette
+  var C={
+    desk:'#1a2035', deskEdge:'#e8a020', chair:'#0f1828',
+    body:'#2a3550', head:'#f0c8a0', hair:'#1a1a2e',
+    coat:'#1e3a5f', screen:'#0a1628', screenGlow:'#38bdf8',
+    beaker1:'rgba(56,189,248,0.6)', beaker2:'rgba(167,139,250,0.55)',
+    beaker3:'rgba(52,211,153,0.55)', molecule:'#e8a020',
+    bulb:'#ffd700', bulbGlow:'rgba(255,215,0,0.3)',
+    atom1:'#38bdf8', atom2:'#a78bfa', atom3:'#34d399', atom4:'#e8a020'
+  };
+
+  function drawDesk(y){
+    // Desk surface
+    ctx.fillStyle=C.desk;
+    ctx.beginPath();
+    ctx.roundRect(60,y,700,18,4);
+    ctx.fill();
+    // Glowing edge
+    var grd=ctx.createLinearGradient(60,y,760,y);
+    grd.addColorStop(0,'transparent');
+    grd.addColorStop(0.3,'rgba(232,160,32,0.5)');
+    grd.addColorStop(0.7,'rgba(232,160,32,0.5)');
+    grd.addColorStop(1,'transparent');
+    ctx.fillStyle=grd;
+    ctx.fillRect(60,y,700,2);
+    // Desk legs
+    ctx.fillStyle='#141e30';
+    ctx.fillRect(100,y+18,12,60);
+    ctx.fillRect(708,y+18,12,60);
+  }
+
+  function drawChair(x,y){
+    ctx.fillStyle=C.chair;
+    // Seat
+    ctx.beginPath(); ctx.roundRect(x-45,y,90,16,6); ctx.fill();
+    // Back
+    ctx.beginPath(); ctx.roundRect(x-40,y-70,80,72,8); ctx.fill();
+    ctx.strokeStyle='rgba(232,160,32,0.18)'; ctx.lineWidth=1;
+    ctx.stroke();
+    // Legs
+    ctx.strokeStyle='#1e2d45'; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.moveTo(x-35,y+16); ctx.lineTo(x-42,y+55); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+35,y+16); ctx.lineTo(x+42,y+55); ctx.stroke();
+  }
+
+  function drawScientist(x,deskY,time){
+    var bodyY=deskY-140;
+    // Coat / torso
+    ctx.fillStyle=C.coat;
+    ctx.beginPath(); ctx.roundRect(x-34,bodyY,68,95,8); ctx.fill();
+    // Lapels
+    ctx.fillStyle='rgba(255,255,255,0.06)';
+    ctx.beginPath(); ctx.moveTo(x-10,bodyY+2); ctx.lineTo(x-28,bodyY+30); ctx.lineTo(x,bodyY+50); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x+10,bodyY+2); ctx.lineTo(x+28,bodyY+30); ctx.lineTo(x,bodyY+50); ctx.closePath(); ctx.fill();
+    // Neck
+    ctx.fillStyle=C.head;
+    ctx.beginPath(); ctx.roundRect(x-8,bodyY-14,16,20,4); ctx.fill();
+    // Head
+    ctx.fillStyle=C.head;
+    ctx.beginPath(); ctx.ellipse(x,bodyY-30,22,26,0,0,Math.PI*2); ctx.fill();
+    // Hair
+    ctx.fillStyle=C.hair;
+    ctx.beginPath(); ctx.ellipse(x,bodyY-50,22,14,0,Math.PI,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x-20,bodyY-36,6,10,-0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+20,bodyY-36,6,10,0.3,0,Math.PI*2); ctx.fill();
+    // Eyes (looking at laptop)
+    var eyeY=bodyY-28;
+    ctx.fillStyle='#1a1a2e';
+    ctx.beginPath(); ctx.ellipse(x-8,eyeY,3.5,3,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+8,eyeY,3.5,3,0,0,Math.PI*2); ctx.fill();
+    // Glasses
+    ctx.strokeStyle='rgba(232,160,32,0.6)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.ellipse(x-8,eyeY,7,5.5,0,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(x+8,eyeY,7,5.5,0,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-1,eyeY); ctx.lineTo(x+1,eyeY); ctx.stroke();
+    // Left arm reaching to laptop
+    ctx.fillStyle=C.coat;
+    ctx.beginPath();
+    ctx.moveTo(x-34,bodyY+20);
+    ctx.quadraticCurveTo(x-70,bodyY+60,x-90,deskY-4);
+    ctx.lineTo(x-70,deskY-4);
+    ctx.quadraticCurveTo(x-55,bodyY+60,x-18,bodyY+30);
+    ctx.closePath(); ctx.fill();
+    // Right arm resting
+    ctx.beginPath();
+    ctx.moveTo(x+34,bodyY+20);
+    ctx.quadraticCurveTo(x+65,bodyY+65,x+80,deskY-4);
+    ctx.lineTo(x+60,deskY-4);
+    ctx.quadraticCurveTo(x+50,bodyY+65,x+18,bodyY+30);
+    ctx.closePath(); ctx.fill();
+    // Hands
+    ctx.fillStyle=C.head;
+    ctx.beginPath(); ctx.ellipse(x-82,deskY-6,10,7,0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+73,deskY-6,10,7,-0.3,0,Math.PI*2); ctx.fill();
+  }
+
+  function drawLaptop(x,y,time){
+    // Screen hinge
+    ctx.fillStyle='#141e30';
+    ctx.fillRect(x-48,y-12,96,6);
+    // Screen
+    var tilt=-0.18;
+    ctx.save();
+    ctx.translate(x,y-12);
+    ctx.transform(1,tilt,0,1,0,0);
+    ctx.fillStyle=C.screen;
+    ctx.beginPath(); ctx.roundRect(-45,-82,90,80,4); ctx.fill();
+    ctx.strokeStyle='rgba(56,189,248,0.25)'; ctx.lineWidth=1;
+    ctx.stroke();
+    // Screen content glow
+    var sg=ctx.createRadialGradient(0,-42,2,0,-42,38);
+    sg.addColorStop(0,'rgba(56,189,248,0.18)');
+    sg.addColorStop(1,'transparent');
+    ctx.fillStyle=sg;
+    ctx.fillRect(-40,-78,80,72);
+    // Fake UI lines
+    ctx.strokeStyle='rgba(56,189,248,0.5)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(-30,-70); ctx.lineTo(10,-70); ctx.stroke();
+    ctx.strokeStyle='rgba(56,189,248,0.2)';
+    for(var i=0;i<4;i++){
+      ctx.beginPath(); ctx.moveTo(-30,-60+i*10); ctx.lineTo(25+Math.sin(time+i)*8,-60+i*10); ctx.stroke();
+    }
+    // Hexagon logo on screen
+    ctx.strokeStyle='rgba(232,160,32,0.7)'; ctx.lineWidth=1.5;
+    ctx.beginPath();
+    for(var h=0;h<6;h++){
+      var hx=10+Math.cos(h*Math.PI/3-Math.PI/6)*10;
+      var hy=-30+Math.sin(h*Math.PI/3-Math.PI/6)*10;
+      h===0?ctx.moveTo(hx,hy):ctx.lineTo(hx,hy);
+    }
+    ctx.closePath(); ctx.stroke();
+    ctx.restore();
+    // Base
+    ctx.fillStyle='#1a2540';
+    ctx.beginPath(); ctx.roundRect(x-55,y-8,110,10,3); ctx.fill();
+  }
+
+  function drawBeaker(x,y,color,level,time){
+    // Beaker body
+    ctx.strokeStyle=color; ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(x-14,y); ctx.lineTo(x-16,y+45);
+    ctx.lineTo(x+16,y+45); ctx.lineTo(x+14,y); ctx.closePath(); ctx.stroke();
+    // Liquid
+    var liqH=level*35;
+    ctx.fillStyle=color.replace('0.6','0.25').replace('0.55','0.2');
+    ctx.fillRect(x-15+1,y+45-liqH,29,liqH);
+    // Bubbles
+    for(var b=0;b<2;b++){
+      var bx=x-8+b*16;
+      var by=y+40-liqH+Math.sin(time*2+b*2)*6;
+      ctx.beginPath(); ctx.arc(bx,by,2,0,Math.PI*2);
+      ctx.fillStyle=color; ctx.globalAlpha=0.5; ctx.fill(); ctx.globalAlpha=1;
+    }
+    // Rim
+    ctx.beginPath(); ctx.roundRect(x-16,y-4,32,6,2); ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fill();
+    ctx.strokeStyle=color; ctx.stroke();
+  }
+
+  function drawMolecule(cx,cy,time,scale){
+    var s=scale||1;
+    // Central atom
+    var gr=ctx.createRadialGradient(cx,cy,0,cx,cy,12*s);
+    gr.addColorStop(0,C.atom1); gr.addColorStop(1,'transparent');
+    ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(cx,cy,12*s,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=C.atom1; ctx.beginPath(); ctx.arc(cx,cy,6*s,0,Math.PI*2); ctx.fill();
+    // Orbiting atoms
+    var orbits=[
+      {r:28*s,speed:.8,color:C.atom2,size:4*s,phase:0},
+      {r:28*s,speed:.8,color:C.atom3,size:4*s,phase:Math.PI*2/3},
+      {r:28*s,speed:.8,color:C.atom4,size:4*s,phase:Math.PI*4/3},
+      {r:44*s,speed:.45,color:C.atom1,size:3*s,phase:0.5},
+      {r:44*s,speed:.45,color:C.atom2,size:3*s,phase:0.5+Math.PI},
+    ];
+    orbits.forEach(function(o){
+      var ax=cx+Math.cos(time*o.speed+o.phase)*o.r;
+      var ay=cy+Math.sin(time*o.speed+o.phase)*o.r*0.55;
+      // Bond
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(ax,ay);
+      ctx.strokeStyle=o.color; ctx.lineWidth=1; ctx.globalAlpha=0.35; ctx.stroke(); ctx.globalAlpha=1;
+      // Atom
+      ctx.fillStyle=o.color; ctx.beginPath(); ctx.arc(ax,ay,o.size,0,Math.PI*2); ctx.fill();
+    });
+  }
+
+  function drawBulb(x,y,time){
+    var pulse=0.7+0.3*Math.sin(time*2.5);
+    // Glow halo
+    var g=ctx.createRadialGradient(x,y,0,x,y,55);
+    g.addColorStop(0,'rgba(255,215,0,'+0.25*pulse+')');
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,55,0,Math.PI*2); ctx.fill();
+    // Bulb shape
+    ctx.strokeStyle='rgba(255,215,0,'+(.7*pulse)+')'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(x,y-5,18,0,Math.PI*2); ctx.stroke();
+    // Filament glow
+    ctx.strokeStyle='rgba(255,200,50,'+(.9*pulse)+')'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(x-6,y+10); ctx.quadraticCurveTo(x-2,y+4,x,y); ctx.quadraticCurveTo(x+2,y+4,x+6,y+10); ctx.stroke();
+    // Base stripes
+    ctx.strokeStyle='rgba(255,215,0,0.35)'; ctx.lineWidth=2;
+    for(var i=0;i<3;i++){
+      ctx.beginPath(); ctx.moveTo(x-10,y+12+i*4); ctx.lineTo(x+10,y+12+i*4); ctx.stroke();
+    }
+    // Light rays
+    ctx.strokeStyle='rgba(255,215,0,'+(0.15*pulse)+')'; ctx.lineWidth=1.5;
+    for(var r=0;r<8;r++){
+      var ra=r*Math.PI/4+time*0.3;
+      ctx.beginPath();
+      ctx.moveTo(x+Math.cos(ra)*22,y-5+Math.sin(ra)*22);
+      ctx.lineTo(x+Math.cos(ra)*34,y-5+Math.sin(ra)*34);
+      ctx.stroke();
+    }
+    // Arrow pointing down toward button area
+    ctx.strokeStyle='rgba(255,215,0,'+(0.45*pulse)+')'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(x,y+30); ctx.lineTo(x,y+55); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-7,y+47); ctx.lineTo(x,y+55); ctx.lineTo(x+7,y+47); ctx.stroke();
+  }
+
+  function frame(){
+    t+=0.016;
+    ctx.clearRect(0,0,820,340);
+
+    var deskY=240;
+    drawDesk(deskY);
+    drawChair(420,deskY+8);
+    drawScientist(420,deskY,t);
+    drawLaptop(340,deskY,t);
+
+    // Beakers
+    drawBeaker(575,deskY-55,'rgba(56,189,248,0.65)',0.65+0.1*Math.sin(t),t);
+    drawBeaker(620,deskY-50,'rgba(167,139,250,0.6)',0.45+0.12*Math.sin(t+1),t);
+    drawBeaker(662,deskY-48,'rgba(52,211,153,0.6)',0.8+0.08*Math.sin(t+2),t);
+
+    // Floating molecule models on desk
+    drawMolecule(180,deskY-55,t,0.75);
+    drawMolecule(680,deskY-80,-t*0.7,0.55);
+
+    // Light bulb above scientist head
+    drawBulb(420,deskY-230,t);
+
+    // Floating molecular particle near idea bulb
+    drawMolecule(490,deskY-195,t*0.6,0.4);
+    drawMolecule(355,deskY-185,-t*0.5,0.35);
+
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+</script>
+"""
+
+# ── Glowing engine cards section ─────────────────────────────────────────────
+_ENGINE_CARDS_SECTION = """
+<div class="cf-eng-section cf-reveal" id="cf-eng-sec">
+  <div class="cf-sh-tag" style="margin-bottom:12px">Intelligence Engines</div>
+  <div class="cf-eng-title">Seven Engines. One Platform.</div>
+  <div class="cf-eng-sub">Each engine operates as an independent intelligence layer — together they form the most comprehensive drug screening cascade available.</div>
+  <div class="cf-eng-grid">
+
+    <div class="cf-ec" style="--ec-color:#f5b942;--ec-glow:rgba(245,185,66,.18);--ec-border:rgba(245,185,66,.35)">
+      <div class="cf-ec-tag">Engine · v10000</div>
+      <span class="cf-ec-icon">🌌</span>
+      <div class="cf-ec-name">Aether-Primality</div>
+      <div class="cf-ec-desc">100,000+ molecular features. Tissue-specific permeability across lung, liver, kidney. Nanotoxicity scan for heavy metals & PFAS. Quantum orbital dynamics, solvation energy & genetic interference alerts.</div>
+      <div class="cf-ec-bar"></div>
+    </div>
+
+    <div class="cf-ec" style="--ec-color:#a78bfa;--ec-glow:rgba(167,139,250,.18);--ec-border:rgba(167,139,250,.35)">
+      <div class="cf-ec-tag">Engine · v5000</div>
+      <span class="cf-ec-icon">⚡</span>
+      <div class="cf-ec-name">Xenon-God</div>
+      <div class="cf-ec-desc">Quantum orbital overlap scoring, π-π stacking & cation-π detection. Retrosynthetic Difficulty Index with reagent cost estimation. Epigenetic risk scanner & BBB flux dynamics.</div>
+      <div class="cf-ec-bar"></div>
+    </div>
+
+    <div class="cf-ec" style="--ec-color:#34d399;--ec-glow:rgba(52,211,153,.18);--ec-border:rgba(52,211,153,.35)">
+      <div class="cf-ec-tag">Engine · v3000</div>
+      <span class="cf-ec-icon">🌀</span>
+      <div class="cf-ec-name">Nova Engine</div>
+      <div class="cf-ec-desc">Advanced bioavailability modeling, hERG cardiac risk with structural flag analysis, next-generation ADMET profiling, and multi-pathway metabolic simulation across Phase I–III transformations.</div>
+      <div class="cf-ec-bar"></div>
+    </div>
+
+    <div class="cf-ec" style="--ec-color:#38bdf8;--ec-glow:rgba(56,189,248,.18);--ec-border:rgba(56,189,248,.35)">
+      <div class="cf-ec-tag">Engine · v2000</div>
+      <span class="cf-ec-icon">🧬</span>
+      <div class="cf-ec-name">Omega-Zenith</div>
+      <div class="cf-ec-desc">500+ scaffold rarity index, covalent warhead detection with reactivity grading, multi-CYP inhibition profiling (1A2/2C19/3A4), chameleonicity scoring & PROTAC potential metrics.</div>
+      <div class="cf-ec-bar"></div>
+    </div>
+
+    <div class="cf-ec" style="--ec-color:#e8a020;--ec-glow:rgba(232,160,32,.18);--ec-border:rgba(232,160,32,.35)">
+      <div class="cf-ec-tag">Engine · v1000</div>
+      <span class="cf-ec-icon">✨</span>
+      <div class="cf-ec-name">Celestial</div>
+      <div class="cf-ec-desc">Mechanistic PBPK kinetics: Ka, CLint, renal & biliary clearance, %F and half-life. QUED quantum electronic descriptors. 2000+ Saagar hazard moiety atlas for Phase-III-grade prediction.</div>
+      <div class="cf-ec-bar"></div>
+    </div>
+
+    <div class="cf-ec" style="--ec-color:#f87171;--ec-glow:rgba(248,113,113,.18);--ec-border:rgba(248,113,113,.35)">
+      <div class="cf-ec-tag">Engine · v200</div>
+      <span class="cf-ec-icon">🔥</span>
+      <div class="cf-ec-name">Omnipotent</div>
+      <div class="cf-ec-desc">Metabolic transformation simulation via Master Drug Atlas cross-matching. Ligand efficiency indices (LE/LLE/FQ). Eco-toxicity scoring, DDI alerts, and REACH 2026 compliance assessment.</div>
+      <div class="cf-ec-bar"></div>
+    </div>
+
+    <div class="cf-ec" style="--ec-color:#c084fc;--ec-glow:rgba(192,132,252,.18);--ec-border:rgba(192,132,252,.35)">
+      <div class="cf-ec-tag">Engine · QAE</div>
+      <span class="cf-ec-icon">⚛️</span>
+      <div class="cf-ec-name">Quantum Accuracy</div>
+      <div class="cf-ec-desc">Similarity-Based Accuracy Correction (SBAC) using Morgan fingerprints. Anchors heuristic metrics to 200+ FDA-approved drug profiles. Delivers quantum-grade LogP, PSA & MW corrections.</div>
+      <div class="cf-ec-bar"></div>
+    </div>
+
+  </div>
+</div>
+"""
+
+# ── 4-step workflow visualization ─────────────────────────────────────────────
+_WORKFLOW_VIZ = """
+<div class="cf-wf-section cf-reveal" id="cf-wf-sec">
+  <div class="cf-sh-tag" style="text-align:center;margin-bottom:12px">How It Works</div>
+  <div class="cf-wf-title">From Molecule to Insight</div>
+  <div class="cf-wf-sub">Four stages. Nine engines. One unified dossier.</div>
+  <div class="cf-wf-steps">
+
+    <div class="cf-wf-step cf-reveal">
+      <div class="cf-wf-num">⬡</div>
+      <div class="cf-wf-label">Input Chemical Query</div>
+      <div class="cf-wf-desc">Paste SMILES strings or upload a CSV batch file. Use the Quick Library for reference compounds or look up via PubChem name search.</div>
+      <span class="cf-wf-badge">SMILES · CSV · PubChem</span>
+    </div>
+
+    <div class="cf-wf-step cf-reveal">
+      <div class="cf-wf-num">🔬</div>
+      <div class="cf-wf-label">AI Engine Analysis</div>
+      <div class="cf-wf-desc">The 9-engine cascade runs in parallel: ADME, quantum descriptors, scaffold analysis, metabolic simulation, tissue mapping — 100,000+ features computed per molecule.</div>
+      <span class="cf-wf-badge">9 Engines · 100k+ Features</span>
+    </div>
+
+    <div class="cf-wf-step cf-reveal">
+      <div class="cf-wf-num">🧪</div>
+      <div class="cf-wf-label">Reaction Intelligence</div>
+      <div class="cf-wf-desc">Omnipotent reactivity engine maps metabolic pathways, DDI risks, retrosynthetic routes, covalent warhead detection and CYP inhibition profiles across all five isoforms.</div>
+      <span class="cf-wf-badge">Retrosynthesis · CYP · DDI</span>
+    </div>
+
+    <div class="cf-wf-step cf-reveal">
+      <div class="cf-wf-num">💡</div>
+      <div class="cf-wf-label">Scientific Insight</div>
+      <div class="cf-wf-desc">Claude AI synthesizes all engine outputs into an expert medicinal chemistry narrative — proposing optimized analogues, repurposing candidates, and Grade A–F lead classification.</div>
+      <span class="cf-wf-badge">Claude AI · Grade A–F · Export</span>
+    </div>
+
+  </div>
+</div>
+"""
+
+# ── Animated chemical network canvas ─────────────────────────────────────────
+_CHEM_NETWORK = """
+<div class="cf-net-section cf-reveal" id="cf-net-sec">
+  <div class="cf-sh-tag" style="margin-bottom:12px">Chemical Intelligence</div>
+  <div class="cf-net-title">Dynamic Molecular Network</div>
+  <div class="cf-net-sub">Real-time simulation of the chemical intelligence graph — compounds, scaffolds, and reactions as a living knowledge network.</div>
+  <canvas id="cf-net-canvas" width="900" height="380" style="max-width:100%;"></canvas>
+</div>
+<script>
+(function(){
+  var c=document.getElementById('cf-net-canvas');
+  if(!c) return;
+  var ctx=c.getContext('2d');
+  var t=0;
+  var W=900, H=380;
+
+  var ATOM_LABELS=['C','N','O','S','F','Cl','Br','P','H'];
+  var COLORS=['#e8a020','#38bdf8','#a78bfa','#34d399','#fbbf24','#f87171','#c084fc'];
+
+  // Generate compound clusters
+  var clusters=[];
+  var clusterCenters=[
+    {x:160,y:190,label:'Scaffold DB',color:'#e8a020'},
+    {x:450,y:130,label:'FDA Anchors',color:'#38bdf8'},
+    {x:740,y:190,label:'Tox Atlas',color:'#a78bfa'},
+    {x:310,y:300,label:'Metabolites',color:'#34d399'},
+    {x:600,y:310,label:'CYP Panel',color:'#fbbf24'},
+  ];
+
+  var nodes=[];
+  clusterCenters.forEach(function(cc,ci){
+    // Hub node
+    nodes.push({x:cc.x,y:cc.y,r:14,color:cc.color,label:cc.label,hub:true,
+                vx:(Math.random()-.5)*0.3,vy:(Math.random()-.5)*0.3,ci:ci});
+    // Satellite atoms
+    for(var i=0;i<6;i++){
+      var a=i/6*Math.PI*2;
+      var d=50+Math.random()*35;
+      nodes.push({
+        x:cc.x+Math.cos(a)*d, y:cc.y+Math.sin(a)*d,
+        r:5+Math.random()*4,
+        color:COLORS[Math.floor(Math.random()*COLORS.length)],
+        label:ATOM_LABELS[Math.floor(Math.random()*ATOM_LABELS.length)],
+        hub:false, ci:ci,
+        vx:(Math.random()-.5)*0.5, vy:(Math.random()-.5)*0.5
+      });
+    }
+  });
+
+  // Cross-cluster bonds
+  var crossBonds=[[0,1],[1,2],[1,3],[2,4],[3,4],[0,3]];
+
+  function drawBond(n1,n2,alpha,dashed){
+    ctx.beginPath();
+    if(dashed){ ctx.setLineDash([4,6]); } else { ctx.setLineDash([]); }
+    ctx.moveTo(n1.x,n1.y); ctx.lineTo(n2.x,n2.y);
+    var midColor=n1.color;
+    ctx.strokeStyle=midColor.replace('#','rgba(').replace(/(..)(..)(..)$/,function(m,r,g,b){
+      return parseInt(r,16)+','+parseInt(g,16)+','+parseInt(b,16)+','+alpha+')';
+    });
+    // simpler approach
+    ctx.strokeStyle='rgba(232,160,32,'+alpha+')';
+    ctx.lineWidth=dashed?1:1.5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function hexToRgba(hex,a){
+    var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+    return 'rgba('+r+','+g+','+b+','+a+')';
+  }
+
+  function draw(){
+    t+=0.008;
+    ctx.clearRect(0,0,W,H);
+
+    // Cross-cluster bonds (dashed)
+    crossBonds.forEach(function(pair){
+      var hubs=nodes.filter(function(n){return n.hub;});
+      if(hubs[pair[0]]&&hubs[pair[1]]){
+        var n1=hubs[pair[0]],n2=hubs[pair[1]];
+        ctx.beginPath(); ctx.setLineDash([5,8]);
+        ctx.moveTo(n1.x,n1.y); ctx.lineTo(n2.x,n2.y);
+        ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1; ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    });
+
+    // Intra-cluster bonds
+    clusterCenters.forEach(function(cc,ci){
+      var clNodes=nodes.filter(function(n){return n.ci===ci;});
+      var hub=clNodes.find(function(n){return n.hub;});
+      if(!hub) return;
+      clNodes.forEach(function(n){
+        if(n.hub) return;
+        ctx.beginPath();
+        ctx.moveTo(hub.x,hub.y); ctx.lineTo(n.x,n.y);
+        ctx.strokeStyle=hexToRgba(cc.color,0.28); ctx.lineWidth=1.5; ctx.stroke();
+      });
+    });
+
+    // Nodes
+    nodes.forEach(function(n,i){
+      // Glow
+      var grd=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*(n.hub?3.5:2));
+      grd.addColorStop(0,hexToRgba(n.color,0.35));
+      grd.addColorStop(1,'transparent');
+      ctx.fillStyle=grd;
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r*(n.hub?3.5:2),0,Math.PI*2); ctx.fill();
+
+      // Node circle
+      ctx.fillStyle=hexToRgba(n.color,n.hub?0.9:0.75);
+      ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle=hexToRgba(n.color,0.4); ctx.lineWidth=1.5; ctx.stroke();
+
+      // Label
+      if(n.hub){
+        ctx.fillStyle='rgba(240,240,248,0.85)';
+        ctx.font='bold 11px DM Mono, monospace';
+        ctx.textAlign='center';
+        ctx.fillText(n.label,n.x,n.y+n.r+16);
+      } else {
+        ctx.fillStyle='rgba(240,240,248,0.6)';
+        ctx.font='9px DM Mono, monospace';
+        ctx.textAlign='center';
+        ctx.fillText(n.label,n.x,n.y+3);
+      }
+
+      // Animate (orbit satellites around hub)
+      if(!n.hub){
+        var hub=nodes.filter(function(nn){return nn.hub&&nn.ci===n.ci;})[0];
+        if(hub){
+          var dx=n.x-hub.x, dy=n.y-hub.y;
+          var dist=Math.sqrt(dx*dx+dy*dy)||1;
+          var spd=0.004*(1+n.ci*0.2);
+          var cos=Math.cos(spd), sin=Math.sin(spd);
+          n.x=hub.x+dx*cos-dy*sin;
+          n.y=hub.y+dx*sin+dy*cos;
+        }
+      } else {
+        // Hubs drift slowly
+        n.x+=n.vx; n.y+=n.vy;
+        var origX=clusterCenters[n.ci].x, origY=clusterCenters[n.ci].y;
+        if(Math.abs(n.x-origX)>25) n.vx*=-1;
+        if(Math.abs(n.y-origY)>20) n.vy*=-1;
+      }
+    });
+
+    // Animated pulse ring on hubs
+    nodes.filter(function(n){return n.hub;}).forEach(function(n){
+      var pulse=((t*0.8+n.ci*0.5)%1);
+      var r=n.r+pulse*30;
+      ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2);
+      ctx.strokeStyle=hexToRgba(n.color,0.15*(1-pulse));
+      ctx.lineWidth=2; ctx.stroke();
+    });
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+"""
+
+# ── Scroll-reveal observer + animated counter init ────────────────────────────
+_SCROLL_REVEAL_INIT = """
+<script>
+(function(){
+  // Scroll reveal
+  var observer=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        e.target.classList.add('visible');
+        // Stagger children
+        var children=e.target.querySelectorAll('.cf-reveal');
+        children.forEach(function(el,i){
+          setTimeout(function(){el.classList.add('visible');},i*120);
+        });
+      }
+    });
+  },{threshold:0.12});
+  document.querySelectorAll('.cf-reveal').forEach(function(el){observer.observe(el);});
+
+  // Animated counters
+  function animateCounter(el,target,suffix,duration){
+    var start=0, step=target/((duration||1200)/16);
+    var timer=setInterval(function(){
+      start+=step;
+      if(start>=target){start=target;clearInterval(timer);}
+      el.textContent=Math.floor(start).toLocaleString()+suffix;
+    },16);
+  }
+  var counterObs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        var el=e.target;
+        var target=parseFloat(el.dataset.target||'0');
+        var suffix=el.dataset.suffix||'';
+        animateCounter(el,target,suffix,1400);
+        counterObs.unobserve(el);
+      }
+    });
+  },{threshold:0.5});
+  document.querySelectorAll('[data-target]').forEach(function(el){counterObs.observe(el);});
+
+  // Auto-trigger elements already in view
+  setTimeout(function(){
+    document.querySelectorAll('.cf-reveal').forEach(function(el){
+      var rect=el.getBoundingClientRect();
+      if(rect.top<window.innerHeight) el.classList.add('visible');
+    });
+  },400);
 })();
 </script>
 """
