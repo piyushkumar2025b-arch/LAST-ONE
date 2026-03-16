@@ -2896,6 +2896,12 @@ if input_text.strip():
             import random
             
             data = []
+            import advanced_columns_generator as acg
+            
+            # Base data columns
+            for c in base_data:
+                if "_ext" not in c: c["_ext"] = {}
+                c["_ext"]["_adv"] = acg.generate_ultra_advanced_columns(c)
             if base_data:
                 # Add original compounds first
                 for idx, c in enumerate(base_data):
@@ -2966,6 +2972,8 @@ if input_text.strip():
                             
                         # Fix synthetic difficulty
                         ext["Synthetic_Difficulty"] = random.choice(["Easy", "Moderate", "Hard"])
+                        
+                    ext["_adv"] = acg.generate_ultra_advanced_columns(new_c)
                         
                     # Recalculate Grade based on LeadScore
                     if new_c["LeadScore"] >= 80: new_c["Grade"] = "A"
@@ -3103,7 +3111,8 @@ if input_text.strip():
             "synth_diff": ext.get("Synthetic_Difficulty", "N/A"),
             "ppb": ext.get("Plasma_Protein_Binding", "N/A"),
             "clearance": ext.get("Clearance", "N/A"),
-            "half_life": ext.get("Half_Life", "N/A")
+            "half_life": ext.get("Half_Life", "N/A"),
+            **ext.get("_adv", {})
         })
     _rj = _json.dumps(_rows_for_js)
     _compounds_n = len(display_data)
@@ -3253,15 +3262,30 @@ tbody tr{{animation:ri .2s ease both;}}
       <div class="li"><div class="dot" style="background:#e8a020"></div>Grade B: good</div>
       <div class="li"><div class="dot" style="background:#fbbf24"></div>Grade C: marginal</div>
       <div class="li"><div class="dot" style="background:#f87171"></div>Grade F: fail</div>
-    </div>
+  </div>
+  <div id="col-groups" style="display:flex;gap:6px;padding:6px 14px;background:#090d18;border-top:1px solid rgba(232,160,32,0.1);flex-wrap:wrap;">
+    <span style="color:rgba(200,222,255,0.4);font-size:0.5rem;letter-spacing:1px;align-self:center;margin-right:10px;">TOGGLE GROUPS:</span>
+    <button class="grp-btn active" onclick="toggleGrp('core')">Core Metrics</button>
+    <button class="grp-btn" onclick="toggleGrp('phys')">Physicochem</button>
+    <button class="grp-btn" onclick="toggleGrp('adme')">ADME</button>
+    <button class="grp-btn" onclick="toggleGrp('metab')">Metabolism</button>
+    <button class="grp-btn" onclick="toggleGrp('tox')">Toxicity</button>
+    <button class="grp-btn" onclick="toggleGrp('synth')">Synthesis & Scale</button>
+    <button class="grp-btn" onclick="toggleGrp('bio')">BioActivity</button>
+    <button class="grp-btn" onclick="toggleGrp('ai')">AI Models</button>
   </div>
 </div>
+
+<style>
+.grp-btn { background:rgba(232,160,32,0.05); border:1px solid rgba(232,160,32,0.2); color:#e8a020; padding:3px 10px; border-radius:4px; font-size:0.5rem; cursor:pointer; font-family:'JetBrains Mono',monospace; letter-spacing:0.5px; transition:all 0.2s;}
+.grp-btn:hover { background:rgba(232,160,32,0.1); }
+.grp-btn.active { background:rgba(232,160,32,0.15); box-shadow:0 0 8px rgba(232,160,32,0.3); border-color:rgba(232,160,32,0.5); }
+</style>
 
 <script>
 var ROWS = {_rj};
 var sortCol = "lead", sortDir = -1;
 var cur = ROWS.slice();
-
 var COLS = [
   {{k:"idx",l:"#"}},{{k:"id",l:"ID"}},{{k:"grade",l:"Grade"}},
   {{k:"dl_badge",l:"Drug-Likeness"}},
@@ -3279,6 +3303,74 @@ var COLS = [
   {{k:"lig_eff",l:"Ligand Eff"}},{{k:"frag_eff",l:"Frag Eff"}},{{k:"lip_eff",l:"LipE"}},
   {{k:"bio_score",l:"BioAvail Score"}}
 ];
+
+var ADV_DEF = {{
+  "phys": ["Lipinski_Score","Veber_Rule","Ghose_Filter","Muegge_Drug_Likeness","Lead_Likeness_Index","Fragment_Like_Score","Molecular_Flexibility","Polar_Surface_Bal","Hydrophobicity_Bal","Arom_Ring_Count","Aliphatic_Ring_Count","Rot_Bond_Stress","H_Bond_Saturation","Heteroatom_Density","Carbon_Fraction","Molec_Shape_Index","Chirality_Count","Polarity_Index","Structural_Diversity","Scaffold_Novelty"],
+  "adme": ["Human_Intest_Absorp","Caco2_Perm","MDCK_Perm","BBB_Penetration","Plasma_Prot_Binding","Oral_Bioavail_Pred","Bioavail_Radar","Hepatic_Uptake","Renal_Clearance","GI_Absorption","Tissue_Dist_Index","Skin_Perm","Lung_Penetration","CNS_Exposure_Prob","Absorp_Rate_Est","Dist_Vol_Pred","Membrane_Diff","Passive_Perm_Score","Active_Transport","Drug_Transporter_Int"],
+  "metab": ["CYP1A2_Inhib","CYP2C9_Inhib","CYP2C19_Inhib","CYP2D6_Inhib","CYP3A4_Inhib","CYP_Enz_Stability","Microsomal_Stab","Phase_I_Metab","Phase_II_Metab","Metabolic_Hotspots","Metab_Half_Life","Liver_Clearance_Risk","Enzyme_Bind_Strength","Oxidation_Suscept","Hydrolysis_Suscept","Glucuronidation_Pot","Sulfation_Pot","Metabolite_Tox","Reactive_Metabolite","Enzyme_Interact_Idx"],
+  "tox": ["hERG_Cardiotox","Mutagenicity","Carcinogenicity","Hepatotoxicity","Nephrotoxicity","Neurotoxicity","Skin_Sensitization","Resp_Tox","Repro_Tox","Devel_Tox","Cytotoxicity","LD50_Estimate","DILI_Risk","Genotoxicity","Teratogenicity","Reactive_Func_Grp","PAINS_Alert","Toxicophore_Alert","Off_Target_Tox","Safety_Margin"],
+  "synth": ["Synth_Access_Score","Reaction_Complexity","Synth_Route_Steps","BB_Availability","Scaffold_Complexity","Func_Grp_Diversity","Protecting_Grp_Req","Stereochem_Diff","Reaction_Yield_Est","Ind_Scalability","Reagent_Cost_Est","Lab_Feasibility","Synth_Time_Est","Automation_Compat","Retrosynth_Conf","Reaction_Risk","Process_Chem_Diff","Chem_Stability","Shelf_Life_Pred","Degradation_Risk"],
+  "bio": ["Tgt_Bind_Prob","Docking_Affinity","Binding_Pocket_Fit","Ligand_Efficiency","Lipophilic_Lig_Eff","Binding_Selectivity","Protein_Interact_Sc","Binding_Stability","Off_Target_Bind","Pharmacophore_Match","Binding_Pose_Conf","Mol_Interact_Count","H_Bond_Interact","Hydrophobic_Interact","Electrostatic_Inter"],
+  "ai": ["AI_Druglikeness_Conf","AI_Tox_Probability","AI_Metabolism_Pred","AI_Target_Affinity","AI_Opt_Potential","AI_Novelty_Score","AI_Synthesizability","AI_Selectivity_Pred","AI_Property_Fit","AI_Clinical_Risk"]
+}};
+
+// Auto-build the remaining COLS
+Object.keys(ADV_DEF).forEach(k => {{
+  ADV_DEF[k].forEach(col => {{
+    COLS.push({{k:col, l:col.replace(/_/g," "), grp:k, hide:true}});
+  }});
+}});
+
+var activeGrp = {{core:true}};
+
+function toggleGrp(grp) {{
+  if (grp === 'core') return; // Cannot hide core
+  activeGrp[grp] = !activeGrp[grp];
+  document.querySelectorAll('.grp-btn').forEach(b => {{
+    var txt = b.textContent.toLowerCase();
+    if (txt.includes(grp) || txt.includes(grp.substring(0,3))) {{
+       if (activeGrp[grp]) b.classList.add('active'); else b.classList.remove('active');
+    }}
+  }});
+  
+  // update hides
+  COLS.forEach(c => {{
+    if(c.grp) {{ c.hide = !activeGrp[c.grp]; }}
+  }});
+  
+  // redraw headers and body
+  var hm = document.getElementById("main-hr");
+  var bm = document.getElementById("main-body");
+  if(hm) buildHdr(hm);
+  if(bm) buildBody(bm, cur);
+  
+  var fh = document.getElementById("fs-hr");
+  var fb = document.getElementById("fs-body-rows");
+  if(fh && fh.children.length>0) {{ buildHdr(fh); buildBody(fb, cur); }}
+}}
+
+function genericColor(v) {{
+  var s = String(v).toLowerCase();
+  if(s.includes("fail") || s.includes("high risk") || s.includes("positive") || s.includes("poor") || s.includes("tox") || s.includes("warning") || s.includes("hazard") || s.includes("alert")) return "#f87171";
+  if(s.includes("pass") || s.includes("safe") || s.includes("low risk") || s.includes("excellent") || s.includes("optimal") || s.includes("negative") || s.includes("good")) return "#34d399";
+  if(s.includes("moderate") || s.includes("borderline") || s.includes("caution") || s.includes("weak")) return "#fbbf24";
+  return "rgba(200,222,255,0.7)";
+}}
+
+// Modify existing buildHdr
+function buildHdr(tr){{
+  tr.innerHTML="";
+  COLS.forEach(function(c){{
+    if(c.hide) return;
+    var th=document.createElement("th");
+    th.setAttribute("data-k",c.k);
+    th.textContent=c.l;
+    if(c.k===sortCol) th.classList.add(sortDir===-1?"sdsc":"sasc");
+    th.addEventListener("click",function(){{doSort(c.k);}});
+    tr.appendChild(th);
+  }});
+}}
+
 
 function barC(v,col){{
   if(col==="lead") return v>=75?"#34d399":v>=50?"#e8a020":v>=25?"#fbbf24":"#f87171";
