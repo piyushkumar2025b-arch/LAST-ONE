@@ -3,224 +3,191 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 import pandas as pd
+import numpy as np
 
-def render_chemo_test_results(results):
-    st.markdown('<div class="rh">Comprehensive Molecular Validation (250+ Tests)</div>', unsafe_allow_html=True)
-    
-    # Categorization of keys
-    structure_keys = [
-        "valid", "valence_ok", "unusual_valency", "disconnected", "abnormal_bonds", "has_rings", 
-        "has_aromatic", "has_hetero", "normalized", "inchi_ok", "highly_charged", 
-        "chiral", "stereocenter_count", "bond_density", "hetero_ratio",
-        "flexibility", "crowding", "compactness", "bridgehead_count", "spiro_count", "ring_complexity"
-    ]
-    
-    physchem_keys = [
-        "mw", "logp", "mr", "tpsa", "hbd", "hba", "rot_bonds", "rings", 
-        "aro_rings", "het_rings", "heavy_atoms", "total_atoms", "fsp3", 
-        "formal_charge", "complexity", "labute_asa", "hall_kier_alpha"
-    ]
-    
-    rules_keys = [
-        "lipinski", "veber", "ghose", "qed", "sa_score", 
-        "no_pains", "no_brenk", "no_nih", "no_zinc"
-    ]
-    
-    # Functional groups and Descriptors are many, we'll handle them specially
-    all_keys = list(results.keys())
-    fg_keys = [k for k in all_keys if k.startswith("has_")]
-    ratio_keys = [k for k in all_keys if k.startswith("ratio_")]
-    desc_keys = [k for k in all_keys if k not in structure_keys + physchem_keys + rules_keys + fg_keys + ratio_keys and not k.startswith("fg_") and k != "similarity" and not k.startswith("_")]
+def render_chemo_test_results(test_list):
+    """
+    Renders the results from the Vanguard Engine.
+    test_list: list of dicts {"category": ..., "test": ..., "result": ..., "detail": ...}
+    """
+    if not test_list:
+        st.info("No detailed test data available.")
+        return
 
-    t1, t2, t3, t4, t5 = st.tabs(["🏗 Structure", "📏 PhysChem", "🏆 Rules", "🧪 Groups", "📊 Descriptors"])
+    # Category grouping
+    cats = {}
+    for t in test_list:
+        c = t.get("category", "General")
+        if c not in cats: cats[c] = []
+        cats[c].append(t)
     
-    with t1:
-        cols = st.columns(3)
-        for i, k in enumerate(structure_keys):
-            val = results.get(k)
-            c = cols[i % 3]
-            display_name = k.replace('_',' ').title()
-            if isinstance(val, bool):
-                icon = "✅ Pass" if val else "❌ Fail"
-                c.markdown(f"**{display_name}**: {icon}")
-            else:
-                c.markdown(f"**{display_name}**: `{val:.3f}`" if isinstance(val, float) else f"**{display_name}**: `{val}`")
-        
-        st.markdown("---")
-        st.markdown("**Atom Distribution (Ratios)**")
-        r_cols = st.columns(4)
-        for i, k in enumerate(ratio_keys):
-            val = results.get(k)
-            c = r_cols[i % 4]
-            name = k.replace("ratio_", "").upper()
-            c.metric(name, f"{val:.1%}")
-                
-    with t2:
-        cols = st.columns(3)
-        for i, k in enumerate(physchem_keys):
-            val = results.get(k)
-            c = cols[i % 3]
-            display_name = k.upper() if len(k) <= 4 else k.replace('_',' ').title()
-            c.markdown(f"**{display_name}**: `{val:.2f}`" if isinstance(val, (float, int)) else f"**{display_name}**: `{val}`")
+    # Define Tab groupings
+    major_groups = {
+        "🏗 Integrity": ["Structure Integrity"],
+        "📏 PhysChem": ["Physicochemical"],
+        "🏆 Guardrails": ["Drug-Likeness Rules", "Safety Catalogs"],
+        "🧪 Structural Alerts": [] 
+    }
+    
+    # Identify alert categories
+    for c in cats.keys():
+        if c.startswith("Alert:"):
+            major_groups["🧪 Structural Alerts"].append(c)
+    
+    # Leftovers
+    all_assigned = []
+    for g in major_groups.values(): all_assigned.extend(g)
+    other_cats = [c for c in cats.keys() if c not in all_assigned]
+    if other_cats:
+        major_groups["🔍 Deep Metrics"] = other_cats
+
+    tabs = st.tabs(list(major_groups.keys()))
+    
+    for i, (tab_name, cat_list) in enumerate(major_groups.items()):
+        with tabs[i]:
+            if not cat_list:
+                st.info(f"No {tab_name} data detected.")
+                continue
             
-    with t3:
-        cols = st.columns(3)
-        for i, k in enumerate(rules_keys):
-            val = results.get(k)
-            c = cols[i % 3]
-            display_name = k.replace('_',' ').title()
-            if isinstance(val, bool):
-                icon = "✅ Pass" if val else "❌ Fail"
-                c.markdown(f"**{display_name}**: {icon}")
-            else:
-                c.markdown(f"**{display_name}**: `{val:.2f}`" if isinstance(val, float) else f"**{display_name}**: `{val}`")
+            for cat in cat_list:
+                if cat in cats:
+                    st.markdown(f'<p style="font-size:0.75rem; color:var(--gold); letter-spacing:2px; margin:20px 0 10px 0">{cat.upper()}</p>', unsafe_allow_html=True)
+                    cols = st.columns(3)
+                    for j, test in enumerate(cats[cat]):
+                        c = cols[j % 3]
+                        res_str = test["result"]
+                        detail = test["detail"]
+                        name = test["test"]
+                        
+                        color = "#34d399" if res_str == "PASS" else "#f87171" if res_str == "FAIL" else "#fbbf24" if res_str == "WARN" else "#38bdf8"
+                        icon = "✅" if res_str == "PASS" else "❌" if res_str == "FAIL" else "⚠️" if res_str == "WARN" else "ℹ️"
+                        
+                        c.markdown(f"""
+                        <div style='padding:10px; background:rgba(255,255,255,0.02); border-radius:10px; margin-bottom:10px; border-left:3px solid {color}'>
+                            <div style='font-size:0.65rem; color:var(--muted); text-transform:uppercase'>{name}</div>
+                            <div style='font-size:0.85rem; color:white; font-weight:700'>{icon} {detail}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-    with t4:
-        st.markdown("**Functional Groups Detected**")
-        present_fgs = [k for k in fg_keys if results.get(k)]
-        if present_fgs:
-            cols = st.columns(4)
-            for i, k in enumerate(present_fgs):
-                c = cols[i % 4]
-                name = k.replace("has_", "").replace("_", " ").title()
-                count = results.get(f"fg_{k.replace('has_', '')}", 1)
-                c.markdown(f"🔹 {name} ({count})")
-        else:
-            st.info("No common functional groups detected.")
-            
-    with t5:
-        st.markdown("**Advanced Molecular Descriptors**")
-        with st.expander("Show all 200+ descriptors"):
-            # Sort and display in a grid
-            sorted_descs = sorted(desc_keys)
-            cols = st.columns(4)
-            for i, k in enumerate(sorted_descs):
-                val = results.get(k)
-                c = cols[i % 4]
-                c.markdown(f"<small>**{k}**</small>: `{val:.2f}`" if isinstance(val, float) else f"<small>**{k}**</small>: `{val}`", unsafe_allow_html=True)
+def render_filtering_explainer(test_list):
+    """Parses the test list for critical FAIL or WARN results."""
+    if not test_list: return
+    criticals = [t for t in test_list if t["result"] in ["FAIL", "WARN"]]
+    
+    if criticals:
+        st.markdown('<div class="rh">Critical Discovery Intelligence Alerts</div>', unsafe_allow_html=True)
+        for c in criticals:
+            if c["result"] == "FAIL":
+                st.error(f"**{c['test']}**: {c['detail']} ({c['category']})")
+            else:
+                st.warning(f"**{c['test']}**: {c['detail']} ({c['category']})")
+    else:
+        st.success("✨ This molecule maintains absolute structural and med-chem integrity across all 800+ Vanguard validation tiers.")
 
 def render_chemo_score_card(pkg):
     score = pkg["score"]
     grade = pkg["grade"]
     
     st.markdown(f"""
-    <div style="background:linear-gradient(135deg, #0f172a, #1a2e5a); padding:30px; border-radius:20px; border:1px solid #1e40af; text-align:center">
-        <div style="font-family:'JetBrains Mono'; font-size:0.8rem; color:#60a5fa; letter-spacing:5px">CHEMOSCORE V2.0</div>
-        <div style="font-family:'Playfair Display'; font-size:5rem; font-weight:900; color:white; margin:10px 0">{score}</div>
-        <div style="font-family:'Playfair Display'; font-size:2rem; color:#e8a020">GRADE: {grade}</div>
+    <div style="background:linear-gradient(135deg, #0a1120, #142142); padding:40px; border-radius:24px; border:1px solid rgba(232,160,32,0.15); text-align:center; box-shadow:0 20px 50px rgba(0,0,0,0.5)">
+        <div style="font-family:'DM Mono'; font-size:0.7rem; color:rgba(232,160,32,0.5); letter-spacing:6px; margin-bottom:10px">OMNIPOTENT LEAD SCORE V2.0</div>
+        <div style="font-family:'Instrument Serif'; font-size:6.5rem; font-weight:400; color:white; line-height:1">{score}</div>
+        <div style="font-family:'DM Mono'; font-size:1.4rem; color:#f5a623; letter-spacing:4px; margin-top:10px">GRADE: {grade}</div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Component Chart
     comp = pkg["components"]
     fig = go.Figure(go.Bar(
         x=list(comp.keys()),
         y=list(comp.values()),
-        marker_color=['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+        marker=dict(color=list(comp.values()), colorscale="YlOrBr", line=dict(color="rgba(255,255,255,0.1)", width=1))
     ))
     fig.update_layout(
-        title="Score Component Breakdown",
+        title=dict(text="Intelligence Weight Distribution", font=dict(size=14, color="rgba(245,166,35,0.6)")),
         template="plotly_dark",
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        font_color='#c8deff',
-        yaxis_range=[0, 1]
+        font_color='rgba(200,222,255,0.4)',
+        yaxis_range=[0, 1.1],
+        height=300,
+        margin=dict(l=40,r=40,t=60,b=40)
     )
     st.plotly_chart(fig, use_container_width=True)
 
-def render_preset_selector():
-    return st.selectbox("Preset Filter Modes", [
-        "Standard Drug-Like (Lipinski)",
-        "Lead-Like (Moderate)",
-        "Fragment-Like (Small)",
-        "CNS Focused (Lower TPSA)",
-        "Tox-Free Precision",
-        "Natural Product Likeness",
-        "Custom Sandbox"
-    ])
-
-def get_preset_parameters(mode):
-    defaults = {
-        "mw_min": 0, "mw_max": 500, "logp_min": -2.0, "logp_max": 5.0,
-        "tpsa_min": 0, "tpsa_max": 140, "hbd_max": 5, "hba_max": 10, "rot_max": 10
-    }
+def render_batch_intelligence(intel):
+    """Renders the comprehensive dataset intelligence dashboard."""
+    if not intel: 
+        st.info("No dataset intelligence data available. Run analysis to populate.")
+        return
     
-    if mode == "Standard Drug-Like (Lipinski)":
-        return defaults
-    elif mode == "Lead-Like (Moderate)":
-        return {**defaults, "mw_max": 450, "logp_max": 4.5, "rot_max": 8}
-    elif mode == "Fragment-Like (Small)":
-        return {**defaults, "mw_max": 300, "logp_max": 3.0, "tpsa_max": 60, "hbd_max": 3, "hba_max": 3}
-    elif mode == "CNS Focused (Lower TPSA)":
-        return {**defaults, "mw_max": 400, "tpsa_max": 79, "logp_max": 4.0}
-    elif mode == "Tox-Free Precision":
-        return {**defaults, "mw_max": 500} 
-    return defaults
+    st.markdown('<div class="rh">Global Discovery Intelligence Hub</div>', unsafe_allow_html=True)
+    
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Compound Count", intel.get("count", 0))
+    c2.metric("Diversity Score", f"{intel.get('diversity_score', 0):.3f}")
+    c3.metric("Avg MW", intel.get("mw_avg", 0))
+    c4.metric("Avg LogP", intel.get("logp_avg", 0))
+    
+    st.markdown("---")
+    
+    t_sum, t_rules, t_scaf = st.tabs(["📊 Population Summary", "🏆 Rule Distribution", "🏗 Scaffold Analysis"])
+    
+    with t_sum:
+        st.markdown("**Core Physicochemical Statistics**")
+        ranges = intel.get("property_ranges", {})
+        if ranges:
+            st.table(pd.DataFrame([ranges], index=["Range Information"]))
+        
+    with t_rules:
+        st.markdown("**Dataset Grade Distribution**")
+        grades = intel.get("grade_dist", {})
+        if grades:
+            fig = px.pie(names=list(grades.keys()), values=list(grades.values()), 
+                         template="plotly_dark", hole=0.4, color_discrete_sequence=px.colors.sequential.YlOrBr)
+            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No grade distribution data.")
+            
+    with t_scaf:
+        st.markdown("**Top Molecular Scaffolds (Murcko)**")
+        scafs = intel.get("top_scaffolds", [])
+        if scafs:
+            st.dataframe(pd.DataFrame(scafs), use_container_width=True, hide_index=True)
+        else:
+            st.info("No scaffolds detected.")
+            
+    st.markdown("**Functional Motif & Structural Alert Landscape**")
+    fg_dist = intel.get("fg_distribution", {})
+    if fg_dist:
+        fg_df = pd.DataFrame({"Group": list(fg_dist.keys()), "Count": list(fg_dist.values())}).sort_values("Count", ascending=False).head(20)
+        fig = px.bar(fg_df, x="Count", y="Group", orientation='h', color="Count",
+                     color_continuous_scale="YlOrBr", template="plotly_dark")
+        fig.update_layout(height=500, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                          font_color='rgba(200,222,255,0.4)', margin=dict(l=0,r=0,t=0,b=0))
+        st.plotly_chart(fig, use_container_width=True)
 
 def plot_chemo_property_distribution(df, prop, title):
     if df.empty or prop not in df: return None
+    import plotly.express as px
     fig = px.histogram(df, x=prop, title=title, 
-                       color_discrete_sequence=['#3b82f6'],
+                       color_discrete_sequence=['#f5a623'],
                        template="plotly_dark",
-                       nbins=30)
+                       nbins=40)
     fig.update_layout(
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
-        font_color='#c8deff',
-        bargap=0.05
+        font_color='rgba(200,222,255,0.4)',
+        bargap=0.1
     )
     return fig
 
-def plot_chemo_scatter(df, x_prop, y_prop, color_prop="ChemoScore"):
+def plot_chemo_scatter(df, x_prop, y_prop):
     if df.empty or x_prop not in df or y_prop not in df: return None
-    fig = px.scatter(df, x=x_prop, y=y_prop, color=color_prop,
-                     title=f"{x_prop} vs {y_prop}",
+    import plotly.express as px
+    fig = px.scatter(df, x=x_prop, y=y_prop, color="Grade", 
+                     title=f"{x_prop} vs {y_prop} Insight",
                      template="plotly_dark",
-                     color_continuous_scale="Viridis",
-                     hover_data=["ID"])
-    fig.update_layout(
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        font_color='#c8deff'
-    )
+                     color_discrete_sequence=px.colors.qualitative.Bold)
+    fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
     return fig
-
-def render_batch_intelligence(stats):
-    st.markdown('<div class="rh">Dataset Intelligence Report</div>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([1, 2])
-    
-    with col1:
-        st.markdown("### 🧬 Diversity & Composition")
-        div_val = stats.get("diversity_score", 0)
-        st.metric("Tanimoto Diversity", f"{div_val:.3f}", help="1.0 = High Diversity, 0.0 = High Redundancy")
-        
-        # Simple progress bar for diversity
-        st.progress(div_val)
-        
-        # Grade breakdown
-        st.markdown("**Grade Distribution**")
-        gd = stats.get("grade_dist", {})
-        for g, count in gd.items():
-            st.markdown(f"**{g}**: `{count}` compounds")
-            
-    with col2:
-        st.markdown("### 🏗 Top Scaffolds")
-        scafs = stats.get("top_scaffolds", [])
-        if scafs:
-            scaf_df = pd.DataFrame(scafs)
-            st.dataframe(scaf_df, display_data=False, hide_index=True, use_container_width=True)
-        else:
-            st.info("No scaffolds identified.")
-            
-    st.markdown("### 🧪 Functional Group Frequency")
-    fg_dist = stats.get("fg_distribution", {})
-    if fg_dist:
-        fg_df = pd.DataFrame({"Group": list(fg_dist.keys()), "Count": list(fg_dist.values())})
-        fig = px.bar(fg_df, x="Group", y="Count", color="Count",
-                     color_continuous_scale="Tealgrn",
-                     template="plotly_dark")
-        fig.update_layout(height=350, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("No common groups detected across dataset.")

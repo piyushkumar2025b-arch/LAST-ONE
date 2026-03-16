@@ -1,84 +1,90 @@
 
+import math
+
 def calculate_chemo_score(results, weights=None):
     """
-    results: dict from run_all_chemo_tests
+    results: dict from run_comprehensive_screening (Vanguard Engine)
     weights: dict with weights for different categories
     Returns a dictionary (Package) with:
       - score: float (0-100)
       - grade: str (A+, A, B, C, F)
       - components: dict (breakdown of scores)
     """
-    if not results: return {"score": 0.0, "grade": "F", "components": {}}
+    if not results: return {"score": 0.0, "grade": "F", "components": {}, "weights": {}}
+    
+    # Extract sub-dicts if they exist (Vanguard format)
+    # If it's the legacy format, fallback is handled via .get()
+    props = results.get("props", results)
+    rules = results.get("rules", results)
+    intel = results.get("intel", results)
     
     if weights is None:
         weights = {
-            "structure": 0.20,
+            "integrity": 0.20,
             "physchem": 0.25,
-            "drug_likeness": 0.20,
-            "safety": 0.25,
-            "complexity": 0.10
+            "potency": 0.25, # High QED/Lead-likeness
+            "safety": 0.20,
+            "synthesis": 0.10
         }
-        
-    # 1. Structure Quality (0-1)
-    s_score = 0.0
-    s_factors = [
-        results.get("valid", False),
-        results.get("valence_ok", False),
-        not results.get("disconnected", True),
-        not results.get("highly_charged", True),
-        results.get("normalized", False),
-        results.get("inchi_ok", False)
-    ]
-    s_score = sum(1.0 for f in s_factors if f) / len(s_factors)
     
-    # 2. PhysChem / Drug-Likeness (0-1)
-    # We use a weighted combination of Lipinski, Veber, and QED
-    qed = results.get("qed", 0.0)
-    lipinski = 1.0 if results.get("lipinski") else 0.0
-    veber = 1.0 if results.get("veber") else 0.0
-    p_score = (qed * 0.4) + (lipinski * 0.4) + (veber * 0.2)
+    # 1. Integrity Score (0-1)
+    # We check if it's organic, connected, and has valid valence
+    # Since these are in _chemo_tests or props, we use high-level results
+    i_score = 1.0
+    if not props.get("organic", True): i_score -= 0.5
+    if props.get("disconnected", False): i_score -= 0.3
+    if props.get("unusual_valency", False): i_score -= 0.2
+    i_score = max(0.0, i_score)
     
-    # 3. Property Compliance (specifically LOGP and MW)
-    # Target LogP 1.5, MW 350
-    mw = results.get("mw", 0)
-    lp = results.get("logp", 0)
-    mw_score = 1.0 - min(1.0, abs(mw - 350) / 350)
-    lp_score = 1.0 - min(1.0, abs(lp - 1.5) / 4.0)
-    prop_score = (mw_score * 0.5) + (lp_score * 0.5)
+    # 2. PhysChem Score (0-1)
+    # Balance MW and LogP
+    mw = props.get("MW", props.get("mw", 400))
+    lp = props.get("LogP", props.get("logp", 3.0))
     
-    # 4. Safety (0-1)
-    # PAINS, NIH, BRENK
-    safe_score = 0.0
-    pains = 1.0 if results.get("no_pains") else 0.0
-    brenk = 1.0 if results.get("no_brenk") else 0.0
-    nih = 1.0 if results.get("no_nih") else 0.0
-    zinc = 1.0 if results.get("no_zinc") else 0.0
-    safe_score = (pains * 0.4) + (brenk * 0.2) + (nih * 0.2) + (zinc * 0.2)
+    # Targeted MW ~350, LogP ~2.5
+    mw_score = 1.0 - min(1.0, abs(mw - 350) / 400)
+    lp_score = 1.0 - min(1.0, abs(lp - 2.5) / 5.0)
+    p_score = (mw_score * 0.5) + (lp_score * 0.5)
     
-    # 5. Synthesis / Complexity (0-1)
-    # SA score 1-10 (lower is better), Bertz complexity
-    sa = results.get("sa_score", 10.0)
-    sa_comp = 1.0 - (min(10.0, sa) - 1.0) / 9.0
+    # 3. Potency/Discovery Score (0-1)
+    # QED and Lipophilic Efficiency
+    qed = props.get("QED", props.get("qed", 0.5))
+    lipe = intel.get("Lipophilic_Efficiency", 2.0)
+    lipe_score = min(1.0, max(0.0, lipe / 5.0))
+    d_score = (qed * 0.6) + (lipe_score * 0.4)
     
-    complexity = results.get("BertzCT", 1000)
-    c_comp = 1.0 - min(1.0, complexity / 1500)
+    # 4. Safety Score (0-1)
+    # PAINS, Brenk, Toxicophores
+    s_score = 1.0
+    if results.get("alerts", {}).get("categories", {}).get("Toxicophores", 0) > 0: s_score -= 0.4
+    if results.get("alerts", {}).get("categories", {}).get("Reactive_Metabolites", 0) > 0: s_score -= 0.3
     
-    syn_score = (sa_comp * 0.7) + (c_comp * 0.3)
+    # Check PAINS/Brenk from the screening results
+    # safety dict in run_comprehensive_screening wasn't directly returned but repackaged
+    # So we check if we can find it in the repackaged tests or just use alerts
+    total_alerts = results.get("alerts", {}).get("total_hits", 0)
+    s_score -= min(0.3, total_alerts * 0.05)
+    s_score = max(0.0, s_score)
+    
+    # 5. Synthesis Score (0-1)
+    # Based on SA_Score (1-10, lower is better)
+    sa = props.get("SA_Score", props.get("sa_score", 5.0))
+    syn_score = 1.0 - (min(10.0, max(1.0, sa)) - 1.0) / 9.0
     
     components = {
-        "Structure": round(s_score, 2),
-        "Compliance": round(prop_score, 2),
-        "Drug-Likeness": round(p_score, 2),
-        "Safety": round(safe_score, 2),
+        "Integrity": round(i_score, 2),
+        "PhysChem": round(p_score, 2),
+        "Potency": round(d_score, 2),
+        "Safety": round(s_score, 2),
         "Synthesis": round(syn_score, 2)
     }
     
     weighted_total = (
-        s_score * weights["structure"] +
-        prop_score * weights["physchem"] +
-        p_score * weights["drug_likeness"] +
-        safe_score * weights["safety"] +
-        syn_score * weights["complexity"]
+        i_score * weights.get("integrity", 0.2) +
+        p_score * weights.get("physchem", 0.25) +
+        d_score * weights.get("potency", 0.25) +
+        s_score * weights.get("safety", 0.2) +
+        syn_score * weights.get("synthesis", 0.1)
     )
     
     final_score = round(weighted_total * 100, 2)
@@ -98,3 +104,7 @@ def get_grade(score):
     if score >= 60: return "B"
     if score >= 50: return "C"
     return "F"
+
+def get_chemoscore_pkg(results):
+    """Direct alias/wrapper for app.py and chemo_batch.py compatibility."""
+    return calculate_chemo_score(results)

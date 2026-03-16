@@ -1,92 +1,149 @@
 
 import pandas as pd
+import numpy as np
+import time
+import random
 from rdkit import Chem
-from chemo_filters import run_all_chemo_tests
-from chemo_scoring import calculate_chemo_score
+from rdkit.Chem import AllChem, DataStructs
+from rdkit.ML.Cluster import Butina
+from rdkit.Chem.Scaffolds import MurckoScaffold
+import chemo_filters as cf
+import chemo_scoring as cs
 
-def process_molecule_batch(smiles_list, names=None, ref_smiles=None):
-    if not names:
-        names = [f"Mol_{i}" for i in range(len(smiles_list))]
+def process_molecule_batch(smis, ids=None):
+    """Analyze a batch of SMILES and return a structured dataframe."""
+    start = time.time()
     
-    ref_mol = Chem.MolFromSmiles(ref_smiles) if ref_smiles else None
-    
-    batch_results = []
-    for smi, name in zip(smiles_list, names):
-        mol = Chem.MolFromSmiles(smi)
-        if mol:
-            res = run_all_chemo_tests(mol, ref_mol)
-            res["name"] = name
-            res["smiles"] = smi
-            res["overall_score"] = calculate_chemo_score(res)
-            batch_results.append(res)
-        else:
-            batch_results.append({
-                "name": name,
-                "smiles": smi,
-                "valid": False,
-                "overall_score": 0.0
-            })
+    if not ids:
+        ids = [f"Cpd-{i+1}" for i in range(len(smis))]
+        
+    results = []
+    for smi, id_val in zip(smis, ids):
+        try:
+            mol = Chem.MolFromSmiles(smi)
+            if mol:
+                res = cf.run_comprehensive_screening(smi)
+                res["ID"] = id_val
+                res["SMILES"] = smi
+                res["_mol"] = mol
+                
+                score_pkg = cs.get_chemoscore_pkg(res)
+                res["ChemoScore"] = score_pkg["score"]
+                res["Grade"] = score_pkg["grade"]
+                res["_score_pkg"] = score_pkg
+                
+                results.append(res)
+            else:
+                results.append({"ID": id_val, "SMILES": smi, "valid": False, "ChemoScore": 0.0, "Grade": "F"})
+        except Exception as e:
+            print(f"Error processing {id_val}: {e}")
+            continue
             
-    return pd.DataFrame(batch_results)
+    df = pd.DataFrame(results)
+    print(f"Batch processing took {time.time() - start:.2f}s")
+    return df
 
-def get_batch_statistics(data_list):
-    """
-    data_list: list of dicts (from app.py display_data)
-    """
-    if not data_list: return {}
+def calculate_tanimoto_diversity(df):
+    """Calculate the average pairwise Tanimoto similarity to measure diversity."""
+    if df.empty or "SMILES" not in df: return 0.0
     
-    import pandas as pd
+    mols = [Chem.MolFromSmiles(s) for s in df["SMILES"] if isinstance(s, str)]
+    mols = [m for m in mols if m]
+    if len(mols) < 2: return 0.0
+    
+    fps = [AllChem.GetMorganFingerprintAsBitVect(m, 2, nBits=1024) for m in mols]
+    
+    n = len(fps)
+    sims = []
+    if n > 150:
+        sample_indices = random.sample(range(n), 150)
+        fps = [fps[i] for i in sample_indices]
+        n = 150
+        
+    for i in range(n):
+        for j in range(i + 1, n):
+            sims.append(DataStructs.TanimotoSimilarity(fps[i], fps[j]))
+            
+    avg_sim = np.mean(sims)
+    return 1.0 - avg_sim
+
+def get_scaffold_distribution(df):
+    """Detect and count unique Murcko scaffolds in the batch."""
+    if df.empty or "SMILES" not in df: return []
+    
+    scaffolds = []
+    for s in df["SMILES"]:
+        if not isinstance(s, str): continue
+        try:
+            m = Chem.MolFromSmiles(s)
+            if m:
+                scaff_mol = MurckoScaffold.GetScaffoldForMol(m)
+                scaff_smi = Chem.MolToSmiles(scaff_mol)
+                if scaff_smi:
+                    scaffolds.append(scaff_smi)
+        except:
+            continue
+            
     from collections import Counter
-    import chemo_filters as cf
+    counts = Counter(scaffolds)
+    return [{"smiles": k, "count": v} for k, v in counts.most_common(10)]
+
+def extract_dataset_intelligence(df):
+    """Generate a high-fidelity dictionary of batch statistics for the Discovery Hub."""
+    if df.empty: return {}
     
-    df = pd.DataFrame(data_list)
+    # Standardize column naming just in case
+    # If the df came from run_comprehensive_screening, it will have MW, LogP, etc.
     
-    # Basic Stats
-    stats = {
+    intel = {
         "count": len(df),
-        "avg_chemoscore": df["ChemoScore"].mean() if "ChemoScore" in df else 0,
-        "grade_dist": df["Grade"].value_counts().to_dict() if "Grade" in df else {},
+        "diversity_score": round(calculate_tanimoto_diversity(df), 3),
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "status": "ANALYTICS-READY"
     }
     
-    # Property Ranges
-    props = ["MW", "LogP", "tPSA", "QED", "SA_Score"]
-    ranges = {}
-    for p in props:
-        if p in df:
-            ranges[p.lower()] = {
-                "min": round(df[p].min(), 2),
-                "max": round(df[p].max(), 2),
-                "avg": round(df[p].mean(), 2)
-            }
-    stats["property_ranges"] = ranges
+    # Grade distribution
+    if "Grade" in df:
+        intel["grade_dist"] = df["Grade"].value_counts().to_dict()
+        
+    # Property stats
+    for prop in ["MW", "LogP", "TPSA", "QED", "SA_Score"]:
+        if prop in df:
+            data = df[prop].dropna()
+            if not data.empty:
+                intel[f"{prop.lower()}_avg"] = round(float(data.mean()), 2)
+                intel[f"{prop.lower()}_max"] = round(float(data.max()), 2)
+                intel[f"{prop.lower()}_min"] = round(float(data.min()), 2)
+
+    # Scaffolds
+    intel["top_scaffolds"] = get_scaffold_distribution(df)
     
-    # Dataset Diversity
-    mols = [d.get("_mol") for d in data_list if d.get("_mol")]
-    stats["diversity_score"] = cf.get_dataset_diversity(mols)
-    
-    # Scaffold Analysis
-    scaffolds = []
-    for d in data_list:
-        if "_chemo_tests" in d and "scaffold_smiles" in d["_chemo_tests"]:
-            scaffolds.append(d["_chemo_tests"]["scaffold_smiles"])
-    
-    scaf_counts = Counter(scaffolds).most_common(10)
-    stats["top_scaffolds"] = [{"smiles": s, "count": c} for s, c in scaf_counts if s]
-    
-    # Functional Group Distribution
-    fg_counts = Counter()
-    for d in data_list:
-        if "_chemo_tests" in d:
-            for k, v in d["_chemo_tests"].items():
-                if k.startswith("has_") and v:
-                    fg_counts[k.replace("has_", "")] += 1
-    stats["fg_distribution"] = dict(fg_counts.most_common(15))
-    
-    # Top Leads
+    # Structural Alert Hotspots
+    fg_cols = [c for c in df.columns if c.startswith("has_")]
+    if fg_cols:
+        fg_sums = df[fg_cols].sum().sort_values(ascending=False)
+        intel["fg_distribution"] = {k.replace("has_", "").replace("_", " ").title(): int(v) for k, v in fg_sums.items() if v > 0}
+        
+    # Lead Identification
     if "ChemoScore" in df:
         leads = df.sort_values("ChemoScore", ascending=False).head(10)
-        stats["leads"] = leads[["ID", "SMILES", "Grade", "ChemoScore"]].to_dict(orient="records")
-    else:
-        stats["leads"] = []
-        
-    return stats
+        # We need specific columns for the UI
+        intel["leads"] = []
+        for i, row in leads.iterrows():
+            intel["leads"].append({
+                "ID": row["ID"],
+                "smiles": row.get("SMILES", ""),
+                "Grade": row.get("Grade", "N/A"),
+                "Score": round(float(row["ChemoScore"]), 2)
+            })
+            
+    # Property Ranges for the UI table
+    ranges = {}
+    for prop in ["MW", "LogP", "TPSA", "HBD", "HBA", "RotBonds"]:
+        if prop in df:
+            data = df[prop].dropna()
+            if not data.empty:
+                ranges[prop] = f"{data.min():.1f} – {data.max():.1f}"
+    intel["property_ranges"] = ranges
+
+    return intel

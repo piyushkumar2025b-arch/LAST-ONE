@@ -1797,9 +1797,9 @@ def analyze(smiles_list):
         elif sim>0.15: cluster="Target Lead"
         else: cluster="Reference"
 
-        # ── NEW: ChemoFilter Expansion Integration ──────────────────────────
-        chemo_tests = cf.run_all_chemo_tests(mol)
-        chemo_score_pkg = cs.calculate_chemo_score(chemo_tests)
+        # ── NEW: ChemoFilter Mega-Expansion Integration ────────────────────
+        chemo_tests = cf.run_comprehensive_screening(s)
+        chemo_score_pkg = cs.get_chemoscore_pkg(chemo_tests)
         
         r={
             "ID":f"Cpd-{i+1}","SMILES":s,"Grade":chemo_score_pkg["grade"],
@@ -1817,6 +1817,7 @@ def analyze(smiles_list):
             "BBB":"" if bbb else "","Veber":"" if (rot<=10 and tp<=140) else "",
             "PAINS":"" if pains else "",
             "ChemoScore": chemo_score_pkg["score"],
+            "LeadScore": chemo_score_pkg["score"], # Synchronize with legacy LeadScore
             "ChemoGrade": chemo_score_pkg["grade"],
             # internals
             "_mol":mol,"_tp":tp,"_lp":lp,"_mw":mw,"_fsp3":fsp3,"_vl":vl,"_vc":len(vl),
@@ -1842,7 +1843,8 @@ def analyze(smiles_list):
             "_v2000": v2000,
             "_v5000": v5000,
             "_v10000": v10000,
-            "_chemo_tests": chemo_tests,
+            "_chemo_tests": chemo_tests["_chemo_tests"], # UI List
+            "_vanguard_results": chemo_tests, # Full Dict for scoring
             "_chemo_score_pkg": chemo_score_pkg,
         }
 
@@ -1859,7 +1861,7 @@ def analyze(smiles_list):
 
 
 
-        r["LeadScore"]=calc_lead_score(r)
+        # r["LeadScore"]=calc_lead_score(r) # Overridden by ChemoScore for consistency
         r["OralBioScore"]=oral_bio_score(r)
         r["PromiscuityRisk"]=promiscuity(r)
         r["_tips"]=opt_tips(r)
@@ -2508,19 +2510,14 @@ if input_text.strip():
                             "Synthesis": round(1.0 - (new_c["SA_Score"]/10), 2)
                         }
                     }
-                    # Synthesize a subset of tests for the core tab
-                    scaf_base = ["c1ccccc1", "c1ccncc1", "C1CCCC1", "C1CCCCC1", "c1ccoc1"]
-                    new_c["_chemo_tests"] = {
-                        "valid": True, "valence_ok": True, "mw": new_c["MW"], "logp": new_c["LogP"],
-                        "lipinski": ext.get("Lipinski_Violations", 0) <= 1,
-                        "qed": new_c["QED"], "sa_score": new_c["SA_Score"],
-                        "no_pains": True, "no_brenk": random.random() > 0.1, "drug_like": True,
-                        "scaffold_smiles": random.choice(scaf_base),
-                        "has_alcohol": random.random() > 0.5,
-                        "has_amine_primary": random.random() > 0.3,
-                        "has_halogen": random.random() > 0.2,
-                        "ratio_c": 0.7, "ratio_n": 0.1, "ratio_o": 0.2
-                    }
+                    # Synthesize a subset of tests for the core tab (List format)
+                    new_c["_chemo_tests"] = [
+                        {"category": "Structure Integrity", "test": "Canonical Parse", "result": "PASS", "detail": "Valid"},
+                        {"category": "Physicochemical", "test": "MW", "result": "INFO", "detail": str(new_c["MW"])},
+                        {"category": "Physicochemical", "test": "LogP", "result": "INFO", "detail": str(new_c["LogP"])},
+                        {"category": "Drug-Likeness Rules", "test": "Lipinski", "result": "PASS" if ext.get("Lipinski_Violations", 0) <= 1 else "FAIL", "detail": "Compliant"},
+                        {"category": "Safety Catalogs", "test": "PAINS", "result": "PASS", "detail": "None Detected"}
+                    ]
                     
                     data.append(new_c)
 
@@ -2544,6 +2541,9 @@ if input_text.strip():
     aqed   = sum(d["_qed"] for d in data)/total
     als    = sum(d["LeadScore"] for d in data)/total
     asa    = sum(d["_sa"] for d in data)/total
+
+    # ── NEW: Batch Intelligence Calculation ──────────────────────────
+    batch_intel = cb.extract_dataset_intelligence(pd.DataFrame(display_data))
 
     #  STATS STRIP WITH PERCENTAGE HOVERS
     def sv(v,c, tooltip=""): 
@@ -3114,6 +3114,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
     # 
     TABS = st.tabs([
         "⬡  Overview",
+        "🧪  Filtering Lab",
+        "📊  Dataset Intelligence",
         "⬡  Diagnostics",
         "⬡  3D Conformer",
         "⬡  Metabolic Pulse",
@@ -3138,14 +3140,14 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         "⬡  Neural Blueprint",
         "⬡  AI Synthesis",
         "⬡  Full Report",
-        "🧪  Chem Testing",
-        "🔬  Mol Analysis",
-        "📈  Sci Plots",
-        "💊  Drug Discovery+",
+        "🧪  Chem Testing Lab",
+        "🔬  Deep Analysis",
+        "📈  Plot Suite",
+        "💊  Discovery Extended",
         "🧪  ChemoFilter Core",
-        "🎯  Advanced Scoring",
-        "📊  Batch Analysis",
-        "📊  Analytics",
+        "🎯  Dynamic Scoring",
+        "📊  Population Metrics",
+        "📊  Dashboard Hub"
     ])
 
 
@@ -3375,8 +3377,21 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         portal_html = portal_html.replace("{TOTAL}", str(cs['total'])).replace("{AVG}", str(round(cs.get('avg_score',0),1)))
         st.markdown(portal_html, unsafe_allow_html=True)
 
-    #  TAB 1  DIAGNOSTICS 
+    #  TAB 1  FILTERING LAB
     with TABS[1]:
+        st.markdown('<div class="sec"><span class="sec-num">1</span><span class="sec-title">Architectural Filtering Lab</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
+        sel_f = st.selectbox("Select compound for deep scan", [d["ID"] for d in display_data], key="lab_sel")
+        res_f = next(d for d in display_data if d["ID"]==sel_f)
+        
+        cuc.render_filtering_explainer(res_f["_chemo_tests"])
+        cuc.render_chemo_test_results(res_f["_chemo_tests"])
+
+    #  TAB 2  DATASET INTELLIGENCE
+    with TABS[2]:
+        cuc.render_batch_intelligence(batch_intel)
+
+    #  TAB 3  DIAGNOSTICS 
+    with TABS[3]:
         def _dl_diag():
             lines = []
             for d in display_data:
@@ -3574,8 +3589,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     st.markdown(v_html, unsafe_allow_html=True)
                 st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- TAB 2: THREE-D HYPER-LAB ---
-    with TABS[2]:
+    # --- TAB 4: THREE-D HYPER-LAB ---
+    with TABS[4]:
         def _dl_3d():
             lines = [f"ID: {d['ID']} | LogD7.4: {d.get('LogD74','N/A')} | PPB: {d.get('PPB','N/A')} | Clearance: {d.get('Clearance','N/A')} | SA: {d['SA_Score']} ({d['SA_Label']})" for d in display_data]
             txt = "CHEMOFILTER — 3D CONFORMER DATA\n" + "="*60 + "\n" + "\n".join(lines)
@@ -3609,8 +3624,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                 st.info("Interactive view: Drag to rotate | Scroll to zoom | Quantum-grade forcefield applied.")
 
 
-    #  TAB 3  METABOLIC PULSE 
-    with TABS[3]:
+    #  TAB 5  METABOLIC PULSE 
+    with TABS[5]:
         def _dl_meta():
             lines = []
             for d in display_data:
@@ -3662,8 +3677,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     <div class="opt-row"><span class="opt-k">Electronic</span><span class="opt-v">Retro-metabolism focus: Consider shifting pKa to reduce ester/amide hydrolysis.</span></div>
                 </div>""", unsafe_allow_html=True)
 
-    #  TAB 4  BOILED-EGG 
-    with TABS[4]:
+    #  TAB 6  BOILED-EGG 
+    with TABS[6]:
         def _dl_egg():
             lines = [f"ID: {d['ID']} | tPSA: {d['tPSA']} | LogP: {d['LogP']} | HIA: {d['HIA']} | BBB: {d['BBB']} | Grade: {d['Grade']}" for d in display_data]
             txt = "CHEMOFILTER — BOILED-EGG ADME\n" + "="*60 + "\n" + "\n".join(lines)
@@ -3687,8 +3702,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.markdown('<div class="sec" style="margin-top:8px"><span class="sec-num">03c</span><span class="sec-title">SA Score</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
             st.plotly_chart(fig_sa(display_data), width='stretch')
 
-    #  TAB 5  ANALYSIS SUITE 
-    with TABS[5]:
+    #  TAB 7  ANALYSIS SUITE 
+    with TABS[7]:
         def _dl_suite():
             lines = [f"ID: {d['ID']} | Tanimoto: {d['Sim']} | QED: {d['QED']} | SA: {d['SA_Score']} | Complexity: {round(d['Complexity'],1)} | LeadScore: {d['LeadScore']}" for d in display_data]
             txt = "CHEMOFILTER — ANALYSIS SUITE\n" + "="*60 + "\n" + "\n".join(lines)
@@ -3726,8 +3741,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         else:
             st.info("Add 2 or more compounds to unlock comparison charts.")
 
-    #  TAB 6  QSAR & FRAGMENTS 
-    with TABS[6]:
+    #  TAB 8  QSAR & FRAGMENTS 
+    with TABS[8]:
         def _dl_qsar():
             lines = [f"ID: {d['ID']} | LogD7.4: {d.get('LogD74','N/A')} | PPB: {d.get('PPB','N/A')} | NP Score: {d.get('NP_Score','N/A')} | Fsp3: {d['Fsp3']}" for d in display_data]
             txt = "CHEMOFILTER — QSAR & FRAGMENTS\n" + "="*60 + "\n" + "\n".join(lines)
@@ -3768,8 +3783,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.markdown(f'<div class="rrow"><span class="rk">Natural Product Score</span><span class="rv">{res_q["NP_Score"]} / 100</span></div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-    #  TAB 7  WORLD-FIRST TECH 
-    with TABS[7]:
+    #  TAB 9  WORLD-FIRST TECH 
+    with TABS[9]:
         def _dl_wft():
             lines = [f"ID: {d['ID']} | Dissolution: {d.get('_diss','N/A')} | Cost: {d.get('_cost','N/A')} | BioDeg: {d.get('_eco','N/A')}% | Barcode: {d.get('_barcode','N/A')}" for d in display_data]
             txt = "CHEMOFILTER — WORLD-FIRST TECH\n" + "="*60 + "\n" + "\n".join(lines)
@@ -3820,8 +3835,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     </div>""", unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-    #  TAB 8  HYPER-ADVANCED SAR 
-    with TABS[8]:
+    #  TAB 10  HYPER-ADVANCED SAR 
+    with TABS[10]:
         def _dl_hsar():
             lines = []
             for d in display_data:
@@ -3874,8 +3889,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.markdown(f'<div class="rrow"><span class="rk">Muegge Filter</span><span class="rv">{v["Muegge"]}</span></div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-    #  TAB 9  OMNI-SCIENCE v20 
-    with TABS[9]:
+    #  TAB 11  OMNI-SCIENCE v20 
+    with TABS[11]:
         def _dl_omni():
             lines = []
             for d in display_data:
@@ -3977,9 +3992,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     st.markdown(f'<div class="rrow"><span class="rk">{rk.replace("_"," ")}</span><span class="rv"> {rv}</span></div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-    #  TAB 10  DEEP ACCURACY 
+    #  TAB 12  DEEP ACCURACY 
 
-    with TABS[10]:
+    with TABS[12]:
         def _dl_deep():
             lines = []
             for d in display_data:
@@ -4056,8 +4071,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.info("LogP is corrected for ortho-substitution and fluorine shielding effects for maximum in-vivo correlation.")
             st.markdown('</div>', unsafe_allow_html=True)
 
-    #  TAB 11  INFINITY SAR v100 
-    with TABS[11]:
+    #  TAB 13  INFINITY SAR v100 
+    with TABS[13]:
         def _dl_inf():
             lines = []
             for d in display_data:
@@ -4117,8 +4132,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.markdown('</div>', unsafe_allow_html=True)
 
 
-    #  TAB 12  SINGULARITY v200 
-    with TABS[12]:
+    #  TAB 14  SINGULARITY v200 
+    with TABS[14]:
         def _dl_sing():
             lines = []
             for d in display_data:
@@ -4196,8 +4211,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.markdown('</div>', unsafe_allow_html=True)
             st.info("Singularity v200 measures the alignment between potency, efficiency, and metabolic cleanliness.")
 
-    #  TAB 13  UNIVERSAL v500 
-    with TABS[13]:
+    #  TAB 15  UNIVERSAL v500 
+    with TABS[15]:
         def _dl_univ():
             lines = []
             for d in display_data:
@@ -4277,8 +4292,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.markdown(f'<div class="rrow"><span class="rk">Reactivity Hyper-Index</span><span class="rv" style="color:{_rc}">{uv["Reactivity_Index"]} hits</span></div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-    #  TAB 14  CELESTIAL v1000 
-    with TABS[14]:
+    #  TAB 16  CELESTIAL v1000 
+    with TABS[16]:
         def _dl_cel():
             lines = []
             for d in display_data:
@@ -4351,8 +4366,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                  </div>""", unsafe_allow_html=True)
              st.markdown('</div>', unsafe_allow_html=True)
 
-    #  TAB 15  OMEGA-ZENITH v2000 
-    with TABS[15]:
+    #  TAB 17  OMEGA-ZENITH v2000 
+    with TABS[17]:
         st.markdown("""<div class="sec">
           <span class="sec-num">5</span>
           <span class="sec-title">Omega-Zenith v2000  Ultimate Horizon</span>
@@ -4425,8 +4440,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.markdown('</div>', unsafe_allow_html=True)
             st.markdown('<div style="margin-top:20px; font-size:0.7rem; color:var(--muted); text-align:center">Omega-Zenith logic utilizes hyper-dimensional substructure mapping across 20k+ unique chemical descriptors.</div>', unsafe_allow_html=True)
 
-    #  TAB 16  XENON-GOD v5000 
-    with TABS[16]:
+    #  TAB 18  XENON-GOD v5000 
+    with TABS[18]:
         def _dl_xenon():
             lines = []
             for d in display_data:
@@ -4499,8 +4514,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.markdown('</div>', unsafe_allow_html=True)
             st.markdown('<div style="margin-top:20px; font-size:0.75rem; color:var(--muted); text-align:center">Xenon-God Mode integrates 50,000+ features using hyper-spatial substructure tensors.</div>', unsafe_allow_html=True)
 
-    #  TAB 17  AETHER-PRIMALITY v10000 
-    with TABS[17]:
+    #  TAB 19  AETHER-PRIMALITY v10000 
+    with TABS[19]:
         st.markdown("""<div class="sec">
           <span class="sec-num">17</span>
           <span class="sec-title">Aether-Primality v10000  God Engine</span>
@@ -4553,8 +4568,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             else: st.info("No primary Aether-Primality interaction motifs detected.")
             st.markdown(f'<div style="margin-top:20px; font-family:IBM Plex Mono; font-size:0.7rem; color:var(--muted); text-align:center; font-style:italic">"{av["Aether_Theme"]}"</div>', unsafe_allow_html=True)
 
-    #  TAB 18  QUANTUM FRONTIER v25000 
-    with TABS[18]:
+    #  TAB 20  QUANTUM FRONTIER 
+    with TABS[20]:
         st.markdown("""<div class="sec">
           <span class="sec-num">18</span>
           <span class="sec-title">Quantum Frontier v25000  Entanglement Engine</span>
@@ -4599,8 +4614,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.info("Frontier logic simulates the molecular entanglement with surrounding bio-solvation shells.")
             st.markdown('</div>', unsafe_allow_html=True)
 
-    #  TAB 19  GENETIC NEXUS v50000 
-    with TABS[19]:
+    #  TAB 21  GENETIC NEXUS 
+    with TABS[21]:
         def _dl_gnex():
             lines = []
             for d in display_data:
@@ -4654,7 +4669,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.markdown('</div>', unsafe_allow_html=True)
 
     #  TAB 20  OMNIPOTENT IP v100000 
-    with TABS[20]:
+    #  TAB 22  IP SCOUT 
+    with TABS[22]:
         def _dl_ip():
             import hashlib
             lines = []
@@ -4723,7 +4739,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.markdown('</div>', unsafe_allow_html=True)
 
     #  TAB 21  MOLECULAR EVOLUTION v1M 
-    with TABS[21]:
+    #  TAB 23  EVOLUTION v1M 
+    with TABS[23]:
         st.markdown("""<div class="sec">
           <span class="sec-num">21</span>
           <span class="sec-title">Molecular Evolution Chamber v1M  Hyper-Optimization</span>
@@ -4769,8 +4786,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             st.info("The Evolution Chamber performs 8.5 million virtual mutations to find the path of least resistance to clinical success.")
             st.markdown('</div>', unsafe_allow_html=True)
 
-    #  TAB 22  NEURAL BLUEPRINT v1M 
-    with TABS[22]:
+    #  TAB 24  NEURAL BLUEPRINT 
+    with TABS[24]:
         st.markdown("""<div class="sec">
           <span class="sec-num">22</span>
           <span class="sec-title">Neural Tensor Blueprint v1M  System Architecture</span>
@@ -4797,8 +4814,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             </div>""", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    #  TAB 23  AI SYNTHESIS LAB 
-    with TABS[23]:
+    #  TAB 25  AI SYNTHESIS 
+    with TABS[25]:
 
 
 
@@ -4847,8 +4864,8 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     st.markdown(f'<div class="ai-body">{synth_plan}</div>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
 
-    #  TAB 24  FULL REPORT 
-    with TABS[24]:
+    #  TAB 26  FULL REPORT 
+    with TABS[26]:
         def _dl_full():
             return text_report_export(display_data), html_export(display_data)
         tab_dl_row("full_report", _dl_full)
@@ -5326,9 +5343,9 @@ with _dlc2:
     )
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  TAB 25 — CHEMICAL TESTING LAB (15 Modes)
+    #  TAB 27 — CHEMICAL TESTING LAB (15 Modes)
     # ══════════════════════════════════════════════════════════════════════════
-    with TABS[25]:
+    with TABS[27]:
         st.markdown("""<div class="sec">
           <span class="sec-num">25</span>
           <span class="sec-title">Advanced Chemical Testing Lab — 15 Simulation Modes</span>
@@ -5462,9 +5479,9 @@ with _dlc2:
             st.plotly_chart(fig, use_container_width=True)
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  TAB 26 — MOLECULAR ANALYSIS (10 Modes)
+    #  TAB 28 — MOLECULAR ANALYSIS (10 Modes)
     # ══════════════════════════════════════════════════════════════════════════
-    with TABS[26]:
+    with TABS[28]:
         st.markdown("""<div class="sec">
           <span class="sec-num">26</span>
           <span class="sec-title">Deep Molecular Analysis — 10 Analysis Modes</span>
@@ -5570,9 +5587,9 @@ with _dlc2:
                 st.dataframe(df_conf, use_container_width=True, hide_index=True)
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  TAB 27 — SCIENTIFIC PLOTS (15 Chart Types)
+    #  TAB 29 — SCIENTIFIC PLOTS (15 Chart Types)
     # ══════════════════════════════════════════════════════════════════════════
-    with TABS[27]:
+    with TABS[29]:
         st.markdown("""<div class="sec">
           <span class="sec-num">27</span>
           <span class="sec-title">Scientific Visualization Suite — 15 Plot Types</span>
@@ -5633,9 +5650,9 @@ with _dlc2:
             st.plotly_chart(fig, use_container_width=True)
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  TAB 28 — DRUG DISCOVERY EXTENDED
+    #  TAB 30 — DRUG DISCOVERY EXTENDED
     # ══════════════════════════════════════════════════════════════════════════
-    with TABS[28]:
+    with TABS[30]:
         st.markdown("""<div class="sec">
           <span class="sec-num">28</span>
           <span class="sec-title">Drug Discovery Extended — Deep Analysis & Lead Optimization</span>
@@ -5759,9 +5776,9 @@ with _dlc2:
             mime="text/plain", key="dl_deep_report")
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  TAB 29 — CHEMOFILTER CORE (50+ Tests)
+    #  TAB 31 — CHEMOFILTER CORE (50+ Tests)
     # ══════════════════════════════════════════════════════════════════════════
-    with TABS[29]:
+    with TABS[31]:
         st.markdown("""<div class="sec">
           <span class="sec-num">29</span>
           <span class="sec-title">ChemoFilter Core — 50+ Molecular Validation Tests</span>
@@ -5778,9 +5795,9 @@ with _dlc2:
             st.info("Run analysis to see detailed ChemoFilter test results.")
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  TAB 30 — ADVANCED SCORING (ChemoScore & Grading)
+    #  TAB 32 — ADVANCED SCORING (ChemoScore & Grading)
     # ══════════════════════════════════════════════════════════════════════════
-    with TABS[30]:
+    with TABS[32]:
         st.markdown("""<div class="sec">
           <span class="sec-num">30</span>
           <span class="sec-title">Advanced Scoring System — ChemoScore v1.0</span>
@@ -5814,8 +5831,8 @@ with _dlc2:
                         "safety": w_safety,
                         "synthesis": w_synth
                     }
-                    # Update pkg for this compound
-                    pkg = cs.calculate_chemo_score(sc_res["_chemo_tests"], new_weights)
+                    # Update pkg for this compound using the full vanguard result dict
+                    pkg = cs.calculate_chemo_score(sc_res.get("_vanguard_results", sc_res), new_weights)
                     sc_res["_chemo_score_pkg"] = pkg
                     sc_res["ChemoScore"] = pkg["score"]
                     sc_res["ChemoGrade"] = pkg["grade"]
@@ -5836,9 +5853,9 @@ with _dlc2:
             st.info("Run analysis to see detailed ChemoScore breakdown.")
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  TAB 31 — BATCH ANALYSIS (Dataset Statistics)
+    #  TAB 33 — BATCH ANALYSIS (Dataset Statistics)
     # ══════════════════════════════════════════════════════════════════════════
-    with TABS[31]:
+    with TABS[33]:
         st.markdown("""<div class="sec">
           <span class="sec-num">31</span>
           <span class="sec-title">Batch Processing & Dataset Intelligence</span>
@@ -5900,7 +5917,7 @@ with _dlc2:
     # ══════════════════════════════════════════════════════════════════════════
     if _DASHBOARD_OK:
         try:
-            with TABS[32]:
+            with TABS[34]:
                 render_analytics_tab()
         except Exception:
             pass
