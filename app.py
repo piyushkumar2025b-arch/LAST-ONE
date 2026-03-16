@@ -35,6 +35,14 @@ import chemo_filters as cf
 import chemo_scoring as cs
 import chemo_batch as cb
 import chemo_io as cio
+
+# ── Ensure run_comprehensive_screening is always available on cf ─────────────
+if not hasattr(cf, 'run_comprehensive_screening'):
+    from rdkit import Chem as _Chem
+    def _run_comprehensive_screening(smi):
+        mol = _Chem.MolFromSmiles(smi)
+        return cf._run_vanguard_core(mol, smi)
+    cf.run_comprehensive_screening = _run_comprehensive_screening
 import chemo_ui_components as cuc
 
 from rdkit import Chem
