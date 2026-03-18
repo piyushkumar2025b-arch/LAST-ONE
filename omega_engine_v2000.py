@@ -109,5 +109,11 @@ class OmegaZenithEngineV2000:
             "System_Stability": "PEAK" if clin_prob > 75 else "HYPER-FLUID"
         }
 
+_V2000_INSTANCE = None
+
 def get_v2000_engine():
-    return OmegaZenithEngineV2000()
+    """Return a module-level singleton — data loaded only once."""
+    global _V2000_INSTANCE
+    if _V2000_INSTANCE is None:
+        _V2000_INSTANCE = OmegaZenithEngineV2000()
+    return _V2000_INSTANCE

@@ -6,6 +6,7 @@ All data stored in-memory. No external dependencies.
 
 import time
 import threading
+from collections import deque
 from typing import Dict, List, Optional
 from contextlib import contextmanager
 
@@ -18,8 +19,8 @@ except ImportError:
 
 # ── Storage ──────────────────────────────────────────────────────────────────
 _lock = threading.Lock()
-_timings: Dict[str, List[float]] = {}       # label -> list of ms values
-_events: List[dict] = []                    # event log
+_timings: Dict[str, deque] = {}             # label -> bounded deque of ms values
+_events: deque = deque(maxlen=1000)         # O(1) bounded append — replaces list.pop(0)
 _EVENTS_LIMIT = 1000
 
 
@@ -32,12 +33,10 @@ def _push_event(label: str, elapsed_ms: float, success: bool, note: str = "") ->
             "note": note,
             "ts": time.time(),
         }
-        _events.append(entry)
-        if len(_events) > _EVENTS_LIMIT:
-            _events.pop(0)
-        _timings.setdefault(label, []).append(elapsed_ms)
-        if len(_timings[label]) > 500:
-            _timings[label] = _timings[label][-500:]
+        _events.append(entry)           # deque auto-drops oldest when maxlen reached
+        if label not in _timings:
+            _timings[label] = deque(maxlen=500)
+        _timings[label].append(elapsed_ms)
 
 
 @contextmanager
@@ -96,7 +95,9 @@ def get_stats(label: Optional[str] = None) -> dict:
 
 def get_recent_events(last_n: int = 50) -> list:
     with _lock:
-        return list(_events[-last_n:])
+        # deque doesn't support negative slicing — convert to list first
+        ev = list(_events)
+        return ev[-last_n:] if len(ev) > last_n else ev
 
 
 def get_memory_usage_mb() -> float:

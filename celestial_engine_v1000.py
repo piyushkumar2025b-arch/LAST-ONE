@@ -371,5 +371,11 @@ class CelestialIntelligenceV1000:
         }
 
 
+_V1000_INSTANCE = None
+
 def get_v1000_engine():
-    return CelestialIntelligenceV1000()
+    """Return a module-level singleton — data loaded only once."""
+    global _V1000_INSTANCE
+    if _V1000_INSTANCE is None:
+        _V1000_INSTANCE = CelestialIntelligenceV1000()
+    return _V1000_INSTANCE

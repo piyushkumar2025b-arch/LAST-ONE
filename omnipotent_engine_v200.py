@@ -1,6 +1,8 @@
 
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors, AllChem, DataStructs
+from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator as _MorganGen
+_MORGAN_GEN = _MorganGen(radius=2, fpSize=2048)  # module-level singleton
 import omnipotent_reactivity_db as odb
 import master_drug_atlas as mda
 import math
@@ -50,13 +52,13 @@ class SingularityEngineV200:
 
     def cross_atlas_similarity_stats(self, mol):
         """Measures distance to the closest drug in the Master Atlas."""
-        target_fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048)
+        target_fp = _MORGAN_GEN.GetFingerprint(mol)
         max_sim = 0
         
         for drug in self.atlas:
             d_mol = Chem.MolFromSmiles(drug[1])
             if d_mol:
-                d_fp = AllChem.GetMorganFingerprintAsBitVect(d_mol, 2, nBits=2048)
+                d_fp = _MORGAN_GEN.GetFingerprint(d_mol)
                 sim = DataStructs.TanimotoSimilarity(target_fp, d_fp)
                 if sim > max_sim: max_sim = sim
         
@@ -111,5 +113,11 @@ class SingularityEngineV200:
             "Status": "READY" if sing_score > 40 else "UNSTABLE"
         }
 
+_V200_INSTANCE = None
+
 def get_v200_engine():
-    return SingularityEngineV200()
+    """Return a module-level singleton — data loaded only once."""
+    global _V200_INSTANCE
+    if _V200_INSTANCE is None:
+        _V200_INSTANCE = SingularityEngineV200()
+    return _V200_INSTANCE

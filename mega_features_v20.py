@@ -23,29 +23,132 @@ from rdkit.Chem.rdMolDescriptors import (
 )
 import math
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRE-COMPILED SMARTS — built once at module load, reused for every molecule
+# This eliminates 66 inline Chem.MolFromSmarts() calls that ran per-molecule
+# ═══════════════════════════════════════════════════════════════════════════════
+_P = {}  # pattern registry
+
+def _pat(smarts: str):
+    """Compile & cache a SMARTS pattern; return None if invalid."""
+    if smarts not in _P:
+        try:
+            _P[smarts] = Chem.MolFromSmarts(smarts)
+        except Exception:
+            _P[smarts] = None
+    return _P[smarts]
+
+# Pre-compile all patterns at import time
+_SMARTS_PRELOAD = [
+    # atom counts
+    "[F]", "[Cl]", "[Br]", "[I]", "[S]", "[P]", "[B]", "[N]", "[O]", "[Si]", "[Se]",
+    "[Br,I]", "[F,Cl]",
+    # common patterns used many times
+    "C(=O)O",               # carboxylic acid (loose)
+    "[CX3](=O)[OX2H1]",    # carboxylic acid (strict)
+    "[NX3;H1,H2;!$(N-C=O)]",  # basic N (pka, ionization)
+    "[NX3;H2,H1,H0;!$(N-C=O)]",  # basic N broad
+    "[NX3;H2,H1,H0;!$(N-C=O);!$(N-c)]",  # sp3 basic N
+    "[NX3;H1,H2;!$(N-C=O)]",  # basic N (amine)
+    "[NX3;H2]",             # primary amine
+    "[CH3,CH2,CH]",         # metabolic sites
+    "C(=O)OC",             # ester
+    "C(=O)N",              # amide
+    "[OH,NH,SH,COOH]",     # glucuronidation sites
+    "[OH,NH2]",             # sulfation sites
+    "[SH,S-]",             # methylation sites
+    "[NH2]-c1ccccc1",      # N-acetylation / aniline
+    "[CH3]",               # methyl
+    "[N,O,S]N=O",          # danger zone
+    "[Cl,Br,I][C,S]",      # danger zone
+    "[P,S][Cl,Br,I]",      # danger zone
+    "C1CO1",               # danger zone / epoxide
+    "c1ccccc1O",           # tox alerts
+    "c1ccccc1N",           # tox / dili
+    "S=C(N)N",             # tox alerts
+    "[N+](=O)[O-]",        # nitro group
+    "C=CC(=O)",            # skin sensitizer
+    "[Cl,Br][CX4]",        # skin sensitizer
+    "O=C-O-C=O",          # skin sensitizer
+    "c1ccc(N)cc1",         # aromatic amine
+    "[NX2]=O",             # nitroso
+    "C1(=O)C=CC(=O)C=C1",  # quinone
+    "c1ccc2c(c1)ccc3c2cccc3",  # polycyclic aromatic
+    "[NX3][NX3]",          # hydrazine
+    "C1OC1",               # epoxide
+    "[Cl,Br,I][CH2]",      # alkyl halide
+    "[As,Sb,Hg,Pb,Cd]",    # heavy metals
+    "[F,Cl,Br,I]",         # halogens
+    "[CX4](C)(C)(C)C",     # tert-butyl
+    "[N]",                 # all N
+    "S(=O)(=O)O",          # sulfonic acid
+    "Oc1ccccc1",           # phenol
+    "[NH][CX3]=O",         # amide NH
+    "[NX4+]",              # quaternary N
+    "[NX3;H2,H1;!$(N-C=O)]",  # aliphatic amine
+    "n1ccccc1",            # pyridine
+    "[nH]1cccc1",          # pyrrole
+    "c1ccccc1",            # benzene ring
+    "[NH,NH2]",            # NH donors
+    "[OH]",                # OH donors
+    "[NX3][CX3]=O",        # amide N
+    "[n]",                 # aromatic N
+    "[cH]",                # aromatic CH
+    # metabolic clipping
+    "[NH]-c1ccccc1",
+    "c1cc(O)ccc1",
+    "C=C-C=O",
+    "[N,O,S][CH3]",
+    # functional groups
+    "[CX3](=O)[OX2H0][#6]",  # ester
+    "[NX3][CX3](=O)",       # amide
+    "[SX4](=O)(=O)[NX3]",   # sulfonamide
+    "[OX2H][c]",            # phenol
+    "[OX2H][C]",            # alcohol
+    "[NX1]#[CX2]",          # nitrile
+    "[NX3;H2,H1,H0;!$(N-C=O)]",  # basic nitrogen
+    # bioisostere
+    "[nH]",
+    # cyp substrates
+    "[NX3;H0;R][CX4]",
+    # exit vectors
+    "[*]-[H]",
+    # pka
+    "Oc1ccccc1",
+    "[NH2]-c1ccccc1",
+]
+
+# Execute all pre-compilations at module load
+for _s in _SMARTS_PRELOAD:
+    _pat(_s)
+
+
 # ═══════════════════════════════════════════════════════════
 # SECTION 1 — ATOM / ELEMENT COUNTS
 # ═══════════════════════════════════════════════════════════
 
+# Pre-compiled atom count patterns (module-level)
+_ATOM_COUNT_PATS = {
+    "F_Count":       "[F]",
+    "Cl_Count":      "[Cl]",
+    "Br_Count":      "[Br]",
+    "I_Count":       "[I]",
+    "S_Count":       "[S]",
+    "P_Count":       "[P]",
+    "B_Count":       "[B]",
+    "N_Count":       "[N]",
+    "O_Count":       "[O]",
+    "Si_Count":      "[Si]",
+    "Se_Count":      "[Se]",
+    "Heavy_Halogen": "[Br,I]",
+    "Light_Halogen": "[F,Cl]",
+}
+_ATOM_COUNT_COMPILED = {k: Chem.MolFromSmarts(v) for k, v in _ATOM_COUNT_PATS.items()
+                        if Chem.MolFromSmarts(v) is not None}
+
 def atom_counts(mol):
     """Detailed atom-level elemental counts."""
-    smarts_map = {
-        "F_Count":  "[F]",
-        "Cl_Count": "[Cl]",
-        "Br_Count": "[Br]",
-        "I_Count":  "[I]",
-        "S_Count":  "[S]",
-        "P_Count":  "[P]",
-        "B_Count":  "[B]",
-        "N_Count":  "[N]",
-        "O_Count":  "[O]",
-        "Si_Count": "[Si]",
-        "Se_Count": "[Se]",
-        "Heavy_Halogen": "[Br,I]",
-        "Light_Halogen": "[F,Cl]",
-    }
-    return {k: len(mol.GetSubstructMatches(Chem.MolFromSmarts(v)))
-            for k, v in smarts_map.items()}
+    return {k: len(mol.GetSubstructMatches(p)) for k, p in _ATOM_COUNT_COMPILED.items()}
 
 def heteroatom_detail(mol):
     """Per-element heteroatom breakdown."""
@@ -122,17 +225,22 @@ def gsk_4_400_rule(lp, mw):
     if lp < 4 and mw < 400: return "Good Profile"
     return "Caution"
 
-def oprea_rule(mol):
-    mw = Descriptors.MolWt(mol); lp = Descriptors.MolLogP(mol)
-    hbd = CalcNumHBD(mol); hba = CalcNumHBA(mol)
-    rot = CalcNumRotatableBonds(mol); rings = CalcNumRings(mol)
+def oprea_rule(mol, _mw=None, _lp=None, _hbd=None, _hba=None, _rot=None, _rings=None):
+    mw    = _mw    if _mw    is not None else Descriptors.MolWt(mol)
+    lp    = _lp    if _lp    is not None else Descriptors.MolLogP(mol)
+    hbd   = _hbd   if _hbd   is not None else CalcNumHBD(mol)
+    hba   = _hba   if _hba   is not None else CalcNumHBA(mol)
+    rot   = _rot   if _rot   is not None else CalcNumRotatableBonds(mol)
+    rings = _rings if _rings is not None else CalcNumRings(mol)
     v = sum([mw<=450, lp<=4.5, hbd<=5, hba<=9, rot<=8, rings<=4])
     return f"{v}/6 Pass"
 
-def congreve_rule_of_3(mol):
-    mw = Descriptors.MolWt(mol); lp = Descriptors.MolLogP(mol)
-    hbd = CalcNumHBD(mol); hba = CalcNumHBA(mol)
-    rot = CalcNumRotatableBonds(mol)
+def congreve_rule_of_3(mol, _mw=None, _lp=None, _hbd=None, _hba=None, _rot=None):
+    mw  = _mw  if _mw  is not None else Descriptors.MolWt(mol)
+    lp  = _lp  if _lp  is not None else Descriptors.MolLogP(mol)
+    hbd = _hbd if _hbd is not None else CalcNumHBD(mol)
+    hba = _hba if _hba is not None else CalcNumHBA(mol)
+    rot = _rot if _rot is not None else CalcNumRotatableBonds(mol)
     if mw<=300 and lp<=3 and hbd<=3 and hba<=3 and rot<=3:
         return "Fragment-Like ✅"
     return "Not Fragment-Like"
@@ -141,14 +249,17 @@ def veber_rule_ext(rot, tp):
     if rot<=10 and tp<=140: return "Pass (Oral)"
     return "Poor Oral Bio"
 
-def mddr_likeness(mol):
-    rings = CalcNumRings(mol); rot = CalcNumRotatableBonds(mol)
+def mddr_likeness(mol, _rings=None, _rot=None):
+    rings = _rings if _rings is not None else CalcNumRings(mol)
+    rot   = _rot   if _rot   is not None else CalcNumRotatableBonds(mol)
     if rings>=3 and rot>=6: return "Drug-Like (MDDR)"
     return "Moderate"
 
-def rule_of_5_ext(mol):
-    mw = Descriptors.MolWt(mol); lp = Descriptors.MolLogP(mol)
-    hbd = CalcNumHBD(mol); hba = CalcNumHBA(mol)
+def rule_of_5_ext(mol, _mw=None, _lp=None, _hbd=None, _hba=None):
+    mw  = _mw  if _mw  is not None else Descriptors.MolWt(mol)
+    lp  = _lp  if _lp  is not None else Descriptors.MolLogP(mol)
+    hbd = _hbd if _hbd is not None else CalcNumHBD(mol)
+    hba = _hba if _hba is not None else CalcNumHBA(mol)
     v = sum([mw>500, lp>5, hbd>5, hba>10])
     return f"{4-v}/4"
 
@@ -161,11 +272,14 @@ def egan_v2(lp, tp):
     if lp<=5.88 and tp<=131.6: return "Pass"
     return "Fail"
 
-def bioavailability_score_ro5(mol):
+def bioavailability_score_ro5(mol, _mw=None, _lp=None, _hbd=None, _hba=None, _rot=None, _tp=None):
     """Bioavailability score 0–1 based on oral drug rules."""
-    mw = Descriptors.MolWt(mol); lp = Descriptors.MolLogP(mol)
-    hbd = CalcNumHBD(mol); hba = CalcNumHBA(mol)
-    rot = CalcNumRotatableBonds(mol); tp = CalcTPSA(mol)
+    mw  = _mw  if _mw  is not None else Descriptors.MolWt(mol)
+    lp  = _lp  if _lp  is not None else Descriptors.MolLogP(mol)
+    hbd = _hbd if _hbd is not None else CalcNumHBD(mol)
+    hba = _hba if _hba is not None else CalcNumHBA(mol)
+    rot = _rot if _rot is not None else CalcNumRotatableBonds(mol)
+    tp  = _tp  if _tp  is not None else CalcTPSA(mol)
     score = 0.0
     if mw <= 500: score += 0.2
     if lp <= 5:   score += 0.2
@@ -175,28 +289,28 @@ def bioavailability_score_ro5(mol):
     if tp <= 140: score += 0.1
     return round(score, 2)
 
-def beyond_ro5_check(mol):
+def beyond_ro5_check(mol, _mw=None, _lp=None, _hbd=None):
     """bRo5 for PPI and macrocyclic drugs (MW 500-1000)."""
-    mw = Descriptors.MolWt(mol)
-    lp = Descriptors.MolLogP(mol)
-    hbd = CalcNumHBD(mol)
+    mw  = _mw  if _mw  is not None else Descriptors.MolWt(mol)
+    lp  = _lp  if _lp  is not None else Descriptors.MolLogP(mol)
+    hbd = _hbd if _hbd is not None else CalcNumHBD(mol)
     if 500 < mw <= 1000 and lp <= 10 and hbd <= 6:
         return "bRo5 Compliant (PPI/Macro)"
     return "Outside bRo5"
 
-def dc_linker_rule(mol):
+def dc_linker_rule(mol, _mw=None, _rot=None):
     """Drug-Conjugate linker rule: MW > 700, flexible."""
-    mw = Descriptors.MolWt(mol)
-    rot = CalcNumRotatableBonds(mol)
+    mw  = _mw  if _mw  is not None else Descriptors.MolWt(mol)
+    rot = _rot if _rot is not None else CalcNumRotatableBonds(mol)
     if mw > 700 and rot > 12:
         return "Potential ADC/PDC Payload"
     return "Standard"
 
-def tice_rule(mol):
+def tice_rule(mol, _tp=None, _rot=None, _mw=None):
     """TICE rule for blood-brain penetration."""
-    tp = CalcTPSA(mol)
-    rot = CalcNumRotatableBonds(mol)
-    mw = Descriptors.MolWt(mol)
+    tp  = _tp  if _tp  is not None else CalcTPSA(mol)
+    rot = _rot if _rot is not None else CalcNumRotatableBonds(mol)
+    mw  = _mw  if _mw  is not None else Descriptors.MolWt(mol)
     if tp < 90 and rot <= 8 and mw < 450:
         return "CNS-Penetrant (TICE)"
     return "Poor CNS"
@@ -226,7 +340,7 @@ def logd_ph74_estimate(mol):
 def logd_ph68_estimate(mol):
     """Estimate LogD at pH 6.8 (GI environment)."""
     lp = Descriptors.MolLogP(mol)
-    has_acid = mol.HasSubstructMatch(Chem.MolFromSmarts("C(=O)O"))
+    has_acid = mol.HasSubstructMatch(_pat("C(=O)O"))
     correction = -0.3 if has_acid else 0.1
     return round(lp + correction, 2)
 
@@ -278,7 +392,7 @@ def cns_mpo_score(mol):
     """CNS MPO score (0–6) — Wager et al. 2010."""
     lp = Descriptors.MolLogP(mol); tp = CalcTPSA(mol)
     mw = Descriptors.MolWt(mol); hbd = CalcNumHBD(mol)
-    pka_basic = 8.0 if mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3;H1,H2;!$(N-C=O)]")) else 5.0
+    pka_basic = 8.0 if mol.HasSubstructMatch(_pat("[NX3;H1,H2;!$(N-C=O)]")) else 5.0
     score = 0
     if lp <= 5: score += 1
     if lp >= 1: score += 1
@@ -318,7 +432,7 @@ def oral_absorption_score(mol):
 # ═══════════════════════════════════════════════════════════
 
 def metabolic_half_life_score(mol):
-    sites = len(mol.GetSubstructMatches(Chem.MolFromSmarts("[CH3,CH2,CH]")))
+    sites = len(mol.GetSubstructMatches(_pat("[CH3,CH2,CH]")))
     if sites>10: return "Potential Short t½"
     return "Extended t½ Likely"
 
@@ -343,8 +457,8 @@ def hepatic_extraction_ratio(mol):
 
 def first_pass_effect_risk(mol):
     """Predicts risk of high first-pass extraction."""
-    has_ester = mol.HasSubstructMatch(Chem.MolFromSmarts("C(=O)OC"))
-    has_amide = mol.HasSubstructMatch(Chem.MolFromSmarts("C(=O)N"))
+    has_ester = mol.HasSubstructMatch(_pat("C(=O)OC"))
+    has_amide = mol.HasSubstructMatch(_pat("C(=O)N"))
     lp = Descriptors.MolLogP(mol)
     if has_ester or lp > 4: return "High First-Pass Risk"
     if has_amide: return "Moderate"
@@ -352,15 +466,15 @@ def first_pass_effect_risk(mol):
 
 def phase_ii_alerts(mol):
     hits = []
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[OH,NH,SH,COOH]")): hits.append("Glucuronidation")
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[OH,NH2]")): hits.append("Sulfation")
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[SH,S-]")): hits.append("Methylation")
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[NH2]-c1ccccc1")): hits.append("N-Acetylation")
+    if mol.HasSubstructMatch(_pat("[OH,NH,SH,COOH]")): hits.append("Glucuronidation")
+    if mol.HasSubstructMatch(_pat("[OH,NH2]")): hits.append("Sulfation")
+    if mol.HasSubstructMatch(_pat("[SH,S-]")): hits.append("Methylation")
+    if mol.HasSubstructMatch(_pat("[NH2]-c1ccccc1")): hits.append("N-Acetylation")
     return ", ".join(hits) if hits else "Stable"
 
 def metabolic_clipping_alert(mol):
-    methyl = len(mol.GetSubstructMatches(Chem.MolFromSmarts("[CH3]")))
-    ester  = len(mol.GetSubstructMatches(Chem.MolFromSmarts("C(=O)OC")))
+    methyl = len(mol.GetSubstructMatches(_pat("[CH3]")))
+    ester  = len(mol.GetSubstructMatches(_pat("C(=O)OC")))
     if methyl>3 or ester>1: return "Potential Clipping"
     return "Stable"
 
@@ -424,9 +538,9 @@ def pains_filter(mol):
 def dili_risk_extended(mol):
     """Extended DILI (Drug-Induced Liver Injury) risk score."""
     score = 0
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("c1ccccc1N")):  score += 2
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[N+](=O)[O-]")): score += 3
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("c1cc(O)ccc1")): score += 1
+    if mol.HasSubstructMatch(_pat("c1ccccc1N")):  score += 2
+    if mol.HasSubstructMatch(_pat("[N+](=O)[O-]")): score += 3
+    if mol.HasSubstructMatch(_pat("c1cc(O)ccc1")): score += 1
     if Descriptors.MolLogP(mol) > 5: score += 1
     if CalcTPSA(mol) < 50:           score += 1
     if score >= 4: return "High DILI Risk"
@@ -461,20 +575,20 @@ def mutagenicity_ames_alert(mol):
 def genotox_structural_flags(mol):
     """Genotoxicity structural flags (OECD TG471)."""
     flags = []
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[N+](=O)[O-]")):
+    if mol.HasSubstructMatch(_pat("[N+](=O)[O-]")):
         flags.append("Nitro Group (Genotox)")
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3][NX3]")):
+    if mol.HasSubstructMatch(_pat("[NX3][NX3]")):
         flags.append("Hydrazine (Genotox)")
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("C1OC1")):
+    if mol.HasSubstructMatch(_pat("C1OC1")):
         flags.append("Epoxide (DNA Alkylator)")
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[Cl,Br,I][CH2]")):
+    if mol.HasSubstructMatch(_pat("[Cl,Br,I][CH2]")):
         flags.append("Alkyl Halide (SN2)")
     return flags if flags else ["No Flags"]
 
 def cardiotoxicity_herg_alert(mol):
     """hERG channel blockade risk (QT prolongation)."""
     # Basic nitrogen + lipophilic scaffold = hERG risk
-    basic_n = mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3;H1,H2;!$(N-C=O)]"))
+    basic_n = mol.HasSubstructMatch(_pat("[NX3;H1,H2;!$(N-C=O)]"))
     aromatic = CalcNumAromaticRings(mol)
     lp = Descriptors.MolLogP(mol)
     mw = Descriptors.MolWt(mol)
@@ -486,15 +600,15 @@ def cardiotoxicity_herg_alert(mol):
 
 def nephrotoxicity_alert(mol):
     """Kidney toxicity structural alert."""
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[As,Sb,Hg,Pb,Cd]")):
+    if mol.HasSubstructMatch(_pat("[As,Sb,Hg,Pb,Cd]")):
         return "Metal-Mediated Nephrotox"
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("c1ccc(N)cc1")):
+    if mol.HasSubstructMatch(_pat("c1ccc(N)cc1")):
         return "Aromatic Amine Nephrotox Risk"
     return "Low Nephrotox Risk"
 
 def phospholipidosis_risk(mol):
     """CAD (cationic amphiphilic drug) = phospholipidosis risk."""
-    basic_n = mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3;H1,H2;!$(N-C=O)]"))
+    basic_n = mol.HasSubstructMatch(_pat("[NX3;H1,H2;!$(N-C=O)]"))
     lp = Descriptors.MolLogP(mol); mw = Descriptors.MolWt(mol)
     if basic_n and lp > 2 and mw > 300:
         return "Phospholipidosis Risk (CAD)"
@@ -503,10 +617,10 @@ def phospholipidosis_risk(mol):
 def idiosyncratic_tox_flag(mol):
     """Idiosyncratic toxicity structural flags."""
     flags = []
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("c1ccccc1-[NH2]")): flags.append("Aniline")
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3][NX3]")): flags.append("Hydrazine")
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("S(=O)(=O)c1ccccc1")): flags.append("Sulfonamide")
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("c1cc(F)ccc1")): flags.append("Halogenated Phenyl")
+    if mol.HasSubstructMatch(_pat("c1ccccc1-[NH2]")): flags.append("Aniline")
+    if mol.HasSubstructMatch(_pat("[NX3][NX3]")): flags.append("Hydrazine")
+    if mol.HasSubstructMatch(_pat("S(=O)(=O)c1ccccc1")): flags.append("Sulfonamide")
+    if mol.HasSubstructMatch(_pat("c1cc(F)ccc1")): flags.append("Halogenated Phenyl")
     return flags if flags else ["None"]
 
 # ═══════════════════════════════════════════════════════════
@@ -561,7 +675,7 @@ def arom_heavy_ratio(mol):
 
 def halogen_ratio(mol):
     heavy = mol.GetNumHeavyAtoms()
-    hal = len(mol.GetSubstructMatches(Chem.MolFromSmarts("[F,Cl,Br,I]")))
+    hal = len(mol.GetSubstructMatches(_pat("[F,Cl,Br,I]")))
     return round(hal/heavy, 3) if heavy>0 else 0
 
 def heteroatom_ratio(mol):
@@ -576,7 +690,7 @@ def spiro_complexity(mol):
     return CalcNumSpiroAtoms(mol)
 
 def sterics_index(mol):
-    p = Chem.MolFromSmarts("[CX4](C)(C)(C)C")
+    p = _pat("[CX4](C)(C)(C)C")
     return len(mol.GetSubstructMatches(p))
 
 def stereocenters_count(mol):
@@ -611,8 +725,8 @@ def amide_bond_count(mol):
     return CalcNumAmideBonds(mol)
 
 def nitrogen_saturation(mol):
-    n_all = len(mol.GetSubstructMatches(Chem.MolFromSmarts("[N]")))
-    n_sp3 = len(mol.GetSubstructMatches(Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(N-C=O);!$(N-c)]")))
+    n_all = len(mol.GetSubstructMatches(_pat("[N]")))
+    n_sp3 = len(mol.GetSubstructMatches(_pat("[NX3;H2,H1,H0;!$(N-C=O);!$(N-c)]")))
     return round(n_sp3/n_all*100, 1) if n_all>0 else 0
 
 def surface_roughness(mol):
@@ -629,37 +743,37 @@ def scaffold_complexity_index(mol):
 # ═══════════════════════════════════════════════════════════
 
 def pka_acid_estimate(mol):
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("S(=O)(=O)O")): return "~1-2 (Sulfonic)"
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("C(=O)O")): return "~4-5 (Carboxyl)"
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("Oc1ccccc1")): return "~9-10 (Phenol)"
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[NH][CX3]=O")): return "~10 (Amide NH)"
+    if mol.HasSubstructMatch(_pat("S(=O)(=O)O")): return "~1-2 (Sulfonic)"
+    if mol.HasSubstructMatch(_pat("C(=O)O")): return "~4-5 (Carboxyl)"
+    if mol.HasSubstructMatch(_pat("Oc1ccccc1")): return "~9-10 (Phenol)"
+    if mol.HasSubstructMatch(_pat("[NH][CX3]=O")): return "~10 (Amide NH)"
     return ">12 (Neutral)"
 
 def pka_base_estimate(mol):
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[NX4+]")): return ">11 (Quat)"
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3;H2,H1;!$(N-C=O)]")): return "~9-10 (Aliphatic Amine)"
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("n1ccccc1")): return "~5 (Pyridine)"
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[nH]1cccc1")): return "~2 (Pyrrole)"
+    if mol.HasSubstructMatch(_pat("[NX4+]")): return ">11 (Quat)"
+    if mol.HasSubstructMatch(_pat("[NX3;H2,H1;!$(N-C=O)]")): return "~9-10 (Aliphatic Amine)"
+    if mol.HasSubstructMatch(_pat("n1ccccc1")): return "~5 (Pyridine)"
+    if mol.HasSubstructMatch(_pat("[nH]1cccc1")): return "~2 (Pyrrole)"
     return "<2 (Weak Base)"
 
 def ionization_at_physiological_ph(mol):
     """Ionization state prediction at pH 7.4."""
-    has_acid = mol.HasSubstructMatch(Chem.MolFromSmarts("C(=O)O"))
-    has_base = mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3;H1,H2;!$(N-C=O)]"))
+    has_acid = mol.HasSubstructMatch(_pat("C(=O)O"))
+    has_base = mol.HasSubstructMatch(_pat("[NX3;H1,H2;!$(N-C=O)]"))
     if has_acid and has_base: return "Zwitterion"
     if has_acid: return "Anionic (pH 7.4)"
     if has_base: return "Cationic (pH 7.4)"
     return "Neutral"
 
 def pka_gap(mol):
-    acid = mol.HasSubstructMatch(Chem.MolFromSmarts("[CX3](=O)[OX2H1]"))
-    base = mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(N-C=O)]"))
+    acid = mol.HasSubstructMatch(_pat("[CX3](=O)[OX2H1]"))
+    base = mol.HasSubstructMatch(_pat("[NX3;H2,H1,H0;!$(N-C=O)]"))
     if acid and base: return "Zwitterionic Potential"
     return "Single/None"
 
 def fraction_ionized_at_74(mol):
     """Rough fraction ionized for carboxylic acids at pH 7.4 (Henderson-Hasselbalch)."""
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("C(=O)O")):
+    if mol.HasSubstructMatch(_pat("C(=O)O")):
         pka = 4.5; ph = 7.4
         fi = 1/(1+10**(pka-ph))
         return round(fi, 3)
@@ -703,34 +817,34 @@ def functional_group_inventory(mol):
 def bioisostere_opportunities(mol):
     """Suggests bioisosteric replacements."""
     suggestions = []
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("C(=O)O")):
+    if mol.HasSubstructMatch(_pat("C(=O)O")):
         suggestions.append("Carboxyl → Tetrazole or Acylsulfonamide")
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("c1ccccc1")):
+    if mol.HasSubstructMatch(_pat("c1ccccc1")):
         suggestions.append("Phenyl → Pyridine or Thiophene")
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3;H2]")):
+    if mol.HasSubstructMatch(_pat("[NX3;H2]")):
         suggestions.append("NH₂ → OH or F (Bioisostere)")
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[CH3]")):
+    if mol.HasSubstructMatch(_pat("[CH3]")):
         suggestions.append("Methyl → Cyclopropyl (Metabolic Block)")
     return suggestions if suggestions else ["No Common Bioisosteres"]
 
 def h_bond_donors_detailed(mol):
-    nh = len(mol.GetSubstructMatches(Chem.MolFromSmarts("[NH,NH2]")))
-    oh = len(mol.GetSubstructMatches(Chem.MolFromSmarts("[OH]")))
+    nh = len(mol.GetSubstructMatches(_pat("[NH,NH2]")))
+    oh = len(mol.GetSubstructMatches(_pat("[OH]")))
     return {"NH": nh, "OH": oh, "Total": nh+oh}
 
 def nitrogen_role_analysis(mol):
     """Classifies nitrogens by role."""
     return {
-        "Basic_N":      len(mol.GetSubstructMatches(Chem.MolFromSmarts("[NX3;H1,H2;!$(N-C=O)]"))),
-        "Amide_N":      len(mol.GetSubstructMatches(Chem.MolFromSmarts("[NX3][CX3]=O"))),
-        "Aromatic_N":   len(mol.GetSubstructMatches(Chem.MolFromSmarts("[n]"))),
-        "Quaternary_N": len(mol.GetSubstructMatches(Chem.MolFromSmarts("[NX4+]"))),
+        "Basic_N":      len(mol.GetSubstructMatches(_pat("[NX3;H1,H2;!$(N-C=O)]"))),
+        "Amide_N":      len(mol.GetSubstructMatches(_pat("[NX3][CX3]=O"))),
+        "Aromatic_N":   len(mol.GetSubstructMatches(_pat("[n]"))),
+        "Quaternary_N": len(mol.GetSubstructMatches(_pat("[NX4+]"))),
     }
 
 def exit_vector_count(mol):
     """Counts available exit vectors (attachment points for decoration)."""
     # Proxy: aromatic CH with no substituent
-    return len(mol.GetSubstructMatches(Chem.MolFromSmarts("[cH]")))
+    return len(mol.GetSubstructMatches(_pat("[cH]")))
 
 def scaffold_type(mol):
     n_arom = CalcNumAromaticRings(mol); n_ali = CalcNumAliphaticRings(mol)
@@ -758,40 +872,41 @@ def binding_hotspot_prediction(mol):
 # SECTION 11 — CYP & DDI
 # ═══════════════════════════════════════════════════════════
 
-def cyp_2d6_alert(mol):
-    basic_n = mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(N-C=O)]"))
-    if basic_n and Descriptors.MolLogP(mol) > 2.5: return "Likely Substrate"
+def cyp_2d6_alert(mol, _lp=None):
+    basic_n = mol.HasSubstructMatch(_pat("[NX3;H2,H1,H0;!$(N-C=O)]"))
+    lp = _lp if _lp is not None else Descriptors.MolLogP(mol)
+    if basic_n and lp > 2.5: return "Likely Substrate"
     return "Low Risk"
 
-def cyp_3a4_alert(mol):
+def cyp_3a4_alert(mol, _mw=None, _lp=None, _n_aro=None):
     """CYP3A4 substrate/inhibitor alert."""
-    mw = Descriptors.MolWt(mol)
-    lp = Descriptors.MolLogP(mol)
-    n_aro = CalcNumAromaticRings(mol)
+    mw    = _mw    if _mw    is not None else Descriptors.MolWt(mol)
+    lp    = _lp    if _lp    is not None else Descriptors.MolLogP(mol)
+    n_aro = _n_aro if _n_aro is not None else CalcNumAromaticRings(mol)
     if mw > 400 and lp > 2 and n_aro >= 2:
         return "3A4 Substrate/Inhibitor Likely"
     return "Low 3A4 Risk"
 
-def cyp_2c9_alert(mol):
+def cyp_2c9_alert(mol, _n_aro=None):
     """CYP2C9 substrate alert (acidic drugs)."""
-    has_acid = mol.HasSubstructMatch(Chem.MolFromSmarts("C(=O)O"))
-    has_arom = CalcNumAromaticRings(mol) >= 1
+    has_acid = mol.HasSubstructMatch(_pat("C(=O)O"))
+    has_arom = (_n_aro if _n_aro is not None else CalcNumAromaticRings(mol)) >= 1
     if has_acid and has_arom:
         return "2C9 Substrate Likely"
     return "Low 2C9 Risk"
 
-def cyp_2c19_alert(mol):
+def cyp_2c19_alert(mol, _n_aro=None, _lp=None, _tp=None):
     """CYP2C19 alert."""
-    n_arom = CalcNumAromaticRings(mol)
-    lp = Descriptors.MolLogP(mol)
-    tp = CalcTPSA(mol)
+    n_arom = _n_aro if _n_aro is not None else CalcNumAromaticRings(mol)
+    lp     = _lp    if _lp    is not None else Descriptors.MolLogP(mol)
+    tp     = _tp    if _tp    is not None else CalcTPSA(mol)
     if n_arom >= 2 and 1 < lp < 4 and tp < 100:
         return "2C19 Involvement Possible"
     return "Low 2C19 Risk"
 
 def cyp_1a2_alert(mol):
     """CYP1A2 alert — planar aromatic amines."""
-    if mol.HasSubstructMatch(Chem.MolFromSmarts("[NH2]-c1ccccc1")):
+    if mol.HasSubstructMatch(_pat("[NH2]-c1ccccc1")):
         return "1A2 Substrate (Aromatic Amine)"
     if CalcNumAromaticRings(mol) >= 3:
         return "1A2 Possible (Planar)"
@@ -924,33 +1039,36 @@ def drug_efficiency_index(mol, qed):
 # ═══════════════════════════════════════════════════════════
 
 def get_all_mega_v20(mol, qed, sim):
-    mw  = Descriptors.MolWt(mol)
-    lp  = Descriptors.MolLogP(mol)
-    tp  = CalcTPSA(mol)
-    h   = mol.GetNumHeavyAtoms()
-    rot = CalcNumRotatableBonds(mol)
-    hbd = CalcNumHBD(mol)
-    hba = CalcNumHBA(mol)
-    refr= Crippen.MolMR(mol)
-    fsp3= Descriptors.FractionCSP3(mol)
-    esol= aqueous_solubility_esol(mol)
+    # ── Compute all base descriptors ONCE — passed to sub-functions ──────────
+    mw   = Descriptors.MolWt(mol)
+    lp   = Descriptors.MolLogP(mol)
+    tp   = CalcTPSA(mol)
+    h    = mol.GetNumHeavyAtoms()
+    rot  = CalcNumRotatableBonds(mol)
+    hbd  = CalcNumHBD(mol)
+    hba  = CalcNumHBA(mol)
+    refr = Crippen.MolMR(mol)
+    fsp3 = Descriptors.FractionCSP3(mol)
+    n_aro = CalcNumAromaticRings(mol)   # pre-computed for CYP functions
+    rings = CalcNumRings(mol)            # pre-computed for oprea/mddr
+    esol = aqueous_solubility_esol(mol)
     pchembl_proxy = qed * 9  # proxy for pIC50
 
     data = {
-        # ── Drug-Likeness Rules ──────────────────────────────
-        "Rule_of_5_Ext":       rule_of_5_ext(mol),
+        # ── Drug-Likeness Rules — pass pre-computed values, no recomputation ─
+        "Rule_of_5_Ext":       rule_of_5_ext(mol, mw, lp, hbd, hba),
         "Ghose_v2":            ghose_v2(lp, mw, h, refr),
         "Egan_v2":             egan_v2(lp, tp),
         "Pfizer_3_75":         pfizer_3_75_rule(lp, tp),
         "GSK_4_400":           gsk_4_400_rule(lp, mw),
-        "Oprea_6":             oprea_rule(mol),
-        "Congreve_R3":         congreve_rule_of_3(mol),
+        "Oprea_6":             oprea_rule(mol, mw, lp, hbd, hba, rot, rings),
+        "Congreve_R3":         congreve_rule_of_3(mol, mw, lp, hbd, hba, rot),
         "Veber_Oral":          veber_rule_ext(rot, tp),
-        "MDDR_Like":           mddr_likeness(mol),
-        "BioAvail_Score":      bioavailability_score_ro5(mol),
-        "Beyond_Ro5":          beyond_ro5_check(mol),
-        "DC_Linker_Rule":      dc_linker_rule(mol),
-        "TICE_CNS_Rule":       tice_rule(mol),
+        "MDDR_Like":           mddr_likeness(mol, rings, rot),
+        "BioAvail_Score":      bioavailability_score_ro5(mol, mw, lp, hbd, hba, rot, tp),
+        "Beyond_Ro5":          beyond_ro5_check(mol, mw, lp, hbd),
+        "DC_Linker_Rule":      dc_linker_rule(mol, mw, rot),
+        "TICE_CNS_Rule":       tice_rule(mol, tp, rot, mw),
 
         # ── Lipophilicity & Solubility ───────────────────────
         "Flex_Index":          flexibility_index(mol),
@@ -1049,10 +1167,10 @@ def get_all_mega_v20(mol, qed, sim):
         "Sat_Cat":             saturation_index(fsp3),
 
         # ── CYP Profile ─────────────────────────────────────
-        "CYP_2D6_Hint":        cyp_2d6_alert(mol),
-        "CYP_3A4_Alert":       cyp_3a4_alert(mol),
-        "CYP_2C9_Alert":       cyp_2c9_alert(mol),
-        "CYP_2C19_Alert":      cyp_2c19_alert(mol),
+        "CYP_2D6_Hint":        cyp_2d6_alert(mol, lp),
+        "CYP_3A4_Alert":       cyp_3a4_alert(mol, mw, lp, n_aro),
+        "CYP_2C9_Alert":       cyp_2c9_alert(mol, n_aro),
+        "CYP_2C19_Alert":      cyp_2c19_alert(mol, n_aro, lp, tp),
         "CYP_1A2_Alert":       cyp_1a2_alert(mol),
         "DDI_Risk_Score":      ddi_risk_score(mol),
 

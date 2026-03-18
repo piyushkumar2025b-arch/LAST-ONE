@@ -125,5 +125,11 @@ class XenonGodEngineV5000:
             "Xenon_Depth": "God-Mode (50k+ Specs)"
         }
 
+_V5000_INSTANCE = None
+
 def get_v5000_engine():
-    return XenonGodEngineV5000()
+    """Return a module-level singleton — data loaded only once."""
+    global _V5000_INSTANCE
+    if _V5000_INSTANCE is None:
+        _V5000_INSTANCE = XenonGodEngineV5000()
+    return _V5000_INSTANCE

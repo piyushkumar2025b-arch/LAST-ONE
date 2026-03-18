@@ -1,6 +1,8 @@
 
 from rdkit import Chem
 from rdkit.Chem import AllChem, DataStructs, Descriptors
+from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator as _MorganGen
+_MORGAN_GEN = _MorganGen(radius=2, fpSize=2048)  # module-level singleton
 import chemical_intelligence_db as db
 import math
 
@@ -20,7 +22,7 @@ class QuantumAccuracyEngine:
         for name, data in self.fda_db.items():
             mol = Chem.MolFromSmiles(data[0])
             if mol:
-                fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048)
+                fp = _MORGAN_GEN.GetFingerprint(mol)
                 self.fda_fps.append((name, fp, data))
 
     def refine_logp(self, mol, base_logp):
@@ -44,7 +46,7 @@ class QuantumAccuracyEngine:
 
     def fda_similarity_refinement(self, mol):
         """Finds closest FDA drug and returns its properties for accuracy anchoring."""
-        target_fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048)
+        target_fp = _MORGAN_GEN.GetFingerprint(mol)
         best_sim = 0
         best_match = None
         
@@ -112,4 +114,11 @@ class QuantumAccuracyEngine:
         }
 
 def get_quantum_engine():
-    return QuantumAccuracyEngine()
+    """Return a module-level singleton — FDA fingerprints built only once."""
+    global _QAE_INSTANCE
+    if _QAE_INSTANCE is None:
+        _QAE_INSTANCE = QuantumAccuracyEngine()
+    return _QAE_INSTANCE
+
+# Module-level singleton holder
+_QAE_INSTANCE = None

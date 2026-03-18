@@ -463,5 +463,11 @@ class UniversalAnalysisEngineV500:
         }
 
 
+_V500_INSTANCE = None
+
 def get_v500_engine():
-    return UniversalAnalysisEngineV500()
+    """Return a module-level singleton — data loaded only once."""
+    global _V500_INSTANCE
+    if _V500_INSTANCE is None:
+        _V500_INSTANCE = UniversalAnalysisEngineV500()
+    return _V500_INSTANCE

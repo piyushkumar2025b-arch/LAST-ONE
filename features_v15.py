@@ -3,6 +3,17 @@ from rdkit import Chem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 import math
 
+# ── Pre-compiled SMARTS patterns — compiled once at module import ─────────────
+_PAT_BASIC_N       = Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(N-C=O)]")
+_PAT_ANILINE       = Chem.MolFromSmarts("[NX3;H2][cX3]")
+_PAT_THIOAMIDE     = Chem.MolFromSmarts("[NX3][CX3](=S)")
+_PAT_PAH           = Chem.MolFromSmarts("c1ccc2c3c(ccc2c1)cccc3")
+_PAT_NITRO         = Chem.MolFromSmarts("[N+](=O)[O-]")
+_PAT_MICHAEL_ACC   = Chem.MolFromSmarts("[CX3]=[CX3][CX3]=O")
+_PAT_ACID          = Chem.MolFromSmarts("[CX3](=O)[OX2H1]")
+_PAT_HYDRAZINE     = Chem.MolFromSmarts("[NX3][NX3]")
+# ─────────────────────────────────────────────────────────────────────────────
+
 def chembl_likeness(mol):
     """How typical is this molecule compared to bioactive ChEMBL compounds."""
     mw = Descriptors.MolWt(mol)
@@ -48,9 +59,8 @@ def caco2_perm(lp, tp):
 
 def pgp_substrate_alert(mol):
     """Alert for P-glycoprotein efflux."""
-    # Basic nitrogens and high MW often trigger P-gp
     mw = Descriptors.MolWt(mol)
-    has_basic_n = mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(N-C=O)]"))
+    has_basic_n = mol.HasSubstructMatch(_PAT_BASIC_N)
     if mw > 450 and has_basic_n: return "High Risk"
     return "Low Risk"
 
@@ -60,21 +70,16 @@ def skin_perm_logkp(lp, mw):
 
 def dili_risk(mol):
     """Drug-Induced Liver Injury risk alerts."""
-    reactive = [
-        ("[NX3;H2][cX3]", "Aniline"),
-        ("[NX3][CX3](=S)", "Thioamide"),
-        ("c1ccc2c(c1)ccc3c2ccc4c3cccc4", "PAH"),
-        ("[N+](=O)[O-]", "Nitro Group")
-    ]
     hits = []
-    for smarts, name in reactive:
-        if mol.HasSubstructMatch(Chem.MolFromSmarts(smarts)):
-            hits.append(name)
+    if mol.HasSubstructMatch(_PAT_ANILINE):   hits.append("Aniline")
+    if mol.HasSubstructMatch(_PAT_THIOAMIDE): hits.append("Thioamide")
+    if mol.HasSubstructMatch(_PAT_PAH):       hits.append("PAH")
+    if mol.HasSubstructMatch(_PAT_NITRO):     hits.append("Nitro Group")
     return "Concerns: " + ", ".join(hits) if hits else "Safe Profile"
 
 def phospholipidosis_risk(mol, lp):
     """Cationic Amphiphilic Drug (CAD) alert."""
-    basic_n = len(mol.GetSubstructMatches(Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(N-C=O)]")))
+    basic_n = len(mol.GetSubstructMatches(_PAT_BASIC_N))
     if basic_n >= 1 and lp > 3: return "Potential Risk"
     return "No Risk"
 
@@ -139,14 +144,13 @@ def nephrotox_index(lp, sa):
 
 def skin_sensitization(mol):
     """Checks for electrophilic skin sensitisers."""
-    p = Chem.MolFromSmarts("[CX3]=[CX3][CX3]=O") # Michael acceptor
-    if mol.HasSubstructMatch(p): return "Potential Sensitiser"
+    if mol.HasSubstructMatch(_PAT_MICHAEL_ACC): return "Potential Sensitiser"
     return "Clear"
 
 def logp_logd_gap(mol, lp):
     """Highlights ionizable species."""
-    acid = mol.HasSubstructMatch(Chem.MolFromSmarts("[CX3](=O)[OX2H1]"))
-    base = mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(N-C=O)]"))
+    acid = mol.HasSubstructMatch(_PAT_ACID)
+    base = mol.HasSubstructMatch(_PAT_BASIC_N)
     if acid or base: return "High (Ionizable)"
     return "Low (Neutral)"
 
@@ -157,7 +161,5 @@ def bpp_ratio(lp):
 
 def genotox_breslow(mol):
     """Alerts based on Breslow's rules for mutagenicity."""
-    nitro = mol.HasSubstructMatch(Chem.MolFromSmarts("[N+](=O)[O-]"))
-    hydrazine = mol.HasSubstructMatch(Chem.MolFromSmarts("[NX3][NX3]"))
-    if nitro or hydrazine: return "Geno-Tox Alert"
+    if mol.HasSubstructMatch(_PAT_NITRO) or mol.HasSubstructMatch(_PAT_HYDRAZINE): return "Geno-Tox Alert"
     return "Low Risk"
