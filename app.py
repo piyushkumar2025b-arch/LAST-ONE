@@ -224,9 +224,27 @@ cloud_engine = cid.get_cloud_engine()
 # 
 st.markdown("""
 <style>
-/* ── CRITICAL RESET ── */
-[data-testid="block-container"] { padding: 3rem 60px !important; max-width: 1400px; margin: 0 auto; }
+/* ── NOVA SYSTEM INTEGRATION PATCH ── */
+[data-testid="block-container"] {
+  padding: 2rem 3.5rem !important;
+  max-width: 1480px !important;
+  margin: 0 auto !important;
+}
 #MainMenu, footer, header { visibility: hidden !important; }
+
+/* Legacy variable compatibility */
+--gold: var(--n-amber, #f0a020);
+--bg: var(--n-bg, #020408);
+--bg2: var(--n-bg2, #060d18);
+--ice2: var(--n-tx, #e8f4f0);
+--border: var(--n-bdr, rgba(0,210,190,0.12));
+--amber: var(--n-amber, #f0a020);
+--cyan: var(--n-teal, #00d2be);
+--green: var(--n-green, #22d88a);
+--red: var(--n-red, #ff5e6b);
+--yellow: var(--n-yellow, #f5c842);
+--violet: var(--n-violet, #9b82f0);
+--muted: var(--n-tx2, rgba(200,230,220,0.65));
 </style>
 """, unsafe_allow_html=True)
 
@@ -2349,18 +2367,18 @@ st.markdown("""
   <div class="hero-sub">Crystalline Noir Edition &nbsp;·&nbsp; 21-Parameter ADMET Intelligence</div>
   <div class="hero-meta">RDKit · Lipinski · BOILED-EGG · QED · CNS MPO · ESOL · SA Score · CYP Panel · hERG · PAINS · Lead Scoring</div>
   <div class="feature-chips">
-    <span class="chip chip-gold">Lipinski Ro5</span>
-    <span class="chip chip-gold">BOILED-EGG</span>
-    <span class="chip chip-gold">QED</span>
-    <span class="chip chip-gold">SA Score</span>
-    <span class="chip chip-gold">CYP Panel ×5</span>
-    <span class="chip chip-gold">hERG Risk</span>
-    <span class="chip chip-gold">CNS MPO</span>
-    <span class="chip chip-gold">PAINS Filter</span>
-    <span class="chip chip-base">Lead Score™</span>
-    <span class="chip chip-base">Oral Bio Score</span>
-    <span class="chip chip-base">AI Explainer</span>
-    <span class="chip chip-base">Drug Repurposing</span>
+    <span class="chip chip-teal">Lipinski Ro5</span>
+    <span class="chip chip-teal">BOILED-EGG</span>
+    <span class="chip chip-teal">QED</span>
+    <span class="chip chip-teal">SA Score</span>
+    <span class="chip chip-teal">CYP Panel ×5</span>
+    <span class="chip chip-teal">hERG Risk</span>
+    <span class="chip chip-teal">CNS MPO</span>
+    <span class="chip chip-teal">PAINS Filter</span>
+    <span class="chip chip-amber">Lead Score™</span>
+    <span class="chip chip-amber">Oral Bio Score</span>
+    <span class="chip chip-amber">AI Explainer</span>
+    <span class="chip chip-amber">Drug Repurposing</span>
   </div>
   <div class="hero-stat-strip">
     <div class="hss-num">21+</div>
