@@ -626,6 +626,65 @@ _FOOTER_SCRIPT = """
 """
 
 # ═══════════════════════════════════════════════════════════════════════════
+# _PULSE_SECTION — animated live-stats pulse band (was missing, caused NameError)
+# ═══════════════════════════════════════════════════════════════════════════
+
+_PULSE_SECTION = """
+<style>
+.cf-pulse-band{
+  position:relative;z-index:10;
+  display:flex;align-items:center;justify-content:center;
+  gap:0;overflow:hidden;
+  background:linear-gradient(90deg,transparent,rgba(232,160,32,.06),transparent);
+  border-top:1px solid rgba(232,160,32,.12);
+  border-bottom:1px solid rgba(232,160,32,.12);
+  padding:22px 0;margin:0;
+}
+.cf-pulse-item{
+  display:flex;flex-direction:column;align-items:center;
+  padding:0 48px;
+  border-right:1px solid rgba(232,160,32,.1);
+}
+.cf-pulse-item:last-child{border-right:none;}
+.cf-pulse-num{
+  font-family:'Instrument Serif',serif;font-size:2.2rem;font-weight:400;
+  color:#e8a020;line-height:1;
+  animation:cfPulseGlow 3s ease-in-out infinite alternate;
+}
+.cf-pulse-lbl{
+  font-family:'DM Mono',monospace;font-size:.52rem;letter-spacing:3px;
+  color:rgba(240,240,248,.35);text-transform:uppercase;margin-top:6px;
+}
+@keyframes cfPulseGlow{
+  from{text-shadow:0 0 8px rgba(232,160,32,.3);}
+  to{text-shadow:0 0 24px rgba(232,160,32,.7),0 0 40px rgba(232,160,32,.2);}
+}
+</style>
+<div class="cf-pulse-band">
+  <div class="cf-pulse-item">
+    <div class="cf-pulse-num">21+</div>
+    <div class="cf-pulse-lbl">ADMET Parameters</div>
+  </div>
+  <div class="cf-pulse-item">
+    <div class="cf-pulse-num">202</div>
+    <div class="cf-pulse-lbl">Scientific References</div>
+  </div>
+  <div class="cf-pulse-item">
+    <div class="cf-pulse-num">8</div>
+    <div class="cf-pulse-lbl">Analysis Engines</div>
+  </div>
+  <div class="cf-pulse-item">
+    <div class="cf-pulse-num">150+</div>
+    <div class="cf-pulse-lbl">FDA Drug Anchors</div>
+  </div>
+  <div class="cf-pulse-item">
+    <div class="cf-pulse-num">100%</div>
+    <div class="cf-pulse-lbl">Open Source Stack</div>
+  </div>
+</div>
+"""
+
+# ═══════════════════════════════════════════════════════════════════════════
 # NEW ENHANCEMENT BLOCKS — all additive, nothing existing is touched
 # ═══════════════════════════════════════════════════════════════════════════
 
