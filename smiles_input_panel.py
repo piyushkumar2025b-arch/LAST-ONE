@@ -126,16 +126,16 @@ def render_input_panel(current_input: str = "") -> str:
             f'<span style="color:rgba(100,200,100,.7)">Analysis active</span></div>',
             unsafe_allow_html=True,
         )
-        if st.button("✎ Edit Input", key="_sip_reopen", help="Re-open the input panel"):
+        if st.button("✎ Edit Compound Input", key="_sip_reopen", help="Re-open the compound SMILES input panel"):
             st.session_state["_sip_visible"] = True
             st.rerun()
         return working_smiles
 
     # ── Full input panel ──────────────────────────────────────────────────
-    with st.expander("⬡  SMILES INPUT PANEL — Quick Entry & Validation", expanded=st.session_state["_sip_visible"]):
+    with st.expander("⬡  Compound SMILES Input — Quick Entry, Live Validation & PubChem Lookup", expanded=st.session_state["_sip_visible"]):
 
         # Quick-insert chips row
-        st.markdown("**Quick Insert:**", help="Click to append this compound's SMILES")
+        st.markdown("**Reference Compound Quick Insert:**", help="Click to append this compound's SMILES")
         chip_cols = st.columns(len(_CHIPS))
         for i, (name, smi) in enumerate(_CHIPS.items()):
             with chip_cols[i]:
@@ -152,16 +152,16 @@ def render_input_panel(current_input: str = "") -> str:
         pc_col1, pc_col2 = st.columns([3, 1])
         with pc_col1:
             pc_name = st.text_input(
-                "🔍 Fetch by Drug Name (PubChem)",
-                placeholder="e.g. aspirin, metformin, ibuprofen",
+                "🔍 Search by Drug or Compound Name (PubChem Database)",
+                placeholder="e.g. aspirin, metformin, ibuprofen, sildenafil",
                 key="_sip_pc_name",
             )
         with pc_col2:
             st.write("")
             st.write("")
-            if st.button("Fetch SMILES", key="_sip_pc_fetch"):
+            if st.button("Retrieve SMILES from PubChem", key="_sip_pc_fetch"):
                 if pc_name.strip():
-                    with st.spinner("Querying PubChem..."):
+                    with st.spinner("Querying PubChem compound database..."):
                         result = _fetch_pubchem(pc_name)
                     if result:
                         st.session_state["_sip_pubchem_result"] = result
@@ -178,12 +178,12 @@ def render_input_panel(current_input: str = "") -> str:
 
         # Main SMILES text area with live validation
         new_smiles = st.text_area(
-            "SMILES Input (comma-separated)",
+            "SMILES Input Strings (comma-separated)",
             value=working_smiles,
             height=100,
             key="_sip_textarea",
             placeholder="CC(=O)Oc1ccccc1C(=O)O, CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
-            help="Enter one or more SMILES strings, comma-separated.",
+            help="Enter one or more canonical SMILES strings, separated by commas. Each string represents one compound.",
         )
 
         # Live validation feedback
@@ -209,13 +209,13 @@ def render_input_panel(current_input: str = "") -> str:
         # Action buttons
         btn1, btn2, _ = st.columns([1, 1, 4])
         with btn1:
-            if st.button("✓ Use This Input", key="_sip_apply", type="primary"):
+            if st.button("✓ Confirm & Analyse Compounds", key="_sip_apply", type="primary"):
                 st.session_state["_sip_smiles"] = new_smiles
                 st.session_state["_sip_visible"] = False
                 working_smiles = new_smiles
                 st.rerun()
         with btn2:
-            if st.button("✕ Clear", key="_sip_clear"):
+            if st.button("✕ Clear All Compounds", key="_sip_clear"):
                 st.session_state["_sip_smiles"] = ""
                 working_smiles = ""
 

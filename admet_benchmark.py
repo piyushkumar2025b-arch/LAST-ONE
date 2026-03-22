@@ -30,9 +30,9 @@ _REF_STATS = {
 }
 
 _BENCHMARK_SETS = {
-    "FDA Approved Drugs (n≈2000)":     _REF_STATS,
-    "ChEMBL Lead Compounds (n≈5000)":  {k: {**v, "mean": v["mean"] * 0.92} for k, v in _REF_STATS.items()},
-    "Clinical Phase II Compounds":     {k: {**v, "mean": v["mean"] * 0.98} for k, v in _REF_STATS.items()},
+    "FDA-Approved Drug Reference Set (n≈2000)":     _REF_STATS,
+    "ChEMBL Lead Compound Library (n≈5000)":  {k: {**v, "mean": v["mean"] * 0.92} for k, v in _REF_STATS.items()},
+    "Clinical Phase II Development Candidates":     {k: {**v, "mean": v["mean"] * 0.98} for k, v in _REF_STATS.items()},
 }
 
 
@@ -89,7 +89,7 @@ def render_tab(res: list):
 
     # Benchmark set selector (sidebar extension defined in app.py patch)
     bench_set = st.selectbox(
-        "Reference Set",
+        "Benchmark Reference Dataset",
         list(_BENCHMARK_SETS.keys()),
         key="_admet_bench_set",
     )
@@ -97,7 +97,7 @@ def render_tab(res: list):
 
     # Compound filter
     ids = [c.get("ID", f"Cpd-{i+1}") for i, c in enumerate(res)]
-    n_show = st.slider("Number of compounds to benchmark", 1, min(50, len(ids)), min(10, len(ids)), key="_admet_n")
+    n_show = st.slider("Number of Compounds to Benchmark", 1, min(50, len(ids)), min(10, len(ids)), key="_admet_n")
     selected = res[:n_show]
 
     # ── Aggregate percentile chart ─────────────────────────────────────────
@@ -126,7 +126,7 @@ def render_tab(res: list):
         fig.add_hline(y=50, line_dash="dot", line_color="rgba(255,255,255,0.3)", annotation_text="50th pct")
         fig.add_hline(y=70, line_dash="dot", line_color="rgba(74,222,128,0.4)", annotation_text="70th pct")
         fig.update_layout(
-            title=f"Average Percentile vs {bench_set}",
+            title=f"Average Property Percentile Rank vs {bench_set}",
             yaxis=dict(range=[0, 105], title="Percentile"),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
@@ -136,7 +136,7 @@ def render_tab(res: list):
         st.plotly_chart(fig, use_container_width=True)
 
     # ── Per-compound breakdown ────────────────────────────────────────────
-    st.subheader("Per-Compound Benchmark")
+    st.subheader("Per-Compound ADMET Percentile Breakdown")
     for cpd in selected[:20]:
         bm = _benchmark_compound(cpd, ref)
         if not bm:

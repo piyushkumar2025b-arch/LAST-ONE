@@ -153,7 +153,7 @@ def render_tab(res: list):
             "Confidence": f"{conf}%",
             "MW": cpd.get("MW", "–"),
             "LogP": cpd.get("LogP", "–"),
-            "Basis": reason,
+            "Classification Basis": reason,
         })
 
     # ── Distribution pie chart ────────────────────────────────────────────
@@ -168,7 +168,7 @@ def render_tab(res: list):
             textfont_size=11,
         ))
         fig.update_layout(
-            title="Drug Class Distribution",
+            title="Predicted Therapeutic Drug Class Distribution",
             paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#c8deff"),
             height=340,
@@ -177,7 +177,7 @@ def render_tab(res: list):
         st.plotly_chart(fig, use_container_width=True)
 
     # ── Per-compound table ────────────────────────────────────────────────
-    st.subheader("Per-Compound Classification")
+    st.subheader("Per-Compound Therapeutic Class Prediction")
 
     _CLASS_COLORS = {
         "CNS":              "#a78bfa",
@@ -189,7 +189,7 @@ def render_tab(res: list):
     }
 
     hdr = st.columns([1, 2, 1, 1, 1, 3])
-    for col, h in zip(hdr, ["ID", "Class", "Conf.", "MW", "LogP", "Basis"]):
+    for col, h in zip(hdr, ["ID", "Class", "Confidence", "MW", "LogP", "Classification Basis"]):
         col.markdown(f"**{h}**")
 
     for row in table_rows:
@@ -203,4 +203,4 @@ def render_tab(res: list):
         r[2].write(row["Confidence"])
         r[3].write(row["MW"])
         r[4].write(row["LogP"])
-        r[5].write(row["Basis"][:60])
+        r[5].write(row["Classification Basis"][:60])

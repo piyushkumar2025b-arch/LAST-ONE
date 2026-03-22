@@ -146,9 +146,9 @@ def render_tab(res: list):
             marker_line_width=1,
         ))
         fig.update_layout(
-            title="Scaffold Frequency (Top 15)",
-            xaxis_title="Scaffold ID",
-            yaxis_title="Count",
+            title="Murcko Scaffold Frequency Distribution (Top 15)",
+            xaxis_title="Scaffold",
+            yaxis_title="Compound Count",
             height=300,
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
@@ -157,9 +157,9 @@ def render_tab(res: list):
         st.plotly_chart(fig, use_container_width=True)
 
     # ── Scaffold table ────────────────────────────────────────────────────
-    st.subheader("Scaffold Inventory")
+    st.subheader("Murcko Scaffold Inventory")
     cols = st.columns([1, 3, 1, 1, 1, 1, 1])
-    headers = ["ID", "Scaffold SMILES", "Count", "MW", "LogP", "Rings", "ArRings"]
+    headers = ["ID", "Scaffold SMILES", "Compound Count", "MW", "LogP", "Rings", "ArRings"]
     for col, h in zip(cols, headers):
         col.markdown(f"**{h}**")
 
@@ -175,12 +175,12 @@ def render_tab(res: list):
         row[6].write(props.get("ArRings", "–"))
 
     # ── Hop suggestions for top scaffold ─────────────────────────────────
-    st.subheader("Scaffold Hop Suggestions (Top Scaffold)")
+    st.subheader("Bioisosteric Hop Suggestions for Top Scaffold")
     top_scaffold = sorted_scaffolds[0][0]
     hops = _hop_variants(top_scaffold)
     if hops:
         st.markdown(f"**Base scaffold:** `{top_scaffold}`")
-        st.markdown(f"**Suggested hops** (bioisosteric substitutions):")
+        st.markdown(f"**Suggested Bioisosteric Replacements** (ring system substitutions):")
         for j, hop in enumerate(hops, 1):
             props = _scaffold_props(hop)
             st.code(f"Hop {j}: {hop}  |  MW={props.get('MW','?')}  LogP={props.get('LogP','?')}", language=None)

@@ -88,7 +88,7 @@ def _radar_fig(compounds: list):
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#c8deff", size=11),
         height=420,
-        title="Multi-Property Radar",
+        title="Multi-Property Radar Chart — Drug-Likeness, Bioavailability & Safety Profile",
     )
     return fig
 
@@ -109,14 +109,14 @@ def render_tab(res: list):
     # Compound selector
     ids = [c.get("ID", f"Cpd-{i+1}") for i, c in enumerate(res)]
     selected_ids = st.multiselect(
-        "Select compounds to compare (2–5 recommended)",
+        "Select Compounds to Compare (2–5 recommended)",
         ids,
         default=ids[:min(3, len(ids))],
         key="_cmp_select",
     )
 
     if not selected_ids:
-        st.info("Select at least one compound.")
+        st.info("Please select at least one compound to begin comparison.")
         return
 
     selected = [c for c in res if c.get("ID", "") in selected_ids]
@@ -538,7 +538,7 @@ def _render_insight_table(cpd_ids, all_deltas, section, rows):
 
 def _render_advanced_insights(selected: list):
     st.markdown("---")
-    st.markdown("### 🔬 Advanced Comparison Insights")
+    st.markdown("### 🔬 Advanced Multi-Dimensional Comparison Insights")
 
     ref        = selected[0]
     comparisons = selected[1:]
@@ -560,15 +560,15 @@ def _render_advanced_insights(selected: list):
     cpd_ids = [c.get("ID", f"Cpd-{i+2}") for i, c in enumerate(comparisons)]
 
     itabs = st.tabs([
-        "💊 Drug-Likeness",
-        "⚠️ Risk",
-        "🧱 Structure",
-        "⚙️ Engine",
-        "🔥 Metabolic",
-        "📐 Benchmark",
-        "⚡ Efficiency",
-        "🚨 Alerts",
-        "🎯 Decision",
+        "💊 Drug-Likeness & Developability",
+        "⚠️ Risk & Toxicity Liability",
+        "🧱 Structural & Scaffold Intelligence",
+        "⚙️ Predictive Model Consensus",
+        "🔥 Metabolic Liability & Biotransformation",
+        "📐 FDA Drug Space Benchmarking",
+        "⚡ Ligand Efficiency & Optimisation Metrics",
+        "🚨 Safety Alerts & Toxicity Red Flags",
+        "🎯 Go/No-Go Development Decision",
     ])
 
     # 1 — Drug-Likeness
@@ -2002,7 +2002,7 @@ def _render_massive_section(cpd_ids: list, all_insights: dict, section: str, row
 def _render_massive_comparison(selected: list):
     """Main renderer for the massive 100+ feature comparison system."""
     st.markdown("---")
-    st.markdown("## 🚀 Advanced Multi-Dimensional Comparison System")
+    st.markdown("## 🚀 Advanced Multi-Dimensional Comparison System — 124 Scientific Intelligence Signals")
     st.caption("100+ chemoinformatics signals across 10 intelligence layers")
 
     ref  = selected[0]
@@ -2031,14 +2031,14 @@ def _render_massive_comparison(selected: list):
     # ── 9-tab layout ─────────────────────────────────────────────────────
     tabs = st.tabs([
         "⚗️ Physicochemical",
-        "💊 Drug-Likeness",
+        "💊 Drug-Likeness & Developability",
         "🚨 Risk & Tox",
-        "🧱 Structure",
-        "🔥 Metabolic",
-        "📐 Benchmark",
-        "⚙️ Engine",
-        "⚡ Efficiency",
-        "🎯 Decision",
+        "🧱 Structural & Scaffold Intelligence",
+        "🔥 Metabolic Liability & Biotransformation",
+        "📐 FDA Drug Space Benchmarking",
+        "⚙️ Predictive Model Consensus",
+        "⚡ Ligand Efficiency & Optimisation Metrics",
+        "🎯 Go/No-Go Development Decision",
     ])
 
     # ── Tab 1: Physicochemical (20 features) ─────────────────────────────
@@ -3417,8 +3417,8 @@ def _render_hyper_comparison(selected: list, all_res: list):
     """Main hyper renderer — lazy-loaded, session-state cached."""
     st.markdown(_HYPER_CSS, unsafe_allow_html=True)
     st.markdown("---")
-    st.markdown("## 🧠 Hyper Comparison Intelligence System")
-    st.caption("200+ signals · Lazy-loaded · Session-cached · Zero recompute")
+    st.markdown("## 🧠 Hyper Molecular Comparison Intelligence System — 200+ Drug Discovery Signals")
+    st.caption("200+ chemoinformatics signals · Lazy-loaded for performance · Session-cached · Zero recomputation")
 
     ref  = selected[0]
     cpds = selected[1:]
@@ -3481,25 +3481,25 @@ def _render_hyper_comparison(selected: list, all_res: list):
         all_hyper = st.session_state[_cache_key]
 
     # Optional: clear cache button
-    if st.button("🔄 Recompute", key=f"_hcis_reset_{ref_id}"):
+    if st.button("🔄 Clear Cache & Recompute", key=f"_hcis_reset_{ref_id}"):
         st.session_state.pop(_cache_key, None)
         st.session_state.pop(_hcis_key, None)
         st.rerun()
 
     # ── 12-tab layout ─────────────────────────────────────────────────────
     tabs = st.tabs([
-        "⚗️ Micro Chem",
-        "🕸️ Graph Theory",
-        "⚛️ Quantum",
-        "🤝 Interaction",
-        "🧬 Evolution",
-        "⚖️ Tradeoffs",
-        "🔩 Synthesis",
-        "🦠 Biology",
-        "📊 Data Science",
-        "🧠 Meta",
-        "🎯 Decision",
-        "📖 AI Report",
+        "⚗️ Micro-Level Chemistry",
+        "🕸️ Molecular Graph Topology",
+        "⚛️ Quantum-Inspired Proxies",
+        "🤝 Biomolecular Interaction Potential",
+        "🧬 Lead Optimisation Trajectory",
+        "⚖️ Multi-Objective Property Tradeoffs",
+        "🔩 Synthetic Feasibility & Chemistry Realism",
+        "🦠 Biological System Proxies",
+        "📊 Statistical Property Analysis",
+        "🧠 Prediction Meta-Intelligence",
+        "🎯 Go/No-Go Development Decision",
+        "📖 Natural Language AI Decision Report",
     ])
 
     # Tab 1 — Micro Chemistry

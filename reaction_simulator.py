@@ -111,7 +111,7 @@ def render_tab(res: list):
 
     # Compound picker
     ids = [c.get("ID", f"Cpd-{i+1}") for i, c in enumerate(res)]
-    sel_id = st.selectbox("Select compound for simulation", ids, key="_rxnsim_sel")
+    sel_id = st.selectbox("Select Compound for Reaction Simulation", ids, key="_rxnsim_sel")
     compound = next((c for c in res if c.get("ID", "") == sel_id), res[0])
     base_smi = compound.get("SMILES") or compound.get("smi") or ""
 
@@ -130,13 +130,13 @@ def render_tab(res: list):
 
     # Reaction selector
     rxn_name = st.selectbox(
-        "Select transformation",
+        "Select Medicinal Chemistry Transformation",
         list(_REACTIONS.keys()),
         key="_rxnsim_rxn",
     )
     rxn_smarts = _REACTIONS[rxn_name]
 
-    if st.button("▶ Run Transformation", key="_rxnsim_run", type="primary"):
+    if st.button("▶ Apply Transformation", key="_rxnsim_run", type="primary"):
         with st.spinner(f"Applying {rxn_name}..."):
             products = _apply_reaction(rxn_smarts, base_smi)
 
@@ -178,7 +178,7 @@ def render_tab(res: list):
             )
 
     # ── All reactions summary ─────────────────────────────────────────────
-    with st.expander("Show all reaction results (batch)"):
+    with st.expander("Show All Reaction Outcomes (Batch Simulation)"):
         for rname, rsmarts in _REACTIONS.items():
             prods = _apply_reaction(rsmarts, base_smi)
             status = f"✓ {len(prods)} product(s)" if prods else "✗ No match"

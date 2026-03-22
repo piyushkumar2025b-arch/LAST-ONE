@@ -275,7 +275,7 @@ def _get_api_key():
 
 # 
 st.set_page_config(
-    page_title="ChemoFilter — ADMET Drug Screening",
+    page_title="ChemoFilter — Multi-Parameter ADMET Drug Discovery Platform",
     page_icon="⬡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -2480,7 +2480,7 @@ st.markdown("""
     <span class="chip chip-teal">Lipinski Ro5</span>
     <span class="chip chip-teal">BOILED-EGG</span>
     <span class="chip chip-teal">QED</span>
-    <span class="chip chip-teal">SA Score</span>
+    <span class="chip chip-teal">Synthetic Accessibility Score (SA) Distribution</span>
     <span class="chip chip-teal">CYP Panel ×5</span>
     <span class="chip chip-teal">hERG Risk</span>
     <span class="chip chip-teal">CNS MPO</span>
@@ -2548,14 +2548,14 @@ DEFAULTS = ("CN1CCN(CC1)C2=C3C=C(C=CS3)NC4=CC=CC=C24, "
             "[Na+].[Cl-], CC(=O)Oc1ccccc1C(=O)O")
 
 # ── Consolidated Input Methods ───────────────────────────────────────────────
-with st.sidebar.expander("📥 INPUT METHODS", expanded=True):
-    input_method = st.radio("Primary Input", ["Single/Batch SMILES", "Upload CSV/Excel", "Upload SDF/MOL"], index=0)
+with st.sidebar.expander("📥 Compound Input Methods", expanded=True):
+    input_method = st.radio("Select Input Method", ["SMILES String Input (Single or Batch)", "Upload CSV or Excel Spreadsheet", "Upload SDF or MOL Structure File"], index=0)
     
     input_text = ""
-    if input_method == "Single/Batch SMILES":
-        input_text = st.text_area("Enter SMILES (comma-separated)", DEFAULTS, height=145)
-    elif input_method == "Upload CSV/Excel":
-        b_file = st.file_uploader("Choose CSV/Excel", type=["csv", "xlsx"])
+    if input_method == "SMILES String Input (Single or Batch)":
+        input_text = st.text_area("Enter SMILES Strings (comma-separated)", DEFAULTS, height=145)
+    elif input_method == "Upload CSV or Excel Spreadsheet":
+        b_file = st.file_uploader("Choose CSV or Excel File", type=["csv", "xlsx"])
         if b_file:
             try:
                 if b_file.name.endswith(".csv"): df_up = pd.read_csv(b_file)
@@ -2566,8 +2566,8 @@ with st.sidebar.expander("📥 INPUT METHODS", expanded=True):
                     st.success(f"Loaded {len(df_up)} compounds from {b_file.name}")
                 else: st.error("No 'smiles' column found in file.")
             except Exception as e: st.error(f"Error reading file: {e}")
-    elif input_method == "Upload SDF/MOL":
-        s_files = st.file_uploader("Choose SDF/MOL", type=["sdf", "mol"], accept_multiple_files=True)
+    elif input_method == "Upload SDF or MOL Structure File":
+        s_files = st.file_uploader("Choose SDF or MOL File", type=["sdf", "mol"], accept_multiple_files=True)
         if s_files:
             s_smiles = []
             for f in s_files:
@@ -2584,41 +2584,41 @@ with st.sidebar.expander("📥 INPUT METHODS", expanded=True):
             input_text = ", ".join(s_smiles)
             if s_smiles: st.success(f"Parsed {len(s_smiles)} molecules.")
 
-enable_ai = st.sidebar.toggle(" Enable AI Features (Claude)", value=True)
+enable_ai = st.sidebar.toggle("Enable AI-Powered Analysis (Anthropic Claude)", value=True)
 st.session_state["_enable_ai_logging"] = enable_ai
 
 # ── NEW: ChemoFilter Expansion Sidebar Modules ──────────────────────────────
 st.sidebar.markdown("---")
-with st.sidebar.expander("🔬 FILTER PRESETS & MODES", expanded=True):
+with st.sidebar.expander("🔬 Screening Preset & Filter Mode", expanded=True):
     preset_mode = cuc.render_preset_selector()
     preset_params = cuc.get_preset_parameters(preset_mode)
     st.info(f"Active Mode: **{preset_mode}**")
 
-with st.sidebar.expander("⚙️ ADVANCED PARAMETERS"):
-    c_mw = st.slider("Max MolWt", 100, 1000, preset_params["mw_max"])
-    c_lp = st.slider("LogP Range", -5.0, 10.0, (preset_params["logp_min"], preset_params["logp_max"]))
-    c_tp = st.slider("Max TPSA", 0, 250, preset_params["tpsa_max"])
-    c_hbd = st.slider("Max H-Bond Donors", 0, 15, preset_params["hbd_max"])
-    c_hba = st.slider("Max H-Bond Acceptors", 0, 20, preset_params["hba_max"])
-    c_rot = st.slider("Max RotBonds", 0, 20, preset_params["rot_max"])
+with st.sidebar.expander("⚙️ Advanced Physicochemical Parameters"):
+    c_mw = st.slider("Maximum Molecular Weight (Da)", 100, 1000, preset_params["mw_max"])
+    c_lp = st.slider("Lipophilicity Range (LogP)", -5.0, 10.0, (preset_params["logp_min"], preset_params["logp_max"]))
+    c_tp = st.slider("Maximum Polar Surface Area (TPSA, Ų)", 0, 250, preset_params["tpsa_max"])
+    c_hbd = st.slider("Maximum Hydrogen Bond Donors (HBD)", 0, 15, preset_params["hbd_max"])
+    c_hba = st.slider("Maximum Hydrogen Bond Acceptors (HBA)", 0, 20, preset_params["hba_max"])
+    c_rot = st.slider("Maximum Rotatable Bonds", 0, 20, preset_params["rot_max"])
 
 # Multi-input support replaced by consolidated section above
 
-with st.sidebar.expander("📊 BATCH SETTINGS"):
-    st.write("Statistics for the entire dataset.")
-    if st.button("Generate Detailed Batch Report"):
+with st.sidebar.expander("📊 Batch Processing Settings"):
+    st.write("Statistical analysis across the entire compound dataset.")
+    if st.button("Generate Population Statistics Report"):
         st.session_state["gen_batch_report"] = True
 
-with st.sidebar.expander("💾 EXPORT RESULTS"):
-    st.write("Download filtered dataset.")
-    export_format = st.selectbox("Format", ["CSV", "JSON", "Text Report"])
-    if st.button("Prepare Download"):
+with st.sidebar.expander("💾 Export & Download Results"):
+    st.write("Download filtered compound dataset.")
+    export_format = st.selectbox("Export Format", ["CSV", "JSON", "Text Report"])
+    if st.button("Prepare Download Package"):
         st.session_state["prepare_download"] = True
 
 # ── NEW: Dashboard sidebar panels (engine control, search, dev tools) ─────
 render_dashboard_sidebar()
 
-with st.sidebar.expander("QUICK LIBRARY"):
+with st.sidebar.expander("Reference Compound Library"):
     libs = {"Aspirin":"CC(=O)Oc1ccccc1C(=O)O","Ibuprofen":"CC(C)Cc1ccc(cc1)C(C)C(=O)O",
         "Caffeine":"CN1C=NC2=C1C(=O)N(C(=O)N2C)C","Paracetamol":"CC(=O)Nc1ccc(O)cc1",
         "Olanzapine":"CN1CCN(CC1)C2=C3C=C(C=CS3)NC4=CC=CC=C24",
@@ -2627,7 +2627,7 @@ with st.sidebar.expander("QUICK LIBRARY"):
         if st.button(f"+ {name}", key=f"lib_{name}"):
             input_text = smi
 
-with st.sidebar.expander("SCIENTIFIC REFERENCES"):
+with st.sidebar.expander("Scientific Literature References"):
     st.markdown("""<div style="font-size:.58rem;color:rgba(245,166,35,.3);font-family:'IBM Plex Mono',monospace;line-height:2.2">
 [1] Daina, ChemMedChem 2016<br>[2] Lipinski, ADDR 2001<br>
 [3] Delaney, JCICS 2004<br>[4] Bickerton, Nat Chem 2012<br>
@@ -2647,46 +2647,46 @@ st.sidebar.markdown(
     unsafe_allow_html=True,
 )
 
-with st.sidebar.expander("🔀 SCAFFOLD HOPPER"):
-    st.caption("Controls for Scaffold Hopper tab (Tab 35)")
+with st.sidebar.expander("🔀 Scaffold Hopping Controls"):
+    st.caption("Murcko scaffold extraction and bioisostere hopping parameters")
     st.session_state["_sh_show_hops"] = st.toggle(
-        "Show hop suggestions", value=True, key="_sb_sh_hops"
+        "Show Bioisostere Hop Suggestions", value=True, key="_sb_sh_hops"
     )
     st.session_state["_sh_max_scaffolds"] = st.slider(
-        "Max scaffolds to display", 5, 20, 10, key="_sb_sh_max"
+        "Maximum Scaffolds to Display", 5, 20, 10, key="_sb_sh_max"
     )
 
-with st.sidebar.expander("⚖️ COMPARISON MODE"):
-    st.caption("Controls for Comparison Mode tab (Tab 36)")
+with st.sidebar.expander("⚖️ Comparative Intelligence Controls"):
+    st.caption("Multi-compound comparison and delta analysis parameters")
     st.session_state["_cm_radar"] = st.toggle(
-        "Show radar chart", value=True, key="_sb_cm_radar"
+        "Show Multi-Property Radar Chart", value=True, key="_sb_cm_radar"
     )
     st.session_state["_cm_delta"] = st.toggle(
-        "Show delta table", value=True, key="_sb_cm_delta"
+        "Show Property Difference (Δ) Table", value=True, key="_sb_cm_delta"
     )
 
-with st.sidebar.expander("📐 ADMET BENCHMARK"):
-    st.caption("Controls for ADMET Benchmark tab (Tab 39)")
+with st.sidebar.expander("📐 ADMET Benchmarking Controls"):
+    st.caption("ADMET benchmarking reference set selection")
     _bench_options = [
         "FDA Approved Drugs (n≈2000)",
         "ChEMBL Lead Compounds (n≈5000)",
         "Clinical Phase II Compounds",
     ]
     st.session_state["_ab_default_set"] = st.selectbox(
-        "Default reference set",
+        "Benchmark Reference Dataset",
         _bench_options,
         key="_sb_ab_set",
     )
 
-with st.sidebar.expander("🤖 AI EXPLAINER"):
-    st.caption("Controls for AI Explainer tab (Tab 40)")
+with st.sidebar.expander("🤖 AI Scientific Explanation Controls"):
+    st.caption("AI-powered scientific explanation settings")
     st.session_state["_ae_default_mode"] = st.selectbox(
-        "Default analysis mode",
+        "Default Explanation Mode",
         ["Overview", "Safety Analysis", "Optimisation Hints", "Property Deep Dive"],
         key="_sb_ae_mode",
     )
     st.session_state["_ae_max_tokens"] = st.slider(
-        "Max response tokens", 200, 1000, 500, 100, key="_sb_ae_tokens"
+        "AI Response Length (Tokens)", 200, 1000, 500, 100, key="_sb_ae_tokens"
     )
 
 
@@ -2699,7 +2699,7 @@ def _analyze_cached(smiles_tuple: tuple) -> list:
 
 data = None
 if input_text.strip():
-    with st.spinner("  Running ADMET analysis..."):
+    with st.spinner("Running ADMET & Drug-Likeness Analysis..."):
         try:
             # Normalize and deduplicate input before caching
             _raw_smiles = [s.strip() for s in input_text.split(",") if s.strip()]
@@ -2860,34 +2860,34 @@ if input_text.strip():
     
     st.markdown(f"""
 <div class="stats-strip">
-  <div class="sc">{sv(total,"var(--ice2)", "Total analyzed compounds")}<div class="sc-lbl">Compounds</div></div>
-  <div class="sc">{sv(ga,score_hex(ga/total*100 if total else 0), perc(ga))}<div class="sc-lbl">Grade A</div></div>
-  <div class="sc">{sv(hia_ok,"#4ade80", perc(hia_ok))}<div class="sc-lbl">Good HIA</div></div>
-  <div class="sc">{sv(bbb_ok,"var(--amber)", perc(bbb_ok))}<div class="sc-lbl">BBB Cross</div></div>
-  <div class="sc">{sv(f"{aqed:.2f}",score_hex(aqed*100), "Average Quantum QED score")}<div class="sc-lbl">Avg QED</div></div>
-  <div class="sc">{sv(f"{als:.0f}",score_hex(als), "Average Lead Optimizer Score")}<div class="sc-lbl">Avg Lead</div></div>
-  <div class="sc">{sv(f"{asa:.1f}","#a78bfa", "Average Synthetic Accessibility")}<div class="sc-lbl">Avg SA</div></div>
-  <div class="sc">{sv(hh,"#ff5c5c", perc(hh))}<div class="sc-lbl">hERG High</div></div>
-  <div class="sc">{sv(pf,"#fb923c", perc(pf))}<div class="sc-lbl">PAINS Flags</div></div>
+  <div class="sc">{sv(total,"var(--ice2)", "Total analyzed compounds")}<div class="sc-lbl">Total Compounds</div></div>
+  <div class="sc">{sv(ga,score_hex(ga/total*100 if total else 0), perc(ga))}<div class="sc-lbl">Grade A Candidates</div></div>
+  <div class="sc">{sv(hia_ok,"#4ade80", perc(hia_ok))}<div class="sc-lbl">Good Intestinal Absorption</div></div>
+  <div class="sc">{sv(bbb_ok,"var(--amber)", perc(bbb_ok))}<div class="sc-lbl">Blood-Brain Barrier Penetration</div></div>
+  <div class="sc">{sv(f"{aqed:.2f}",score_hex(aqed*100), "Average Quantum QED score")}<div class="sc-lbl">Avg Drug-Likeness (QED)</div></div>
+  <div class="sc">{sv(f"{als:.0f}",score_hex(als), "Average Lead Optimizer Score")}<div class="sc-lbl">Avg Lead Optimisation Score</div></div>
+  <div class="sc">{sv(f"{asa:.1f}","#a78bfa", "Average Synthetic Accessibility")}<div class="sc-lbl">Avg Synthetic Accessibility</div></div>
+  <div class="sc">{sv(hh,"#ff5c5c", perc(hh))}<div class="sc-lbl">hERG Cardiac Liability</div></div>
+  <div class="sc">{sv(pf,"#fb923c", perc(pf))}<div class="sc-lbl">PAINS Structural Alerts</div></div>
 </div>""", unsafe_allow_html=True)
 
     # 
     #  DISCOVERY HUB  DYNAMIC ANALYSIS
     # 
     st.markdown('<div style="margin-top:20px"></div>', unsafe_allow_html=True)
-    with st.expander(" DISCOVERY HUB  ADVANCED SEARCH, SORT & MULTI-FILTER"):
+    with st.expander(" Discovery Hub — Advanced Search, Sorting & Multi-Parameter Filter"):
         f1, f2, f3 = st.columns(3)
         with f1:
-            q_search = st.text_input(" Search ID or SMILES", "").strip()
-            q_grade = st.multiselect(" Filter Grades", ["A", "B", "C", "F"], default=["A", "B", "C", "F"])
+            q_search = st.text_input("Search by Compound ID or SMILES", "").strip()
+            q_grade = st.multiselect("Filter by Development Grade", ["A", "B", "C", "F"], default=["A", "B", "C", "F"])
         with f2:
-            q_sort = st.selectbox(" Sort Results By", ["LeadScore", "ID", "Grade", "QED", "MW", "LogP", "tPSA", "SA_Score"])
-            q_reverse = st.radio(" Order", ["Descending", "Ascending"], horizontal=True) == "Descending"
+            q_sort = st.selectbox("Sort Compounds By", ["LeadScore", "ID", "Grade", "QED", "MW", "LogP", "tPSA", "SA_Score"])
+            q_reverse = st.radio("Sort Order", ["Highest First (Descending)", "Lowest First (Ascending)"], horizontal=True) == "Highest First (Descending)"
         with f3:
-            st.write(" Value Thresholds")
-            q_lead = st.slider("Min LeadScore", 0, 100, 0)
-            q_qed = st.slider("Min QED", 0.0, 1.0, 0.0)
-            q_mw = st.slider("Max MW (Da)", 0, 1000, 1000)
+            st.write("Property Value Thresholds")
+            q_lead = st.slider("Minimum Lead Optimisation Score", 0, 100, 0)
+            q_qed = st.slider("Minimum Drug-Likeness Score (QED)", 0.0, 1.0, 0.0)
+            q_mw = st.slider("Maximum Molecular Weight (Da)", 0, 1000, 1000)
 
     # APPLY DISCOVERY LOGIC WITH ADVANCED PARAMETERS
     filtered_data = [d for d in display_data if 
@@ -2937,9 +2937,9 @@ if input_text.strip():
     #  LEADERBOARD — ADVANCED UI
     st.markdown("""<div class="sec">
       <span class="sec-num">1</span>
-      <span class="sec-title">Compound Leaderboard</span>
+      <span class="sec-title">Compound Leaderboard — Ranked by Lead Optimisation Score</span>
       <div class="sec-line"></div>
-      <span class="sec-tag">Ranked by Lead Score · Click column header to sort</span>
+      <span class="sec-tag">Ranked by Lead Optimisation Score · Click column header to sort</span>
     </div>""", unsafe_allow_html=True)
 
     # ── Leaderboard summary stat bar ──
@@ -3401,20 +3401,20 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
     _cached_html  = _pl.get_cached_html_export(_exp_hash, html_export, display_data) if _PL_OK else html_export(display_data)
     _cached_txt   = _pl.get_cached_text_export(_exp_hash, text_report_export, display_data) if _PL_OK else text_report_export(display_data)
     with dl1:
-        st.download_button("↓  CSV Spreadsheet",
+        st.download_button("↓ Download CSV Spreadsheet",
             data=df_show.assign(SMILES=[d["SMILES"] for d in display_data]).to_csv(index=False).encode(),
             file_name="chemofilter_analysis.csv", mime="text/csv",
             help="Download all compound data as a CSV spreadsheet")
     with dl2:
-        st.download_button("↓  HTML Report",
+        st.download_button("↓ Download HTML Report",
             data=_cached_html, file_name="chemofilter_report.html", mime="text/html",
             help="Download a styled HTML report — open in browser then Ctrl+P to save as PDF")
     with dl3:
-        st.download_button("↓  Text Report (.txt)",
+        st.download_button("↓ Download Plain-Text Report (.txt)",
             data=_cached_txt, file_name="chemofilter_report.txt", mime="text/plain",
             help="Download a plain-text professional report")
     with dl4:
-        st.download_button("↓  Print PDF (HTML→PDF)",
+        st.download_button("↓ Download Print-Ready PDF (HTML→PDF)",
             data=_cached_html, file_name="chemofilter_print.html", mime="text/html",
             help="Open this HTML file in your browser and press Ctrl+P → Save as PDF for a print-ready PDF")
 
@@ -3435,48 +3435,48 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
     #  TABS
     # 
     TABS = st.tabs([
-        "⬡  Overview",
-        "🧪  Filtering Lab",
-        "📊  Dataset Intelligence",
-        "⬡  Diagnostics",
-        "⬡  3D Conformer",
-        "⬡  Metabolic Pulse",
-        "⬡  BOILED-EGG",
-        "⬡  Analysis Suite",
-        "⬡  QSAR & Fragments",
-        "⬡  World-First",
-        "⬡  Hyper SAR",
-        "⬡  Omni-Science",
-        "⬡  Deep Accuracy",
-        "⬡  Infinity SAR",
-        "⬡  Singularity",
-        "⬡  Universal v500",
-        "⬡  Celestial",
-        "⬡  Omega-Zenith",
-        "⬡  Xenon v5000",
-        "⬡  Aether v10000",
-        "⬡  Quantum Frontier",
-        "⬡  Genetic Nexus",
-        "⬡  IP Scout",
-        "⬡  Evolution v1M",
-        "⬡  Neural Blueprint",
-        "⬡  AI Synthesis",
-        "⬡  Full Report",
-        "🧪  Chem Testing Lab",
-        "🔬  Deep Analysis",
-        "📈  Plot Suite",
-        "💊  Discovery Extended",
-        "🧪  ChemoFilter Core",
-        "🎯  Dynamic Scoring",
-        "📊  Population Metrics",
-        "📊  Dashboard Hub",
+        "⬡  Compound Overview & Screening Summary",
+        "🧪  Physicochemical Filter Laboratory",
+        "📊  Dataset Intelligence & Population Analytics",
+        "🔬  Compound Diagnostics & Property Profiling",
+        "⬡  3D Conformer Explorer (MMFF94)",
+        "⬡  Metabolic Liability & CYP450 Profiling",
+        "⬡  BOILED-EGG Absorption & Permeability Map",
+        "⬡  Structural Similarity & Chemical Space Analysis",
+        "⬡  QSAR Modelling & Fragment Decomposition",
+        "⬡  Bioisostere & Covalent Warhead Scout",
+        "⬡  Structure–Activity Relationship (SAR) Dashboard",
+        "⬡  Integrated Molecular Descriptor Intelligence",
+        "⬡  Pharmacokinetic & FDA Drug Space Analysis",
+        "⬡  Multi-Database SAR & Lead Optimisation Engine",
+        "⬡  Reactivity, Metabolism & Stability Simulation",
+        "⬡  Comprehensive ADMET & Organ Toxicity Profiling",
+        "⬡  Physiologically-Based PK (PBPK) Modelling",
+        "⬡  Covalent Warhead & Rare Scaffold Intelligence",
+        "⬡  Quantum-Informed Molecular Property Engine",
+        "⬡  Tissue Distribution & PBPK Deep Profiling",
+        "⬡  Frontier Orbital & Electronic Structure Analysis",
+        "⬡  Genomic Target Interaction & Epigenetic Profiling",
+        "⬡  Patent Landscape & Freedom-to-Operate (FTO) Scout",
+        "⬡  Evolutionary Lead Optimisation Chamber",
+        "⬡  Molecular Descriptor Tensor Blueprint",
+        "⬡  AI-Assisted Retrosynthesis & Route Strategy",
+        "⬡  Comprehensive Compound Dossier & Export",
+        "🧪  Advanced Chemical Testing & Simulation Lab",
+        "🔬  Deep Molecular Geometry & Bond Analysis",
+        "📈  Scientific Visualisation & Energy Profile Suite",
+        "💊  Drug Discovery Extension & Lead Optimisation",
+        "🧪  ChemoFilter Core — Molecular Validation Engine",
+        "🎯  Dynamic Multi-Parameter Scoring (ChemoScore)",
+        "📊  Batch Processing & Population Statistics",
+        "📊  Analytics & Engine Orchestration Hub",
         # ── NEW TABS (Phase 4) — indices 35–40 ───────────────────────────
-        "🔀  Scaffold Hopper",
-        "⚖️  Comparison Mode",
-        "💊  Drug Class AI",
-        "⚗️  Reaction Sim",
-        "📐  ADMET Bench",
-        "🤖  AI Explainer",
+        "🔀  Scaffold Hopping & Bioisostere Discovery",
+        "⚖️  Multi-Compound Comparative Intelligence",
+        "💊  Drug Class Prediction & Target Classification",
+        "⚗️  Medicinal Chemistry Reaction Simulator",
+        "📐  ADMET Benchmarking vs Approved Drug Space",
+        "🤖  AI-Powered Scientific Explanation Engine",
     ])
 
 
@@ -3727,7 +3727,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
 
     #  TAB 1  FILTERING LAB
     with TABS[1]:
-        st.markdown('<div class="sec"><span class="sec-num">1</span><span class="sec-title">Architectural Filtering Lab</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="sec"><span class="sec-num">1</span><span class="sec-title">Physicochemical Filter Laboratory — Rule-Based Compound Screening</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
         sel_f = st.selectbox("Select compound for deep scan", [d["ID"] for d in display_data], key="lab_sel")
         res_f = next(d for d in display_data if d["ID"]==sel_f)
         
@@ -3945,7 +3945,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             html = f"<html><head><meta charset=\'UTF-8\'><title>3D Data</title><style>body{{font-family:monospace;background:#05080f;color:#e8f0ff;padding:40px}}h2{{color:#e8a020}}</style></head><body><h2>ChemoFilter — 3D Conformer Data</h2><pre>{txt}</pre></body></html>"
             return txt.encode(), html.encode()
         tab_dl_row("3d_conformer", _dl_3d)
-        st.markdown('<div class="sec"><span class="sec-num">2</span><span class="sec-title">Three-D Hyper-Conformer Explorer</span><div class="sec-line"></div><span class="sec-tag">Quantum MMFF94 Optimised</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="sec"><span class="sec-num">2</span><span class="sec-title">3D Conformer Explorer — MMFF94 Force-Field Optimised Structure</span><div class="sec-line"></div><span class="sec-tag">Quantum MMFF94 Optimised</span></div>', unsafe_allow_html=True)
 
         sel_3d = st.selectbox("Select compound for 3D analysis", [d["ID"] for d in display_data], key="3d_sel")
         res_3d = next(d for d in display_data if d["ID"]==sel_3d)
@@ -3990,9 +3990,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
 
         st.markdown("""<div class="sec">
           <span class="sec-num">3</span>
-          <span class="sec-title">Metabolic Transformation Pulse</span>
+          <span class="sec-title">Metabolic Liability Profiling — Phase I/II Biotransformation Prediction</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Phase I Oxidation/Dealkylation Predictor</span>
+          <span class="sec-tag">Phase I CYP450-Mediated Oxidation, Hydroxylation & Dealkylation Prediction</span>
         </div>""", unsafe_allow_html=True)
 
         mcol1, mcol2 = st.columns([1, 1.5])
@@ -4039,18 +4039,18 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
 
         st.markdown("""<div class="sec">
           <span class="sec-num">4</span>
-          <span class="sec-title">BOILED-EGG ADME Map</span>
+          <span class="sec-title">BOILED-EGG ADME Map — Intestinal Absorption & Blood-Brain Barrier Permeability</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Daina & Zoete, ChemMedChem 2016  Bubble size  Lead Score</span>
+          <span class="sec-tag">Daina & Zoete, ChemMedChem 2016 · Bubble size = Lead Optimisation Score</span>
         </div>""", unsafe_allow_html=True)
         st.plotly_chart(fig_boiled_egg(display_data), width='stretch')
 
         q1,q2 = st.columns(2)
         with q1:
-            st.markdown('<div class="sec" style="margin-top:8px"><span class="sec-num">02b</span><span class="sec-title">QED Distribution</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
+            st.markdown('<div class="sec" style="margin-top:8px"><span class="sec-num">02b</span><span class="sec-title">Drug-Likeness Score (QED) Distribution</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
             st.plotly_chart(fig_qed_sa(display_data), width='stretch')
         with q2:
-            st.markdown('<div class="sec" style="margin-top:8px"><span class="sec-num">03c</span><span class="sec-title">SA Score</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
+            st.markdown('<div class="sec" style="margin-top:8px"><span class="sec-num">03c</span><span class="sec-title">Synthetic Accessibility Score (SA) Distribution</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
             st.plotly_chart(fig_sa(display_data), width='stretch')
 
     #  TAB 7  ANALYSIS SUITE 
@@ -4064,13 +4064,13 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
 
         st.markdown("""<div class="sec">
           <span class="sec-num">4</span>
-          <span class="sec-title">Analysis Suite & Visual Comparison</span>
+          <span class="sec-title">Structural Similarity, Chemical Space & Parallel Property Analysis</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Similarity  PCA  Parallel Coords</span>
+          <span class="sec-tag">Tanimoto Similarity · Principal Component Analysis (PCA) · Parallel Coordinates</span>
         </div>""", unsafe_allow_html=True)
 
         if len(display_data)>1:
-            at1,at2,at3,at4 = st.tabs(["Similarity Matrix","Parallel Coordinates","PCA Space","vs Approved Drugs"])
+            at1,at2,at3,at4 = st.tabs(["Tanimoto Similarity Matrix","Parallel Coordinates Property Map","Principal Component Analysis (PCA) Chemical Space","Comparison vs Approved Drug Medians"])
             with at1:
                 st.caption("Tanimoto pairwise similarity of Morgan fingerprints (ECFP4)")
                 # PERF: lazy-load O(n²) similarity matrix
@@ -4122,9 +4122,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         tab_dl_row("qsar_fragments", _dl_qsar)
         st.markdown("""<div class="sec">
           <span class="sec-num">6</span>
-          <span class="sec-title">Fragment Factory & QSAR Regression</span>
+          <span class="sec-title">QSAR Modelling, Fragment Decomposition & Green Chemistry Estimation</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Rule-based decomposition</span>
+          <span class="sec-tag">Murcko Scaffold Decomposition · Functional Group Analysis · QSAR Descriptors</span>
         </div>""", unsafe_allow_html=True)
 
         sel_q = st.selectbox("Select compound for QSAR breakdown", [d["ID"] for d in display_data], key="q_sel")
@@ -4164,9 +4164,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         tab_dl_row("world_first", _dl_wft)
         st.markdown("""<div class="sec">
           <span class="sec-num">7</span>
-          <span class="sec-title">Proprietary World-First Analytics</span>
+          <span class="sec-title">Bioisostere Scout & Covalent Warhead Detection</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Bio-Isosteres & Covalent Warhead Scouts</span>
+          <span class="sec-tag">Bioisosteric Replacement · Covalent Warhead Detection · Scaffold Hopping</span>
         </div>""", unsafe_allow_html=True)
 
         wsel = st.selectbox("Select compound for World-First analysis", [d["ID"] for d in display_data], key="wsel")
@@ -4219,9 +4219,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         tab_dl_row("hyper_sar", _dl_hsar)
         st.markdown("""<div class="sec">
           <span class="sec-num">8</span>
-          <span class="sec-title">Hyper-Engine v15 SAR Dashboard</span>
+          <span class="sec-title">Structure–Activity Relationship (SAR) & Pharmacokinetic Prediction Dashboard</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Advanced PK/PD & Safety Prediction Suite</span>
+          <span class="sec-tag">Pharmacokinetics (PK), Pharmacodynamics (PD) & Safety Liability Prediction</span>
         </div>""", unsafe_allow_html=True)
 
         hsel = st.selectbox("Select compound for Hyper-SAR", [d["ID"] for d in display_data], key="hsel")
@@ -4273,9 +4273,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         tab_dl_row("omni_science", _dl_omni)
         st.markdown("""<div class="sec">
           <span class="sec-num">9</span>
-          <span class="sec-title">Omni-Science v20 Mega-Dashboard</span>
+          <span class="sec-title">Integrated Molecular Descriptor Intelligence — 50+ Physicochemical & ADMET Parameters</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Unified Global Molecular Intelligence  50+ New Descriptors</span>
+          <span class="sec-tag">Unified Molecular Intelligence — 50+ Physicochemical, ADMET & Topological Descriptors</span>
         </div>""", unsafe_allow_html=True)
 
         osel = st.selectbox("Select compound for Omni-Analysis", [d["ID"] for d in display_data], key="osel")
@@ -4377,9 +4377,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         tab_dl_row("deep_accuracy", _dl_deep)
         st.markdown("""<div class="sec">
           <span class="sec-num">10</span>
-          <span class="sec-title">Quantum Accuracy v30  FDA Intelligence</span>
+          <span class="sec-title">Pharmacokinetic Accuracy Engine — FDA Approved Drug Space Comparison</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Embedded Database Checks & Refined Predictors</span>
+          <span class="sec-tag">FDA Drug Space Comparison · Embedded Database Validation · Refined ADMET Predictors</span>
         </div>""", unsafe_allow_html=True)
 
         qsel = st.selectbox("Select compound for Quantum Check", [d["ID"] for d in display_data], key="qsel_acc")
@@ -4455,9 +4455,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         tab_dl_row("infinity_sar", _dl_inf)
         st.markdown("""<div class="sec">
           <span class="sec-num">11</span>
-          <span class="sec-title">Infinity-Engine v100  Deep SAR</span>
+          <span class="sec-title">Deep Structure–Activity Relationship Engine — Multi-Database Lead Optimisation</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Unified Multi-Database Discovery & Lead Optimization</span>
+          <span class="sec-tag">Multi-Database SAR Analysis · Lead Optimisation · Structure–Activity Correlation</span>
         </div>""", unsafe_allow_html=True)
 
         insel = st.selectbox("Select compound for Infinity Analysis", [d["ID"] for d in display_data], key="insel_acc")
@@ -4517,9 +4517,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         tab_dl_row("singularity", _dl_sing)
         st.markdown("""<div class="sec">
           <span class="sec-num">12</span>
-          <span class="sec-title">Singularity v200  Omnipotent Engine</span>
+          <span class="sec-title">Reactivity, Metabolic Stability & Global Persistence Simulation</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Omni-Reactivity, Metabolic Simulation & Global Persistence</span>
+          <span class="sec-tag">Chemical Reactivity Profiling · Metabolic Simulation · Bioavailability Persistence</span>
         </div>""", unsafe_allow_html=True)
 
         ssel = st.selectbox("Select compound for Singularity Check", [d["ID"] for d in display_data], key="ssel_acc")
@@ -4595,9 +4595,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         tab_dl_row("universal_v500", _dl_univ)
         st.markdown("""<div class="sec">
           <span class="sec-num">13</span>
-          <span class="sec-title">Universal Edition v500  Deep Discovery</span>
+          <span class="sec-title">Comprehensive ADMET Profiling — Organ Toxicity, Target Mapping & Drug Discovery</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">5000+ Parameter Suite  Organ Toxicity  Target Mapping</span>
+          <span class="sec-tag">Comprehensive ADMET Suite · Multi-Organ Toxicity Prediction · Target Engagement Mapping</span>
         </div>""", unsafe_allow_html=True)
 
         usel = st.selectbox("Select compound for Universal Analysis", [d["ID"] for d in display_data], key="usel_acc")
@@ -4676,9 +4676,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         tab_dl_row("celestial_v1000", _dl_cel)
         st.markdown("""<div class="sec">
           <span class="sec-num">14</span>
-          <span class="sec-title">Celestial v1000  Supreme Intelligence</span>
+          <span class="sec-title">Physiologically-Based Pharmacokinetic (PBPK) Modelling & Deep Drug Atlas</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Mechanistic PBPK, QUED Quantum & Saagar Deep Atlas</span>
+          <span class="sec-tag">Mechanistic PBPK Modelling · Quantum-Enhanced Descriptors · Deep Drug Atlas</span>
         </div>""", unsafe_allow_html=True)
 
         clsel = st.selectbox("Select compound for Celestial Analysis", [d["ID"] for d in display_data], key="clsel_acc")
@@ -4741,9 +4741,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
     with TABS[17]:
         st.markdown("""<div class="sec">
           <span class="sec-num">5</span>
-          <span class="sec-title">Omega-Zenith v2000  Ultimate Horizon</span>
+          <span class="sec-title">Covalent Warhead Intelligence & Rare Scaffold Discovery Engine</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">20,000+ Parameters  Covalent Warheads  Rare Scaffold Intelligence</span>
+          <span class="sec-tag">Covalent Warhead Profiling · Rare Scaffold Discovery · Expanded Physicochemical Space</span>
         </div>""", unsafe_allow_html=True)
 
         osel = st.selectbox("Select compound for Omega Analysis", [d["ID"] for d in display_data], key="osel_acc")
@@ -4824,9 +4824,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         tab_dl_row("xenon_v5000", _dl_xenon)
         st.markdown("""<div class="sec">
           <span class="sec-num">16</span>
-          <span class="sec-title">Xenon-God v5000  Multiverse Horizon</span>
+          <span class="sec-title">Quantum-Informed Orbital & Retrosynthetic Difficulty Analysis</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">50,000+ Parameters  Quantum Orbitals  Retrosynthetic Difficulty</span>
+          <span class="sec-tag">Quantum Orbital Analysis · Retrosynthetic Complexity · Advanced Electronic Properties</span>
         </div>""", unsafe_allow_html=True)
 
         xsel = st.selectbox("Select compound for Xenon Analysis", [d["ID"] for d in display_data], key="xsel_acc")
@@ -4889,9 +4889,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
     with TABS[19]:
         st.markdown("""<div class="sec">
           <span class="sec-num">17</span>
-          <span class="sec-title">Aether-Primality v10000  God Engine</span>
+          <span class="sec-title">Tissue Distribution PBPK, Nanotoxicity & Advanced Carbon Framework Analysis</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">100,000+ Parameters  Tissue PBPK  Nanotoxicity  Carbon Logic</span>
+          <span class="sec-tag">Tissue-Level PBPK · Nanotoxicity Assessment · Carbon Framework Intelligence</span>
         </div>""", unsafe_allow_html=True)
 
         asel = st.selectbox("Select compound for Aether Analysis", [d["ID"] for d in display_data], key="asel_acc")
@@ -4943,9 +4943,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
     with TABS[20]:
         st.markdown("""<div class="sec">
           <span class="sec-num">18</span>
-          <span class="sec-title">Quantum Frontier v25000  Entanglement Engine</span>
+          <span class="sec-title">Frontier Molecular Orbital Analysis — Electronic Structure & Reactivity Profiling</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Tunneling Cores  Flux Dynamics  Wavefunction Stability</span>
+          <span class="sec-tag">Frontier Molecular Orbital Theory · Electronic Flux Dynamics · Wavefunction Stability</span>
         </div>""", unsafe_allow_html=True)
 
         qfsel = st.selectbox("Select compound for Quantum Frontier", [d["ID"] for d in display_data], key="qfsel")
@@ -4998,9 +4998,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         tab_dl_row("genetic_nexus", _dl_gnex)
         st.markdown("""<div class="sec">
           <span class="sec-num">19</span>
-          <span class="sec-title">Genetic Nexus v50000  Genomic Overlord</span>
+          <span class="sec-title">Genomic Target Interaction — DNA/RNA Binding, Epigenetic & CRISPR-Relevant Profiling</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">DNA/RNA Interference  CRISPR Mimicry  Epigenetic Lock</span>
+          <span class="sec-tag">DNA/RNA Binding Profiling · Epigenetic Target Interaction · CRISPR-Relevant Analysis</span>
         </div>""", unsafe_allow_html=True)
 
         gnsel = st.selectbox("Select compound for Genetic Nexus", [d["ID"] for d in display_data], key="gnsel")
@@ -5055,9 +5055,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         tab_dl_row("ip_scout", _dl_ip)
         st.markdown("""<div class="sec">
           <span class="sec-num">20</span>
-          <span class="sec-title">Omnipotent IP Scout  Final Discovery</span>
+          <span class="sec-title">Patent Landscape & Freedom-to-Operate (FTO) Intelligence Scout</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Patent Landscape  Novelty Index  Freedom-to-Operate (FTO)</span>
+          <span class="sec-tag">Patent Landscape Analysis · Structural Novelty Index · Freedom-to-Operate (FTO) Assessment</span>
         </div>""", unsafe_allow_html=True)
 
         ipsel = st.selectbox("Select compound for IP Scouting", [d["ID"] for d in display_data], key="ipsel")
@@ -5114,9 +5114,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
     with TABS[23]:
         st.markdown("""<div class="sec">
           <span class="sec-num">21</span>
-          <span class="sec-title">Molecular Evolution Chamber v1M  Hyper-Optimization</span>
+          <span class="sec-title">Evolutionary Lead Optimisation — Mutational Gain-of-Property & Scaffold Refinement</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Evolutionary Mutations  Gain-of-Property  Lead Refinement</span>
+          <span class="sec-tag">Structural Mutations · Gain-of-Drug-Property Analysis · Lead Scaffold Refinement</span>
         </div>""", unsafe_allow_html=True)
 
         evsel = st.selectbox("Select compound for Evolution", [d["ID"] for d in display_data], key="evsel")
@@ -5161,9 +5161,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
     with TABS[24]:
         st.markdown("""<div class="sec">
           <span class="sec-num">22</span>
-          <span class="sec-title">Neural Tensor Blueprint v1M  System Architecture</span>
+          <span class="sec-title">Molecular Descriptor Tensor Blueprint — Multi-Dimensional Property Mapping</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Node Activation  Tensor Mapping  Deep Signal Analysis</span>
+          <span class="sec-tag">Multi-Dimensional Property Tensor Mapping · Feature Activation · Deep Descriptor Analysis</span>
         </div>""", unsafe_allow_html=True)
 
         ntsel = st.selectbox("Select compound for Blueprint Scan", [d["ID"] for d in display_data], key="ntsel")
@@ -5205,9 +5205,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
 
             st.markdown("""<div class="sec">
               <span class="sec-num"></span>
-              <span class="sec-title">Synthetic Route Strategy</span>
+              <span class="sec-title">AI-Assisted Retrosynthesis & Synthetic Route Strategy</span>
               <div class="sec-line"></div>
-              <span class="sec-tag">AI-Powered Retrosynthesis</span>
+              <span class="sec-tag">AI-Powered Retrosynthetic Route Planning & Synthetic Feasibility</span>
             </div>""", unsafe_allow_html=True)
 
             s1, s2 = st.columns([1, 2])
@@ -5253,9 +5253,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
 
         st.markdown("""<div class="sec">
           <span class="sec-num">24</span>
-          <span class="sec-title">Full Compound Report</span>
+          <span class="sec-title">Comprehensive Compound Dossier — Full ADMET, Scoring & Property Export</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Use Ctrl+P or Export HTML for print-ready PDF</span>
+          <span class="sec-tag">Export as HTML and print with Ctrl+P for a print-ready PDF dossier</span>
         </div>""", unsafe_allow_html=True)
 
         for res in display_data:
@@ -5279,7 +5279,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
       <div class="rrow"><span class="rk">Fsp3</span><span class="rv">{RFS}</span></div>
       <div class="rrow"><span class="rk">StereoCenters</span><span class="rv">{RSC}</span></div>
       <div class="rrow"><span class="rk">Rings</span><span class="rv">{RRN}</span></div>
-      <div class="rrow"><span class="rk">SA Score</span><span class="rv">{RSS} ({RSL})</span></div>
+      <div class="rrow"><span class="rk">Synthetic Accessibility Score (SA) Distribution</span><span class="rv">{RSS} ({RSL})</span></div>
       <div class="rrow"><span class="rk">Complexity</span><span class="rv">{RCX} / 100</span></div>
     </div>
     <div>
@@ -5719,9 +5719,9 @@ with _dlc2:
     with TABS[27]:
         st.markdown("""<div class="sec">
           <span class="sec-num">25</span>
-          <span class="sec-title">Advanced Chemical Testing Lab — 15 Simulation Modes</span>
+          <span class="sec-title">Advanced Chemical Testing & Simulation Laboratory — 15 Reaction & Condition Modes</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Reaction Conditions · Solvent Effects · Catalyst · pH · Kinetics · Equilibrium · Degradation · Sensitivity</span>
+          <span class="sec-tag">Reaction Conditions · Solvent Effects · Catalysis · pH Sensitivity · Kinetics · Thermodynamic Equilibrium</span>
         </div>""", unsafe_allow_html=True)
 
         ct_sel = st.selectbox("Select compound", [d["ID"] for d in display_data], key="ct_sel")
@@ -5855,9 +5855,9 @@ with _dlc2:
     with TABS[28]:
         st.markdown("""<div class="sec">
           <span class="sec-num">26</span>
-          <span class="sec-title">Deep Molecular Analysis — 10 Analysis Modes</span>
+          <span class="sec-title">Deep Molecular Geometry & Bond Analysis — Electronic Structure, H-Bonds & Steric Profiling</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Bond Strength · Geometry · Steric Hindrance · Electron Density · H-Bonds · VdW · Flexibility · Conformers</span>
+          <span class="sec-tag">Bond Geometry · Steric Hindrance · Electron Density · H-Bond Network · van der Waals · Conformational Flexibility</span>
         </div>""", unsafe_allow_html=True)
 
         ma_sel = st.selectbox("Select compound", [d["ID"] for d in display_data], key="ma_sel")
@@ -5963,9 +5963,9 @@ with _dlc2:
     with TABS[29]:
         st.markdown("""<div class="sec">
           <span class="sec-num">27</span>
-          <span class="sec-title">Scientific Visualization Suite — 15 Plot Types</span>
+          <span class="sec-title">Scientific Visualisation Suite — Energy Profiles, Kinetics, Heatmaps & Compound Comparison</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Energy Profiles · Kinetics · Heatmaps · Radar Charts · Parameter Sweeps · Compound Comparison</span>
+          <span class="sec-tag">Energy Profiles · Reaction Kinetics · Property Heatmaps · Radar Charts · Multi-Parameter Sweeps</span>
         </div>""", unsafe_allow_html=True)
 
         sp_sel = st.selectbox("Select compound", [d["ID"] for d in display_data], key="sp_sel")
@@ -6026,9 +6026,9 @@ with _dlc2:
     with TABS[30]:
         st.markdown("""<div class="sec">
           <span class="sec-num">28</span>
-          <span class="sec-title">Drug Discovery Extended — Deep Analysis & Lead Optimization</span>
+          <span class="sec-title">Drug Discovery Extension — ADMET Prediction, Structural Metrics & Lead Optimisation</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">ADMET Predictions · Structural Metrics · Lead Optimization · Drug-Likeness Badges · Deep Analysis Panel</span>
+          <span class="sec-tag">ADMET Prediction · Structural Metrics · Lead Optimisation · Drug-Likeness Classification · Deep Analysis</span>
         </div>""", unsafe_allow_html=True)
 
         # ── Extended Columns Table ──
@@ -6152,9 +6152,9 @@ with _dlc2:
     with TABS[31]:
         st.markdown("""<div class="sec">
           <span class="sec-num">29</span>
-          <span class="sec-title">ChemoFilter Core — 50+ Molecular Validation Tests</span>
+          <span class="sec-title">ChemoFilter Core Validation Engine — Physicochemical, Safety & Drug-Likeness Testing</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Structure · Properties · Similarity · Quality · Dataset Analysis</span>
+          <span class="sec-tag">Structural Integrity · Physicochemical Properties · Structural Similarity · Quality Scores · Dataset Statistics</span>
         </div>""", unsafe_allow_html=True)
         
         tc_sel = st.selectbox("Select compound for validation", [d["ID"] for d in display_data], key="tc_sel")
@@ -6171,9 +6171,9 @@ with _dlc2:
     with TABS[32]:
         st.markdown("""<div class="sec">
           <span class="sec-num">30</span>
-          <span class="sec-title">Advanced Scoring System — ChemoScore v1.0</span>
+          <span class="sec-title">Multi-Parameter Drug Discovery Score (ChemoScore) — Physicochemical, ADME & Toxicity</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Physicochemical · Drug-Likeness · ADME · Synthesis · Toxicity</span>
+          <span class="sec-tag">Physicochemical Properties · Drug-Likeness Rules · ADME Profiling · Synthetic Accessibility · Toxicity Flags</span>
         </div>""", unsafe_allow_html=True)
         
         sc_sel = st.selectbox("Select compound for scoring breakdown", [d["ID"] for d in display_data], key="sc_sel")
@@ -6229,9 +6229,9 @@ with _dlc2:
     with TABS[33]:
         st.markdown("""<div class="sec">
           <span class="sec-num">31</span>
-          <span class="sec-title">Batch Processing & Dataset Intelligence</span>
+          <span class="sec-title">Batch Processing, Population Statistics & Lead Identification</span>
           <div class="sec-line"></div>
-          <span class="sec-tag">Property Distributions · Population Statistics · Lead Identification</span>
+          <span class="sec-tag">Population Property Distributions · Statistical Analysis · Lead Compound Identification</span>
         </div>""", unsafe_allow_html=True)
         
         if display_data:

@@ -40,7 +40,7 @@ def _build_prompt(compound: dict, mode: str) -> str:
     }
     props_text = "\n".join(f"  {k}: {v}" for k, v in props.items())
 
-    if mode == "Overview":
+    if mode == "Compound Overview & Drug-Likeness Assessment":
         return (
             f"You are a medicinal chemistry expert explaining drug analysis results "
             f"to a pharmaceutical researcher. Given these ADMET properties for compound {props['ID']}:\n\n"
@@ -51,14 +51,14 @@ def _build_prompt(compound: dict, mode: str) -> str:
             f"(3) potential liabilities or concerns, "
             f"(4) recommended next steps in drug development."
         )
-    elif mode == "Safety Analysis":
+    elif mode == "Toxicity & Safety Liability Analysis":
         return (
             f"You are a toxicology expert. Analyse the safety profile of compound {props['ID']}:\n\n"
             f"{props_text}\n\n"
             f"Focus on: PAINS/BRENK flags, hERG risk, TPSA implications for absorption, "
             f"and any structural concerns. Be specific and actionable. 2-3 paragraphs."
         )
-    elif mode == "Optimisation Hints":
+    elif mode == "Lead Optimisation Recommendations":
         return (
             f"You are a drug design expert providing lead optimisation guidance for compound {props['ID']}:\n\n"
             f"{props_text}\n\n"
@@ -115,22 +115,22 @@ def render_tab(res: list, api_key: str = ""):
 
     # Compound picker
     ids = [c.get("ID", f"Cpd-{i+1}") for i, c in enumerate(res)]
-    sel_id = st.selectbox("Select compound to explain", ids, key="_aiexp_sel")
+    sel_id = st.selectbox("Select Compound for AI Explanation", ids, key="_aiexp_sel")
     compound = next((c for c in res if c.get("ID", "") == sel_id), res[0])
 
     # Analysis mode
     mode = st.radio(
-        "Analysis Mode",
-        ["Overview", "Safety Analysis", "Optimisation Hints", "Property Deep Dive"],
+        "Explanation Mode",
+        ["Compound Overview & Drug-Likeness Assessment", "Toxicity & Safety Liability Analysis", "Lead Optimisation Recommendations", "In-Depth Physicochemical Property Explanation"],
         horizontal=True,
         key="_aiexp_mode",
     )
 
     # Token budget slider
-    max_tok = st.slider("Response length (tokens)", 200, 1000, 500, 100, key="_aiexp_tokens")
+    max_tok = st.slider("AI Response Detail Level (Tokens)", 200, 1000, 500, 100, key="_aiexp_tokens")
 
     # Quick properties preview
-    with st.expander("Compound Properties"):
+    with st.expander("Compound Physicochemical Profile"):
         pcols = st.columns(4)
         for i, (k, v) in enumerate([
             ("ID", compound.get("ID")), ("MW", compound.get("MW")),
@@ -141,7 +141,7 @@ def render_tab(res: list, api_key: str = ""):
             pcols[i % 4].metric(k, v or "–")
 
     # Generate button
-    if st.button("✨ Generate AI Explanation", key="_aiexp_run", type="primary"):
+    if st.button("✨ Generate Scientific AI Explanation", key="_aiexp_run", type="primary"):
         prompt = _build_prompt(compound, mode)
         with st.spinner("Claude is thinking..."):
             response = _call_claude(prompt, api_key, max_tok)
@@ -158,7 +158,7 @@ def render_tab(res: list, api_key: str = ""):
 
         # Download option
         st.download_button(
-            "↓ Download Explanation",
+            "↓ Download AI Explanation Report",
             data=f"ChemoFilter AI Explainer\nCompound: {sel_id}\nMode: {mode}\n\n{response}",
             file_name=f"ai_explanation_{sel_id}.txt",
             mime="text/plain",
@@ -167,12 +167,12 @@ def render_tab(res: list, api_key: str = ""):
 
     # ── Batch summary mode ────────────────────────────────────────────────
     st.divider()
-    with st.expander("Batch AI Summary (top 3 compounds)"):
-        if st.button("Generate Batch Summary", key="_aiexp_batch"):
+    with st.expander("Batch AI Summary — Top 3 Lead Candidates"):
+        if st.button("Generate Batch Scientific Summary", key="_aiexp_batch"):
             top3 = sorted(res, key=lambda c: float(c.get("LeadScore", 0)), reverse=True)[:3]
             for cpd in top3:
                 with st.spinner(f"Explaining {cpd.get('ID', '–')}..."):
-                    p = _build_prompt(cpd, "Overview")
+                    p = _build_prompt(cpd, "Compound Overview & Drug-Likeness Assessment")
                     r = _call_claude(p, api_key, 300)
                 st.markdown(f"### {cpd.get('ID', '–')}")
                 st.markdown(r)
