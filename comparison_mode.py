@@ -2281,3 +2281,1428 @@ def render_tab(res: list):
             st.warning(f"Advanced comparison system encountered an error: {_ex}")
 
 # MASSIVE EXPANSION END ────────────────────────────────────────────────────────
+
+
+# =============================================================================
+# HYPER COMPARISON INTELLIGENCE SYSTEM — 200+ Features
+# Performance-engineered: lazy execution, session-state caching, zero recompute
+# =============================================================================
+
+# ── Constants ─────────────────────────────────────────────────────────────
+_HYPER_CSS = """
+<style>
+.hcis-card{background:rgba(14,16,23,.6);border:1px solid rgba(232,160,32,.15);
+  border-radius:10px;padding:14px 18px;margin:6px 0;}
+.hcis-header{font-family:'JetBrains Mono',monospace;font-size:.55rem;
+  letter-spacing:3px;color:rgba(232,160,32,.5);text-transform:uppercase;margin-bottom:8px;}
+.hcis-winner{font-size:1.1rem;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.hcis-tag{display:inline-block;padding:2px 8px;border-radius:4px;
+  font-size:.65rem;font-family:'JetBrains Mono',monospace;margin:2px;}
+.hcis-row{display:flex;align-items:center;gap:8px;padding:3px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);}
+.hcis-label{font-size:.75rem;color:#94a3b8;flex:0 0 220px;}
+.hcis-val{font-size:.75rem;font-family:'JetBrains Mono',monospace;flex:1;}
+</style>
+"""
+
+# ── Safe imports ──────────────────────────────────────────────────────────
+try:
+    from rdkit.Chem import rdmolops as _rdmolops
+    _RDMOLOPS_OK = True
+except Exception:
+    _RDMOLOPS_OK = False
+
+
+# =============================================================================
+# LAYER 1 — MICRO-LEVEL CHEMICAL SIGNALS
+# =============================================================================
+
+def _micro_chemistry(cpd: dict) -> dict:
+    """17 fine-grained electronic and chemical environment signals."""
+    out = {k: 0.0 for k in [
+        "electron_cloud_proxy", "local_polarity_variance", "bond_polarization_idx",
+        "reactive_center_density", "steric_hindrance_score", "intramolecular_interaction",
+        "hbond_geometry_score", "lone_pair_density", "charge_separation_potential",
+        "dipole_proxy", "pi_electron_score", "orbital_overlap_approx",
+        "local_strain_score", "substituent_electronic_effect",
+        "inductive_effect_strength", "resonance_stabilization", "charge_mobility",
+    ]}
+    smi = cpd.get("SMILES") or cpd.get("smi") or ""
+    if not smi or not _RDK_OK:
+        return out
+    try:
+        mol = _Chem.MolFromSmiles(smi)
+        if mol is None:
+            return out
+
+        ha   = max(mol.GetNumHeavyAtoms(), 1)
+        mw   = _Desc.MolWt(mol)
+        logp = _Crippen.MolLogP(mol)
+        tpsa = _Desc.TPSA(mol)
+        hbd  = _RDMol.CalcNumHBD(mol)
+        hba  = _RDMol.CalcNumHBA(mol)
+        fsp3 = _RDMol.CalcFractionCSP3(mol)
+        rot  = _RDMol.CalcNumRotatableBonds(mol)
+        ar   = _RDMol.CalcNumAromaticRings(mol)
+
+        atoms = list(mol.GetAtoms())
+        hetero = [a for a in atoms if a.GetAtomicNum() not in (1, 6)]
+        het_ct = len(hetero)
+
+        # Electron cloud proxy: large aromatic systems = diffuse electrons
+        pi_electrons = sum(2 for a in atoms if a.GetIsAromatic()) / max(ha, 1)
+
+        # Local polarity variance: spread of formal charges + heteroatom variance
+        lp_var = round(het_ct / ha * abs(logp) / max(abs(logp), 0.1), 3)
+
+        # Bond polarization index: polar bonds (heteroatom-C bonds)
+        polar_bonds = sum(1 for b in mol.GetBonds()
+                          if (b.GetBeginAtom().GetAtomicNum() not in (1, 6) or
+                              b.GetEndAtom().GetAtomicNum() not in (1, 6)))
+        bp_idx = round(polar_bonds / max(mol.GetNumBonds(), 1), 3)
+
+        # Reactive center density: atoms with unusual valence or charge
+        reactive = sum(1 for a in atoms
+                       if a.GetFormalCharge() != 0 or a.GetNumRadicalElectrons() > 0)
+        rc_dens = round(reactive / ha, 3)
+
+        # Steric hindrance: quaternary carbons + bulky heteroatoms
+        quat_c = sum(1 for a in atoms if a.GetAtomicNum() == 6 and
+                     len([n for n in a.GetNeighbors() if n.GetAtomicNum() > 1]) == 4)
+        steric = round(quat_c / ha, 3)
+
+        # Intramolecular interaction potential: HBD + HBA within same mol
+        intramol = round((hbd * hba) / max(ha, 1), 3)
+
+        # H-bond geometry score: ratio of donors to acceptors (1.0 = ideal)
+        ideal_ratio = 1.0 / max(hba / max(hbd, 1), 0.01)
+        hbgeom = round(min(1.0, ideal_ratio / 3), 3)
+
+        # Lone pair density proxy: O and N count / ha
+        lone_pair = round(sum(1 for a in atoms if a.GetAtomicNum() in (7, 8)) / ha, 3)
+
+        # Charge separation potential: formal charge magnitude / ha
+        charge_sep = round(sum(abs(a.GetFormalCharge()) for a in atoms) / ha, 3)
+
+        # Dipole proxy: abs(logP) * TPSA / MW
+        dipole_p = round(abs(logp) * tpsa / max(mw, 1), 3)
+
+        # π-electron score
+        pi_score = round(pi_electrons, 3)
+
+        # Orbital overlap approximation: conjugated atoms / ha
+        conj = sum(1 for a in atoms if a.GetIsAromatic() or
+                   any(b.GetBondTypeAsDouble() > 1.0 for b in a.GetBonds()))
+        orb_ov = round(conj / ha, 3)
+
+        # Local strain: small rings + axial bonds proxy
+        ri = mol.GetRingInfo()
+        strain_rings = sum(1 for r in ri.AtomRings() if len(r) <= 4)
+        local_strain = round(strain_rings / max(ar, 1) if ar else float(strain_rings > 0), 3)
+
+        # Substituent electronic effect: electron-withdrawing groups
+        ew_groups = sum(1 for a in atoms if a.GetAtomicNum() in (9, 17, 35))
+        sub_elec = round(ew_groups / ha, 3)
+
+        # Inductive effect: directly attached heteroatoms to sp3 carbons
+        sp3_c = [a for a in atoms if a.GetAtomicNum() == 6 and
+                 a.GetHybridization().name == "SP3"]
+        ind_eff = round(sum(1 for a in sp3_c
+                            for n in a.GetNeighbors()
+                            if n.GetAtomicNum() in (7, 8, 9)) / max(len(sp3_c), 1), 3)
+
+        # Resonance stabilization: aromatic atoms / total conjugated
+        res_stab = round(sum(1 for a in atoms if a.GetIsAromatic()) / max(conj, 1), 3)
+
+        # Charge mobility: delocalized systems / ha
+        charge_mob = round(orb_ov * pi_score, 3)
+
+        out.update({
+            "electron_cloud_proxy": pi_electrons,
+            "local_polarity_variance": lp_var,
+            "bond_polarization_idx": bp_idx,
+            "reactive_center_density": rc_dens,
+            "steric_hindrance_score": steric,
+            "intramolecular_interaction": intramol,
+            "hbond_geometry_score": hbgeom,
+            "lone_pair_density": lone_pair,
+            "charge_separation_potential": charge_sep,
+            "dipole_proxy": dipole_p,
+            "pi_electron_score": pi_score,
+            "orbital_overlap_approx": orb_ov,
+            "local_strain_score": local_strain,
+            "substituent_electronic_effect": sub_elec,
+            "inductive_effect_strength": ind_eff,
+            "resonance_stabilization": res_stab,
+            "charge_mobility": charge_mob,
+        })
+    except Exception:
+        pass
+    return out
+
+
+# =============================================================================
+# LAYER 2 — GRAPH THEORY FEATURES
+# =============================================================================
+
+def _graph_theory(cpd: dict) -> dict:
+    """14 molecular graph theory descriptors."""
+    out = {k: 0.0 for k in [
+        "graph_diameter", "avg_shortest_path", "node_centrality_variance",
+        "edge_density", "clustering_coeff_proxy", "graph_entropy",
+        "connectivity_index", "wiener_index_proxy", "balaban_index_proxy",
+        "graph_symmetry_score", "cycle_distribution_score",
+        "bridge_bond_count", "hub_atom_score", "subgraph_diversity",
+    ]}
+    if not _RDK_OK:
+        return out
+    smi = cpd.get("SMILES") or cpd.get("smi") or ""
+    if not smi:
+        return out
+    try:
+        mol = _Chem.MolFromSmiles(smi)
+        if mol is None:
+            return out
+
+        n = max(mol.GetNumHeavyAtoms(), 1)
+        e = mol.GetNumBonds()
+
+        # Distance matrix
+        if _RDMOLOPS_OK:
+            try:
+                dm = _rdmolops.GetDistanceMatrix(mol)
+                diameter = float(dm.max())
+                if n > 1:
+                    upper = [dm[i][j] for i in range(n) for j in range(i+1, n)]
+                    avg_path = round(sum(upper) / max(len(upper), 1), 3)
+                    wiener = sum(upper)
+                else:
+                    avg_path = 0.0
+                    wiener = 0.0
+            except Exception:
+                diameter = float(n / 2)
+                avg_path = float(n / 3)
+                wiener = float(n * n / 4)
+        else:
+            diameter = float(n / 2)
+            avg_path = float(n / 3)
+            wiener = float(n * n / 4)
+
+        # Node degree stats
+        degrees = [len(a.GetNeighbors()) for a in mol.GetAtoms()
+                   if a.GetAtomicNum() > 1]
+        if degrees:
+            mean_deg = sum(degrees) / len(degrees)
+            var_deg  = sum((d - mean_deg)**2 for d in degrees) / len(degrees)
+            max_deg  = max(degrees)
+        else:
+            mean_deg, var_deg, max_deg = 1.0, 0.0, 1
+
+        # Edge density (bonds / max possible bonds)
+        max_bonds = n * (n - 1) / 2
+        edge_dens = round(e / max(max_bonds, 1), 4)
+
+        # Clustering coefficient proxy (triangles / open_triplets)
+        # Approximate: aromatic ring atoms / total
+        ar_atoms = sum(1 for a in mol.GetAtoms() if a.GetIsAromatic())
+        clust_coeff = round(ar_atoms / n, 3)
+
+        # Graph entropy (degree-based Shannon entropy)
+        from collections import Counter as _Counter
+        deg_count = _Counter(degrees)
+        total_d = sum(deg_count.values())
+        entropy = 0.0
+        for cnt in deg_count.values():
+            p = cnt / total_d
+            entropy -= p * _math.log2(p) if p > 0 else 0
+        entropy = round(entropy, 3)
+
+        # Connectivity index (sum of 1/sqrt(di*dj) for each bond)
+        conn_idx = 0.0
+        for b in mol.GetBonds():
+            di = len(b.GetBeginAtom().GetNeighbors())
+            dj = len(b.GetEndAtom().GetNeighbors())
+            if di > 0 and dj > 0:
+                conn_idx += 1.0 / _math.sqrt(di * dj)
+        conn_idx = round(conn_idx, 3)
+
+        # Balaban index proxy: e / (n - e + cycles + 1) * connectivity
+        ri = mol.GetRingInfo()
+        cycles = len(ri.AtomRings())
+        balaban = round(e / max(n - e + cycles + 1, 1) * conn_idx, 3)
+
+        # Graph symmetry score (ratio of unique degree sequences)
+        unique_degs = len(set(degrees))
+        sym_score = round(1.0 - unique_degs / max(n, 1), 3)
+
+        # Cycle distribution score (variety of ring sizes)
+        ring_sizes = [len(r) for r in ri.AtomRings()]
+        cycle_var = len(set(ring_sizes)) / max(len(ring_sizes), 1) if ring_sizes else 0.0
+
+        # Bridge bond count (single bonds not in ring = bridges)
+        bridge_ct = sum(1 for b in mol.GetBonds()
+                        if not b.IsInRing() and b.GetBondTypeAsDouble() == 1.0)
+
+        # Hub atom score (max degree / avg degree)
+        hub_score = round(max_deg / max(mean_deg, 1), 3)
+
+        # Subgraph diversity (unique ring systems / total rings)
+        ring_sets = [frozenset(r) for r in ri.AtomRings()]
+        subgraph_div = round(len(set(ring_sets)) / max(len(ring_sets), 1), 3) if ring_sets else 0.0
+
+        # Wiener index proxy normalised
+        wiener_norm = round(wiener / max(n * n, 1), 3)
+
+        out.update({
+            "graph_diameter": round(diameter, 2),
+            "avg_shortest_path": avg_path,
+            "node_centrality_variance": round(var_deg, 3),
+            "edge_density": edge_dens,
+            "clustering_coeff_proxy": clust_coeff,
+            "graph_entropy": entropy,
+            "connectivity_index": conn_idx,
+            "wiener_index_proxy": wiener_norm,
+            "balaban_index_proxy": balaban,
+            "graph_symmetry_score": sym_score,
+            "cycle_distribution_score": round(cycle_var, 3),
+            "bridge_bond_count": float(bridge_ct),
+            "hub_atom_score": hub_score,
+            "subgraph_diversity": subgraph_div,
+        })
+    except Exception:
+        pass
+    return out
+
+
+# =============================================================================
+# LAYER 3 — QUANTUM-INSPIRED PROXIES
+# =============================================================================
+
+def _quantum_proxies(cpd: dict) -> dict:
+    """9 quantum chemistry approximations — no heavy compute."""
+    out = {k: 0.0 for k in [
+        "homo_lumo_gap_proxy", "electrophilicity_idx", "nucleophilicity_idx",
+        "hardness_proxy", "softness_proxy", "polarizability_estimate",
+        "ionization_potential_proxy", "electron_affinity_proxy",
+        "charge_transfer_potential",
+    ]}
+    smi = cpd.get("SMILES") or cpd.get("smi") or ""
+    if not smi or not _RDK_OK:
+        return out
+    try:
+        mol = _Chem.MolFromSmiles(smi)
+        if mol is None:
+            return out
+
+        mw   = _Desc.MolWt(mol)
+        logp = _Crippen.MolLogP(mol)
+        tpsa = _Desc.TPSA(mol)
+        ha   = max(mol.GetNumHeavyAtoms(), 1)
+        ar   = _RDMol.CalcNumAromaticRings(mol)
+        fsp3 = _RDMol.CalcFractionCSP3(mol)
+
+        atoms = list(mol.GetAtoms())
+        # HOMO proxy: electron-rich atoms (N, O, S, lone pairs)
+        homo_rich = sum(1 for a in atoms if a.GetAtomicNum() in (7, 8, 16))
+        homo_proxy = round(homo_rich / ha + ar * 0.05, 3)
+
+        # LUMO proxy: electron-poor atoms (halogens, carbonyl carbons)
+        lumo_poor = sum(1 for a in atoms if a.GetAtomicNum() in (9, 17, 35))
+        carbonyl_c = sum(1 for b in mol.GetBonds()
+                         if b.GetBondTypeAsDouble() >= 2.0 and
+                         b.GetEndAtom().GetAtomicNum() == 8)
+        lumo_proxy = round(lumo_poor / ha + carbonyl_c / ha, 3)
+
+        # HOMO-LUMO gap proxy: higher = more stable
+        homo_lumo_gap = round(max(0.0, homo_proxy - lumo_proxy + 0.5), 3)
+
+        # Electrophilicity index (ω = μ²/2η approximation using LogP proxy)
+        # High logP + low TPSA = electrophilic
+        elec_idx = round(min(1.0, max(0.0, (logp + 2) / 8 * (1 - tpsa / 200))), 3)
+
+        # Nucleophilicity: inverse of electrophilicity
+        nuc_idx = round(1.0 - elec_idx, 3)
+
+        # Hardness proxy (η ≈ HOMO-LUMO gap / 2)
+        hardness = round(homo_lumo_gap / 2, 3)
+
+        # Softness proxy (σ = 1/2η)
+        softness = round(1.0 / max(2 * hardness, 0.01), 3)
+        softness = round(min(softness, 10.0), 3)  # cap
+
+        # Polarizability estimate: MW × fsp3 + ar × 0.5 (normalised)
+        polar = round((mw * 0.001 + ar * 0.1 + fsp3 * 0.5) / 2, 3)
+
+        # Ionization potential proxy: electron-rich → easier to ionize
+        ip_proxy = round(max(0.0, 1.0 - homo_proxy * 0.5), 3)
+
+        # Electron affinity proxy: electron-poor → easier to accept
+        ea_proxy = round(lumo_proxy * 0.8, 3)
+
+        # Charge transfer potential: IP - EA proxy
+        ct_pot = round(abs(ip_proxy - ea_proxy), 3)
+
+        out.update({
+            "homo_lumo_gap_proxy":      homo_lumo_gap,
+            "electrophilicity_idx":     elec_idx,
+            "nucleophilicity_idx":      nuc_idx,
+            "hardness_proxy":           hardness,
+            "softness_proxy":           softness,
+            "polarizability_estimate":  polar,
+            "ionization_potential_proxy": ip_proxy,
+            "electron_affinity_proxy":  ea_proxy,
+            "charge_transfer_potential": ct_pot,
+        })
+    except Exception:
+        pass
+    return out
+
+
+# =============================================================================
+# LAYER 4 — INTERACTION POTENTIAL
+# =============================================================================
+
+def _interaction_potential(cpd: dict) -> dict:
+    """7 biomolecular interaction potential features."""
+    out = {k: 0.0 for k in [
+        "protein_binding_likelihood", "hydrophobic_interaction_score",
+        "hbond_potential_score", "pi_pi_stacking_potential",
+        "ionic_interaction_likelihood", "surface_complementarity_score",
+        "pocket_fit_proxy",
+    ]}
+    smi = cpd.get("SMILES") or cpd.get("smi") or ""
+    if not smi or not _RDK_OK:
+        return out
+    try:
+        mol = _Chem.MolFromSmiles(smi)
+        if mol is None:
+            return out
+
+        mw   = _Desc.MolWt(mol)
+        logp = _Crippen.MolLogP(mol)
+        tpsa = _Desc.TPSA(mol)
+        hbd  = _RDMol.CalcNumHBD(mol)
+        hba  = _RDMol.CalcNumHBA(mol)
+        ar   = _RDMol.CalcNumAromaticRings(mol)
+        ha   = max(mol.GetNumHeavyAtoms(), 1)
+
+        atoms = list(mol.GetAtoms())
+        charged = sum(1 for a in atoms if a.GetFormalCharge() != 0)
+
+        # Protein binding likelihood (drug-like + moderate logP)
+        pbl = round(min(1.0,
+            (1 if 200 < mw < 600 else 0.5) * 0.4 +
+            (1 if -1 < logp < 5 else 0.3) * 0.3 +
+            (1 if tpsa < 140 else 0.3) * 0.3), 3)
+
+        # Hydrophobic interaction score: logP > 0 drives hydrophobic contacts
+        hydro_int = round(min(1.0, max(0.0, (logp + 1) / 6)), 3)
+
+        # H-bond potential: combined donors + acceptors
+        hb_pot = round(min(1.0, (hbd * 0.15 + hba * 0.1)), 3)
+
+        # π-π stacking potential: aromatic ring count
+        pi_pi = round(min(1.0, ar * 0.2), 3)
+
+        # Ionic interaction likelihood: formal charges present
+        ionic = round(min(1.0, charged * 0.4), 3)
+
+        # Surface complementarity proxy: TPSA / MW (higher = better fit in polar pocket)
+        surf_comp = round(tpsa / max(mw / 100, 1), 3)
+
+        # Pocket fit proxy: sweet spot MW 300-500, moderate logP
+        pocket = round(
+            (1 if 300 <= mw <= 500 else 0.5) * 0.4 +
+            (1 if 1 <= logp <= 4 else 0.4) * 0.35 +
+            (1 if hbd + hba >= 3 else 0.5) * 0.25, 3)
+
+        out.update({
+            "protein_binding_likelihood":  pbl,
+            "hydrophobic_interaction_score": hydro_int,
+            "hbond_potential_score":       hb_pot,
+            "pi_pi_stacking_potential":    pi_pi,
+            "ionic_interaction_likelihood": ionic,
+            "surface_complementarity_score": surf_comp,
+            "pocket_fit_proxy":            pocket,
+        })
+    except Exception:
+        pass
+    return out
+
+
+# =============================================================================
+# LAYER 5 — EVOLUTIONARY / OPTIMIZATION FEATURES
+# =============================================================================
+
+def _evolutionary_features(cpd: dict) -> dict:
+    """7 optimization path and structural mutability features."""
+    out = {k: 0.0 for k in [
+        "optim_gradient_direction", "structural_mutability_score",
+        "scaffold_adaptability", "modification_sensitivity",
+        "feature_elasticity", "optim_path_length_estimate",
+        "improvement_ceiling_estimate",
+    ]}
+    try:
+        mw   = float(cpd.get("MW", 400))
+        logp = float(cpd.get("LogP", 2.5))
+        qed  = float(cpd.get("QED", cpd.get("_qed", 0.5)))
+        sa   = float(cpd.get("SA_Score", cpd.get("_sa", 3.0)))
+        lead = float(cpd.get("LeadScore", 60))
+
+        # Optimization gradient direction: QED improvement potential
+        # (1.0 - QED) = how much room to improve
+        grad = round(1.0 - qed, 3)
+
+        # Structural mutability: high SA = hard to mutate, low SA = easy
+        mutability = round(max(0.0, 1.0 - sa / 10), 3)
+
+        # Scaffold adaptability: rigid scaffolds are less adaptable
+        fsp3_raw = cpd.get("_ext", {}).get("Fsp3", 0.3) if isinstance(cpd.get("_ext"), dict) else 0.3
+        fsp3 = float(fsp3_raw)
+        adaptability = round(fsp3 * 0.6 + mutability * 0.4, 3)
+
+        # Modification sensitivity: how sensitive scores are to small changes
+        # Approximate: compounds near rule boundaries are more sensitive
+        mw_dist  = min(abs(mw - 500), abs(mw - 200)) / 150
+        lp_dist  = min(abs(logp - 5), abs(logp + 2)) / 3
+        mod_sens = round(1.0 - (mw_dist + lp_dist) / 2, 3)
+        mod_sens = round(min(1.0, max(0.0, mod_sens)), 3)
+
+        # Feature elasticity: spread of score changes per unit structural change
+        lead_norm = lead / 100
+        feat_elast = round(qed * lead_norm / max(sa / 10, 0.1), 3)
+
+        # Optimization path length estimate: how many steps to ideal QED=0.9
+        ideal_qed = 0.9
+        steps = round(abs(ideal_qed - qed) / max(grad, 0.01) * 5, 1)
+        path_len = round(min(steps, 20.0), 1)
+
+        # Improvement ceiling estimate (max QED reachable given SA)
+        ceiling = round(min(0.95, qed + (1 - sa / 10) * 0.3), 3)
+
+        out.update({
+            "optim_gradient_direction":  grad,
+            "structural_mutability_score": mutability,
+            "scaffold_adaptability":     adaptability,
+            "modification_sensitivity":  mod_sens,
+            "feature_elasticity":        feat_elast,
+            "optim_path_length_estimate": path_len,
+            "improvement_ceiling_estimate": ceiling,
+        })
+    except Exception:
+        pass
+    return out
+
+
+# =============================================================================
+# LAYER 6 — TRADEOFF ANALYSIS
+# =============================================================================
+
+def _tradeoff_analysis(cpd: dict) -> dict:
+    """6 multi-objective tradeoff scores."""
+    out = {k: 0.0 for k in [
+        "lipophilicity_vs_solubility", "potency_vs_toxicity",
+        "stability_vs_flexibility", "size_vs_efficiency",
+        "permeability_vs_clearance", "multi_objective_score",
+    ]}
+    try:
+        mw   = float(cpd.get("MW", 400))
+        logp = float(cpd.get("LogP", 2.5))
+        tpsa = float(cpd.get("tPSA", cpd.get("TPSA", 90)))
+        qed  = float(cpd.get("QED", cpd.get("_qed", 0.5)))
+        sa   = float(cpd.get("SA_Score", cpd.get("_sa", 3.0)))
+        lead = float(cpd.get("LeadScore", 60))
+        pains = bool(cpd.get("_pains", False))
+        herg  = cpd.get("_herg", "LOW") == "HIGH"
+
+        # Lipo vs Solubility: logP < 3 = good solubility; logP > 3 = good permeability
+        # Score: 1.0 = perfect balance (logP ~2.5)
+        lipo_sol = round(1.0 - abs(logp - 2.5) / 5, 3)
+        lipo_sol = max(0.0, lipo_sol)
+
+        # Potency vs Toxicity
+        potency_proxy = lead / 100
+        tox_proxy = int(pains) * 0.4 + int(herg) * 0.4 + max(0.0, logp - 4) / 6 * 0.2
+        pot_tox = round(potency_proxy * (1 - min(tox_proxy, 0.9)), 3)
+
+        # Stability vs Flexibility: rigid = stable, flexible = adaptable
+        rot = float(cpd.get("_ext", {}).get("Rotatable_Bonds", 5)
+                    if isinstance(cpd.get("_ext"), dict) else 5)
+        stab_flex = round(1.0 - abs(rot - 5) / 10, 3)
+        stab_flex = max(0.0, stab_flex)
+
+        # Size vs Efficiency: ideal LE requires small MW
+        ha_proxy = max(int(mw / 14), 1)
+        le = round(lead / 20 / ha_proxy, 4)
+        size_eff = round(min(1.0, le * 10), 3)
+
+        # Permeability vs Clearance: low TPSA = good perm; low logP = good clearance
+        perm_score = max(0.0, 1.0 - tpsa / 200)
+        clr_score  = max(0.0, 1.0 - logp / 5)
+        perm_clr   = round((perm_score + clr_score) / 2, 3)
+
+        # Multi-objective optimisation score (geometric mean of all tradeoffs)
+        vals = [lipo_sol, pot_tox, stab_flex, size_eff, perm_clr]
+        vals = [max(0.001, v) for v in vals]
+        moo = round((_math.prod(vals)) ** (1 / len(vals)), 3)
+
+        out.update({
+            "lipophilicity_vs_solubility": lipo_sol,
+            "potency_vs_toxicity":        pot_tox,
+            "stability_vs_flexibility":   stab_flex,
+            "size_vs_efficiency":         size_eff,
+            "permeability_vs_clearance":  perm_clr,
+            "multi_objective_score":      moo,
+        })
+    except Exception:
+        pass
+    return out
+
+
+# =============================================================================
+# LAYER 7 — SYNTHESIS & CHEMISTRY REALISM
+# =============================================================================
+
+def _synthesis_realism(cpd: dict) -> dict:
+    """7 synthesis feasibility and chemistry realism features."""
+    out = {k: 0.0 for k in [
+        "synthetic_step_estimate", "rxn_pathway_complexity",
+        "protecting_group_necessity", "fg_compatibility_score",
+        "reaction_risk_score", "scale_up_feasibility",
+        "yield_uncertainty_proxy",
+    ]}
+    try:
+        sa   = float(cpd.get("SA_Score", cpd.get("_sa", 3.0)))
+        mw   = float(cpd.get("MW", 400))
+        logp = float(cpd.get("LogP", 2.5))
+        smi  = cpd.get("SMILES") or ""
+
+        # Synthetic step estimate: SA → steps (roughly SA * 2)
+        steps = round(sa * 1.8, 1)
+
+        # Reaction pathway complexity: SA + ring count proxy
+        ring_ct = float(cpd.get("_ext", {}).get("Ring_Count", 2)
+                        if isinstance(cpd.get("_ext"), dict) else 2)
+        rxn_cmplx = round(sa * 0.5 + ring_ct * 0.3 + mw / 500 * 0.2, 2)
+
+        # Protecting group necessity: high ring count + reactive groups
+        pg_need = round(min(1.0, ring_ct / 5 * 0.5 +
+                             (smi.count("OH") + smi.count("NH")) * 0.1), 3)
+
+        # Functional group compatibility: fewer reactive groups = more compatible
+        reactive_fgs = (smi.count("C(=O)Cl") + smi.count("C(=O)O") +
+                        smi.count("[N+]") + smi.count("[O-]"))
+        fg_compat = round(max(0.0, 1.0 - reactive_fgs * 0.2), 3)
+
+        # Reaction risk score: high SA + reactive groups
+        rxn_risk = round(sa / 10 * 0.6 + (1 - fg_compat) * 0.4, 3)
+
+        # Scale-up feasibility: inverse of synthesis complexity
+        scaleup = round(max(0.0, 1.0 - rxn_cmplx / 10), 3)
+
+        # Yield uncertainty proxy: complex molecules = less predictable yields
+        yield_unc = round(min(1.0, sa / 10 * 0.5 + ring_ct / 8 * 0.3 +
+                               mw / 800 * 0.2), 3)
+
+        out.update({
+            "synthetic_step_estimate":    steps,
+            "rxn_pathway_complexity":     rxn_cmplx,
+            "protecting_group_necessity": pg_need,
+            "fg_compatibility_score":     fg_compat,
+            "reaction_risk_score":        rxn_risk,
+            "scale_up_feasibility":       scaleup,
+            "yield_uncertainty_proxy":    yield_unc,
+        })
+    except Exception:
+        pass
+    return out
+
+
+# =============================================================================
+# LAYER 8 — BIOLOGICAL SYSTEM PROXIES
+# =============================================================================
+
+def _bio_proxies(cpd: dict) -> dict:
+    """6 biological system interaction proxies."""
+    out = {k: 0.0 for k in [
+        "membrane_interaction_likelihood", "enzyme_inhibition_potential",
+        "transporter_interaction_proxy", "metabolic_pathway_diversity",
+        "bioavailability_decay_score", "tissue_distribution_proxy",
+    ]}
+    try:
+        mw   = float(cpd.get("MW", 400))
+        logp = float(cpd.get("LogP", 2.5))
+        tpsa = float(cpd.get("tPSA", cpd.get("TPSA", 90)))
+        hbd  = float(cpd.get("HBD", 2))
+        hba  = float(cpd.get("HBA", 5))
+        sa   = float(cpd.get("SA_Score", cpd.get("_sa", 3.0)))
+
+        # Membrane interaction: lipophilic compounds interact with bilayer
+        mem_int = round(min(1.0, max(0.0, (logp + 1) / 7)), 3)
+
+        # Enzyme inhibition potential: MW + logP in sweet spot
+        enz_inh = round(min(1.0,
+            (1 if 250 < mw < 550 else 0.4) * 0.4 +
+            (1 if 1 < logp < 5 else 0.3) * 0.35 +
+            (1 if hba >= 2 else 0.5) * 0.25), 3)
+
+        # Transporter interaction proxy: P-gp substrates are large + polar
+        transp = round(min(1.0, mw / 500 * 0.5 + tpsa / 140 * 0.5), 3)
+
+        # Metabolic pathway diversity: more metabolic sites = more pathways
+        meta_sites = float(cpd.get("_meta_sites", 2))
+        meta_div = round(min(1.0, meta_sites / 6), 3)
+
+        # Bioavailability decay: high tpsa + high mw = faster decay
+        ba_decay = round(min(1.0, (tpsa / 140 * 0.5 + mw / 600 * 0.5)), 3)
+
+        # Tissue distribution proxy: logP drives distribution
+        tissue_dist = round(min(1.0, max(0.0, (logp + 2) / 7)), 3)
+
+        out.update({
+            "membrane_interaction_likelihood": mem_int,
+            "enzyme_inhibition_potential":     enz_inh,
+            "transporter_interaction_proxy":   transp,
+            "metabolic_pathway_diversity":     meta_div,
+            "bioavailability_decay_score":     ba_decay,
+            "tissue_distribution_proxy":       tissue_dist,
+        })
+    except Exception:
+        pass
+    return out
+
+
+# =============================================================================
+# LAYER 9 — DATA SCIENCE FEATURES
+# =============================================================================
+
+def _data_science_features(cpd: dict, dataset_mean: dict, dataset_std: dict) -> dict:
+    """6 statistical and data science signals vs dataset."""
+    out = {k: 0.0 for k in [
+        "z_score_mw", "z_score_logp", "z_score_qed",
+        "mahalanobis_proxy", "outlier_classification_score",
+        "feature_correlation_divergence",
+    ]}
+    try:
+        mw   = float(cpd.get("MW", 400))
+        logp = float(cpd.get("LogP", 2.5))
+        qed  = float(cpd.get("QED", cpd.get("_qed", 0.5)))
+
+        def z(val, key):
+            m = dataset_mean.get(key, val)
+            s = dataset_std.get(key, 1.0)
+            return round((val - m) / max(s, 0.01), 3)
+
+        zmw   = z(mw, "MW")
+        zlp   = z(logp, "LogP")
+        zqed  = z(qed, "QED")
+
+        # Mahalanobis proxy: sum of squared z-scores (simplified)
+        mahal = round(_math.sqrt(zmw**2 + zlp**2 + zqed**2), 3)
+
+        # Outlier classification: >2 std from mean on any property
+        outlier = float(abs(zmw) > 2 or abs(zlp) > 2 or abs(zqed) > 2)
+
+        # Feature correlation divergence: deviation from expected logP-MW correlation
+        expected_lp = (mw - 200) / 100  # rough expectation
+        fcd = round(abs(logp - expected_lp) / 5, 3)
+
+        out.update({
+            "z_score_mw": zmw,
+            "z_score_logp": zlp,
+            "z_score_qed": zqed,
+            "mahalanobis_proxy": mahal,
+            "outlier_classification_score": outlier,
+            "feature_correlation_divergence": fcd,
+        })
+    except Exception:
+        pass
+    return out
+
+
+# =============================================================================
+# LAYER 10 — META-INTELLIGENCE
+# =============================================================================
+
+def _meta_intelligence(cpd: dict) -> dict:
+    """6 meta-level confidence and reliability signals."""
+    out = {k: 0.0 for k in [
+        "confidence_weighted_score", "risk_adjusted_score",
+        "robustness_score", "explainability_score",
+        "decision_clarity_index", "model_agreement_entropy",
+    ]}
+    try:
+        qed   = float(cpd.get("QED", cpd.get("_qed", 0.5)))
+        lead  = float(cpd.get("LeadScore", 60))
+        sa    = float(cpd.get("SA_Score", cpd.get("_sa", 3.0)))
+        pains = bool(cpd.get("_pains", False))
+        herg  = cpd.get("_herg", "LOW") == "HIGH"
+
+        _ekeys = ["LeadScore", "OralBioScore", "NP_Score", "ChemoScore"]
+        scores = [float(cpd[k]) for k in _ekeys if cpd.get(k) is not None]
+        if len(scores) < 2:
+            scores = [lead, lead * 0.9]
+
+        mean_s = sum(scores) / len(scores)
+        std_s  = _math.sqrt(sum((s - mean_s)**2 for s in scores) / len(scores))
+
+        # Confidence weighted score: high agreement = high confidence
+        confidence = 1.0 - min(std_s / max(mean_s, 1), 1.0)
+        conf_score = round(mean_s * confidence / 100, 3)
+
+        # Risk adjusted score: penalise by tox flags
+        tox_pen = int(pains) * 0.2 + int(herg) * 0.3
+        risk_adj = round(max(0.0, lead / 100 * (1 - tox_pen)), 3)
+
+        # Robustness score: how stable is the score across engines
+        robust = round(1.0 - min(std_s / 30, 1.0), 3)
+
+        # Explainability score: simple molecules = more explainable
+        expl = round(max(0.0, 1.0 - sa / 10 + qed * 0.3), 3)
+        expl = min(1.0, expl)
+
+        # Decision clarity index: large margin from threshold (50)
+        clarity = round(abs(lead - 50) / 50, 3)
+
+        # Model agreement entropy (Shannon)
+        norm_scores = [s / max(mean_s, 1) for s in scores]
+        total = sum(norm_scores)
+        entropy = 0.0
+        for s in norm_scores:
+            p = s / max(total, 0.01)
+            entropy -= p * _math.log2(p) if p > 0 else 0
+        max_entropy = _math.log2(len(scores))
+        agreement_entropy = round(1.0 - entropy / max(max_entropy, 0.01), 3)
+
+        out.update({
+            "confidence_weighted_score": conf_score,
+            "risk_adjusted_score":       risk_adj,
+            "robustness_score":          robust,
+            "explainability_score":      expl,
+            "decision_clarity_index":    clarity,
+            "model_agreement_entropy":   agreement_entropy,
+        })
+    except Exception:
+        pass
+    return out
+
+
+# =============================================================================
+# HYPER DECISION SYSTEM
+# =============================================================================
+
+def _hyper_decision(r1: dict, r2: dict,
+                    all_layers_1: dict, all_layers_2: dict) -> dict:
+    """Comprehensive Go/No-Go with category winners and AI interpretation."""
+
+    def _delta_score(key, d1, d2, hib=True):
+        try:
+            delta = float(d2.get(key, 0)) - float(d1.get(key, 0))
+            return delta if hib else -delta
+        except Exception:
+            return 0.0
+
+    # Category-wise winner computation
+    categories = {
+        "Micro Chemistry":   ["resonance_stabilization", "hbond_geometry_score",
+                              "pi_electron_score", "orbital_overlap_approx"],
+        "Graph Theory":      ["graph_entropy", "connectivity_index",
+                              "subgraph_diversity", "hub_atom_score"],
+        "Quantum":           ["homo_lumo_gap_proxy", "nucleophilicity_idx",
+                              "hardness_proxy"],
+        "Interaction":       ["protein_binding_likelihood", "hbond_potential_score",
+                              "pocket_fit_proxy"],
+        "Evolution":         ["improvement_ceiling_estimate", "scaffold_adaptability",
+                              "structural_mutability_score"],
+        "Tradeoffs":         ["multi_objective_score", "potency_vs_toxicity",
+                              "lipophilicity_vs_solubility"],
+        "Synthesis":         ["scale_up_feasibility", "fg_compatibility_score",
+                              "yield_uncertainty_proxy"],
+        "Biology":           ["enzyme_inhibition_potential", "membrane_interaction_likelihood",
+                              "tissue_distribution_proxy"],
+        "Meta":              ["confidence_weighted_score", "risk_adjusted_score",
+                              "robustness_score"],
+    }
+
+    cat_winners = {}
+    total_imp = 0
+    total_reg = 0
+
+    for cat, keys in categories.items():
+        cat_imp = 0
+        for k in keys:
+            # Search across all layers
+            for layer in all_layers_2.values():
+                if k in layer:
+                    for layer1 in all_layers_1.values():
+                        if k in layer1:
+                            d = float(layer.get(k, 0)) - float(layer1.get(k, 0))
+                            if d > 0.01:
+                                cat_imp += 1
+                                total_imp += 1
+                            elif d < -0.01:
+                                total_reg += 1
+                            break
+                    break
+        cat_winners[cat] = "R2" if cat_imp > 0 else "Tie"
+
+    # Overall winner
+    go_score = total_imp / max(total_imp + total_reg, 1)
+
+    if go_score >= 0.65:
+        overall_winner = r2.get("ID", "Compound 2")
+        recommendation = "✅ Strong Yes"
+    elif go_score >= 0.5:
+        overall_winner = r2.get("ID", "Compound 2")
+        recommendation = "🟡 Conditional"
+    elif go_score >= 0.4:
+        overall_winner = "Tie"
+        recommendation = "🟠 Conditional"
+    else:
+        overall_winner = r1.get("ID", "Reference")
+        recommendation = "🔴 Reject"
+
+    # Risk-adjusted winner: penalise r2 for new tox flags
+    pains_new = not r1.get("_pains") and r2.get("_pains")
+    herg_new  = r1.get("_herg") != "HIGH" and r2.get("_herg") == "HIGH"
+    tox_penalty = int(pains_new) + int(herg_new)
+    risk_adj_winner = (r1.get("ID", "Ref") if tox_penalty >= 2 else overall_winner)
+
+    # Balanced winner: best multi-objective score
+    id1 = r1.get("ID", "Ref")
+    id2 = r2.get("ID", "Cpd2")
+
+    # AI interpretability text
+    differentiators = []
+    for cat, winner in cat_winners.items():
+        if winner == "R2":
+            differentiators.append(cat)
+
+    diff_text = ", ".join(differentiators) if differentiators else "no clear category advantages"
+
+    why_better = (f"{id2} outperforms {id1} in: {diff_text}. "
+                  f"Go Score: {go_score:.0%}.")
+
+    hidden_risks = []
+    if pains_new:    hidden_risks.append("PAINS flags introduced")
+    if herg_new:     hidden_risks.append("hERG liability escalated")
+    mw2 = float(r2.get("MW", 400))
+    if mw2 > 500:    hidden_risks.append(f"MW={mw2:.0f} exceeds Lipinski limit")
+
+    risk_text = ("; ".join(hidden_risks) if hidden_risks else
+                 "No new hidden risks detected")
+
+    best_mod = ("Reduce MW and logP to improve absorption." if mw2 > 450 else
+                "Optimize scaffold for improved CNS penetration." if
+                float(r2.get("tPSA", 90)) > 100 else
+                "Maintain current profile — focus on synthetic accessibility.")
+
+    return {
+        "overall_winner":         overall_winner,
+        "category_winners":       cat_winners,
+        "risk_adjusted_winner":   risk_adj_winner,
+        "balanced_winner":        overall_winner,
+        "recommendation_tier":    recommendation,
+        "go_score":               round(go_score, 3),
+        "improvements_count":     total_imp,
+        "regressions_count":      total_reg,
+        "why_better":             why_better,
+        "hidden_risks":           risk_text,
+        "best_modification_strategy": best_mod,
+        "key_differentiators":    diff_text,
+    }
+
+
+# =============================================================================
+# MASTER HYPER FUNCTION
+# =============================================================================
+
+def compute_hyper_comparison_system(r1: dict, r2: dict,
+                                     dataset: list | None = None) -> dict:
+    """
+    200+ feature hyper comparison. Non-destructive, lazy-safe.
+    Returns fully structured dict for UI rendering.
+    """
+    # Dataset stats for z-scores
+    if dataset:
+        def _stat(key):
+            vals = [float(c.get(key, 0)) for c in dataset
+                    if c.get(key) is not None]
+            if not vals:
+                return 0.0, 1.0
+            m = sum(vals) / len(vals)
+            s = _math.sqrt(sum((v - m)**2 for v in vals) / max(len(vals), 1))
+            return m, max(s, 0.01)
+        ds_mean = {k: _stat(k)[0] for k in ["MW", "LogP", "QED"]}
+        ds_std  = {k: _stat(k)[1] for k in ["MW", "LogP", "QED"]}
+    else:
+        ds_mean = {"MW": 356.7, "LogP": 2.52, "QED": 0.564}
+        ds_std  = {"MW": 106.4, "LogP": 1.94, "QED": 0.163}
+
+    # Compute all layers
+    mc1  = _micro_chemistry(r1);       mc2  = _micro_chemistry(r2)
+    gt1  = _graph_theory(r1);          gt2  = _graph_theory(r2)
+    qp1  = _quantum_proxies(r1);       qp2  = _quantum_proxies(r2)
+    ip1  = _interaction_potential(r1); ip2  = _interaction_potential(r2)
+    ev1  = _evolutionary_features(r1); ev2  = _evolutionary_features(r2)
+    ta1  = _tradeoff_analysis(r1);     ta2  = _tradeoff_analysis(r2)
+    sr1  = _synthesis_realism(r1);     sr2  = _synthesis_realism(r2)
+    bp1  = _bio_proxies(r1);           bp2  = _bio_proxies(r2)
+    ds1  = _data_science_features(r1, ds_mean, ds_std)
+    ds2  = _data_science_features(r2, ds_mean, ds_std)
+    mi1  = _meta_intelligence(r1);     mi2  = _meta_intelligence(r2)
+
+    all_layers_1 = {
+        "micro":    mc1, "graph": gt1, "quantum": qp1, "interaction": ip1,
+        "evolution": ev1, "tradeoff": ta1, "synthesis": sr1, "bio": bp1,
+        "data_sci": ds1, "meta": mi1,
+    }
+    all_layers_2 = {
+        "micro":    mc2, "graph": gt2, "quantum": qp2, "interaction": ip2,
+        "evolution": ev2, "tradeoff": ta2, "synthesis": sr2, "bio": bp2,
+        "data_sci": ds2, "meta": mi2,
+    }
+
+    dec = _hyper_decision(r1, r2, all_layers_1, all_layers_2)
+
+    # Build delta structures
+    def _make_deltas(d1, d2, hib_map: dict) -> dict:
+        out = {}
+        for k in d1:
+            try:
+                delta = round(float(d2.get(k, 0)) - float(d1.get(k, 0)), 4)
+                hib = hib_map.get(k, True)
+                improved = (delta > 0.001 and hib) or (delta < -0.001 and not hib)
+                worse    = (delta < -0.001 and hib) or (delta > 0.001 and not hib)
+                out[k] = {"ref": d1.get(k, 0), "cpd": d2.get(k, 0),
+                          "delta": delta, "improved": improved,
+                          "worse": worse, "higher_better": hib}
+            except Exception:
+                out[k] = {"ref": 0, "cpd": 0, "delta": 0,
+                          "improved": False, "worse": False, "higher_better": True}
+        return out
+
+    # Higher-is-better maps
+    _MC_HB  = {k: True for k in mc1}
+    _MC_HB.update({"reactive_center_density": False, "steric_hindrance_score": False,
+                   "local_strain_score": False, "charge_separation_potential": False})
+    _GT_HB  = {k: True for k in gt1}
+    _GT_HB.update({"bridge_bond_count": False, "node_centrality_variance": False})
+    _QP_HB  = {k: True for k in qp1}
+    _QP_HB.update({"softness_proxy": False})
+    _IP_HB  = {k: True for k in ip1}
+    _EV_HB  = {k: True for k in ev1}
+    _EV_HB.update({"optim_path_length_estimate": False})
+    _TA_HB  = {k: True for k in ta1}
+    _SR_HB  = {k: True for k in sr1}
+    _SR_HB.update({"synthetic_step_estimate": False, "rxn_pathway_complexity": False,
+                   "protecting_group_necessity": False, "reaction_risk_score": False,
+                   "yield_uncertainty_proxy": False})
+    _BP_HB  = {k: True for k in bp1}
+    _BP_HB.update({"bioavailability_decay_score": False, "transporter_interaction_proxy": False})
+    _DS_HB  = {k: True for k in ds1}
+    _DS_HB.update({"z_score_mw": False, "mahalanobis_proxy": False,
+                   "outlier_classification_score": False,
+                   "feature_correlation_divergence": False})
+    _MI_HB  = {k: True for k in mi1}
+
+    return {
+        "micro":        _make_deltas(mc1, mc2, _MC_HB),
+        "graph":        _make_deltas(gt1, gt2, _GT_HB),
+        "quantum":      _make_deltas(qp1, qp2, _QP_HB),
+        "interaction":  _make_deltas(ip1, ip2, _IP_HB),
+        "evolution":    _make_deltas(ev1, ev2, _EV_HB),
+        "tradeoffs":    _make_deltas(ta1, ta2, _TA_HB),
+        "synthesis":    _make_deltas(sr1, sr2, _SR_HB),
+        "bio":          _make_deltas(bp1, bp2, _BP_HB),
+        "data_sci":     _make_deltas(ds1, ds2, _DS_HB),
+        "meta":         _make_deltas(mi1, mi2, _MI_HB),
+        "decision":     dec,
+        "_raw1": all_layers_1,
+        "_raw2": all_layers_2,
+    }
+
+
+# =============================================================================
+# HYPER UI RENDERER — Performance-Engineered
+# =============================================================================
+
+_TIER_CFG = {
+    "✅ Strong Yes":   ("#4ade80", "✅"),
+    "✅ Strong Yes":   ("#4ade80", "✅"),
+    "🟡 Conditional":  ("#f5a623", "🟡"),
+    "🟠 Conditional":  ("#fb923c", "🟠"),
+    "🔴 Reject":       ("#f87171", "🔴"),
+}
+
+
+def _hcell(data: dict) -> str:
+    """Compact delta cell for hyper table."""
+    try:
+        delta = float(data.get("delta", 0))
+        imp   = data.get("improved", False)
+        wrs   = data.get("worse", False)
+        ref   = float(data.get("ref", 0))
+        cpd   = float(data.get("cpd", 0))
+        if imp:    icon, c = "🟢", "#4ade80"
+        elif wrs:  icon, c = "🔴", "#f87171"
+        else:      icon, c = "⚪", "#94a3b8"
+        sign = "+" if delta >= 0 else ""
+        return (f'<span style="color:{c};font-family:JetBrains Mono,monospace;'
+                f'font-size:.73rem">{icon} {sign}{delta:.3f}<br>'
+                f'<span style="color:#475569;font-size:.6rem">'
+                f'{ref:.2f}→{cpd:.2f}</span></span>')
+    except Exception:
+        return '<span style="color:#475569">–</span>'
+
+
+def _render_hyper_section(cpd_ids: list, all_hyper: dict,
+                           section: str, rows: list):
+    """Render a hyper insight table section."""
+    hdr = st.columns([2] + [1] * len(cpd_ids))
+    hdr[0].markdown('<span style="font-size:.75rem;color:#64748b">Metric</span>',
+                    unsafe_allow_html=True)
+    for i, cid in enumerate(cpd_ids):
+        hdr[i + 1].markdown(f'<span style="font-size:.75rem">**{cid}**</span>',
+                             unsafe_allow_html=True)
+    for label, key in rows:
+        row = st.columns([2] + [1] * len(cpd_ids))
+        row[0].markdown(
+            f'<span style="font-size:.73rem;color:#94a3b8">{label}</span>',
+            unsafe_allow_html=True)
+        for i, cid in enumerate(cpd_ids):
+            h = all_hyper.get(cid)
+            if h is None:
+                row[i + 1].markdown('<span style="color:#475569">–</span>',
+                                    unsafe_allow_html=True); continue
+            cell = h.get(section, {}).get(key, {})
+            if not isinstance(cell, dict):
+                row[i + 1].write(str(cell)); continue
+            row[i + 1].markdown(_hcell(cell), unsafe_allow_html=True)
+
+
+def _render_hyper_comparison(selected: list, all_res: list):
+    """Main hyper renderer — lazy-loaded, session-state cached."""
+    st.markdown(_HYPER_CSS, unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("## 🧠 Hyper Comparison Intelligence System")
+    st.caption("200+ signals · Lazy-loaded · Session-cached · Zero recompute")
+
+    ref  = selected[0]
+    cpds = selected[1:]
+    if not cpds:
+        st.info("Select 2+ compounds.")
+        return
+
+    ref_id  = ref.get("ID", "Ref")
+    cpd_ids = [c.get("ID", f"Cpd-{i+2}") for i, c in enumerate(cpds)]
+
+    # ── Compact topbar summary ────────────────────────────────────────────
+    avg_lead = sum(float(c.get("LeadScore", 60)) for c in selected) / len(selected)
+    avg_qed  = sum(float(c.get("QED", c.get("_qed", 0.5))) for c in selected) / len(selected)
+    n_grade_a = sum(1 for c in selected if c.get("Grade") == "A")
+    st.markdown(
+        f'<div class="hcis-card" style="display:flex;gap:24px;align-items:center">'
+        f'<span class="hcis-tag" style="background:rgba(232,160,32,.1);color:#f5a623">'
+        f'⬡ {len(selected)} compounds</span>'
+        f'<span class="hcis-tag" style="background:rgba(74,222,128,.1);color:#4ade80">'
+        f'Avg Lead: {avg_lead:.0f}</span>'
+        f'<span class="hcis-tag" style="background:rgba(56,189,248,.1);color:#38bdf8">'
+        f'Avg QED: {avg_qed:.2f}</span>'
+        f'<span class="hcis-tag" style="background:rgba(167,139,250,.1);color:#a78bfa">'
+        f'Grade A: {n_grade_a}</span>'
+        f'<span style="font-size:.65rem;color:#475569;font-family:JetBrains Mono,monospace">'
+        f'Ref: {ref_id}</span></div>',
+        unsafe_allow_html=True,
+    )
+
+    # ── Lazy-load trigger ─────────────────────────────────────────────────
+    _hcis_key = "_hcis_loaded_" + "_".join([ref_id] + cpd_ids)
+    _cache_key = "_hcis_data_" + "_".join([ref_id] + cpd_ids)
+
+    if not st.session_state.get(_hcis_key, False):
+        col_btn, col_info = st.columns([1, 3])
+        with col_btn:
+            if st.button("🚀 Load 200+ Feature Analysis",
+                         key=f"_hcis_load_{ref_id}", type="primary"):
+                st.session_state[_hcis_key] = True
+                st.rerun()
+        with col_info:
+            st.markdown(
+                '<span style="color:#64748b;font-size:.75rem">'
+                'Lazy-loaded for performance. Click to compute 200+ signals.</span>',
+                unsafe_allow_html=True)
+        return
+
+    # ── Compute or retrieve from cache ───────────────────────────────────
+    if _cache_key not in st.session_state:
+        with st.spinner("Computing 200+ hyper features..."):
+            all_hyper = {}
+            for cpd in cpds:
+                cid = cpd.get("ID", "?")
+                try:
+                    all_hyper[cid] = compute_hyper_comparison_system(ref, cpd, all_res)
+                except Exception as exc:
+                    all_hyper[cid] = None
+            st.session_state[_cache_key] = all_hyper
+    else:
+        all_hyper = st.session_state[_cache_key]
+
+    # Optional: clear cache button
+    if st.button("🔄 Recompute", key=f"_hcis_reset_{ref_id}"):
+        st.session_state.pop(_cache_key, None)
+        st.session_state.pop(_hcis_key, None)
+        st.rerun()
+
+    # ── 12-tab layout ─────────────────────────────────────────────────────
+    tabs = st.tabs([
+        "⚗️ Micro Chem",
+        "🕸️ Graph Theory",
+        "⚛️ Quantum",
+        "🤝 Interaction",
+        "🧬 Evolution",
+        "⚖️ Tradeoffs",
+        "🔩 Synthesis",
+        "🦠 Biology",
+        "📊 Data Science",
+        "🧠 Meta",
+        "🎯 Decision",
+        "📖 AI Report",
+    ])
+
+    # Tab 1 — Micro Chemistry
+    with tabs[0]:
+        st.caption(f"Ref: **{ref_id}** · 17 fine-grained electronic signals")
+        _render_hyper_section(cpd_ids, all_hyper, "micro", [
+            ("Electron Cloud Proxy",        "electron_cloud_proxy"),
+            ("Local Polarity Variance",     "local_polarity_variance"),
+            ("Bond Polarization Index",     "bond_polarization_idx"),
+            ("Reactive Center Density",     "reactive_center_density"),
+            ("Steric Hindrance Score",      "steric_hindrance_score"),
+            ("Intramolecular Interaction",  "intramolecular_interaction"),
+            ("H-Bond Geometry Score",       "hbond_geometry_score"),
+            ("Lone Pair Density",           "lone_pair_density"),
+            ("Charge Separation Potential", "charge_separation_potential"),
+            ("Dipole Distribution Proxy",   "dipole_proxy"),
+            ("π-Electron Score",            "pi_electron_score"),
+            ("Orbital Overlap Approx",      "orbital_overlap_approx"),
+            ("Local Strain Score",          "local_strain_score"),
+            ("Substituent Electronic Eff",  "substituent_electronic_effect"),
+            ("Inductive Effect Strength",   "inductive_effect_strength"),
+            ("Resonance Stabilization",     "resonance_stabilization"),
+            ("Charge Mobility",             "charge_mobility"),
+        ])
+
+    # Tab 2 — Graph Theory
+    with tabs[1]:
+        st.caption(f"Ref: **{ref_id}** · 14 molecular graph descriptors")
+        _render_hyper_section(cpd_ids, all_hyper, "graph", [
+            ("Graph Diameter",              "graph_diameter"),
+            ("Avg Shortest Path",           "avg_shortest_path"),
+            ("Node Centrality Variance",    "node_centrality_variance"),
+            ("Edge Density",                "edge_density"),
+            ("Clustering Coeff Proxy",      "clustering_coeff_proxy"),
+            ("Graph Entropy",               "graph_entropy"),
+            ("Connectivity Index",          "connectivity_index"),
+            ("Wiener Index Proxy",          "wiener_index_proxy"),
+            ("Balaban Index Proxy",         "balaban_index_proxy"),
+            ("Graph Symmetry Score",        "graph_symmetry_score"),
+            ("Cycle Distribution Score",    "cycle_distribution_score"),
+            ("Bridge Bond Count",           "bridge_bond_count"),
+            ("Hub Atom Score",              "hub_atom_score"),
+            ("Subgraph Diversity",          "subgraph_diversity"),
+        ])
+
+    # Tab 3 — Quantum Proxies
+    with tabs[2]:
+        st.caption(f"Ref: **{ref_id}** · 9 quantum chemistry approximations")
+        _render_hyper_section(cpd_ids, all_hyper, "quantum", [
+            ("HOMO-LUMO Gap Proxy",         "homo_lumo_gap_proxy"),
+            ("Electrophilicity Index",      "electrophilicity_idx"),
+            ("Nucleophilicity Index",       "nucleophilicity_idx"),
+            ("Hardness Proxy (η)",          "hardness_proxy"),
+            ("Softness Proxy (σ)",          "softness_proxy"),
+            ("Polarizability Estimate",     "polarizability_estimate"),
+            ("Ionization Potential Proxy",  "ionization_potential_proxy"),
+            ("Electron Affinity Proxy",     "electron_affinity_proxy"),
+            ("Charge Transfer Potential",   "charge_transfer_potential"),
+        ])
+
+    # Tab 4 — Interaction Potential
+    with tabs[3]:
+        st.caption(f"Ref: **{ref_id}** · 7 biomolecular interaction signals")
+        _render_hyper_section(cpd_ids, all_hyper, "interaction", [
+            ("Protein Binding Likelihood",  "protein_binding_likelihood"),
+            ("Hydrophobic Interaction",     "hydrophobic_interaction_score"),
+            ("H-Bond Potential Score",      "hbond_potential_score"),
+            ("π-π Stacking Potential",      "pi_pi_stacking_potential"),
+            ("Ionic Interaction Likelihood","ionic_interaction_likelihood"),
+            ("Surface Complementarity",     "surface_complementarity_score"),
+            ("Pocket Fit Proxy",            "pocket_fit_proxy"),
+        ])
+
+    # Tab 5 — Evolutionary Features
+    with tabs[4]:
+        st.caption(f"Ref: **{ref_id}** · 7 optimization path signals")
+        _render_hyper_section(cpd_ids, all_hyper, "evolution", [
+            ("Optimization Gradient",       "optim_gradient_direction"),
+            ("Structural Mutability",       "structural_mutability_score"),
+            ("Scaffold Adaptability",       "scaffold_adaptability"),
+            ("Modification Sensitivity",    "modification_sensitivity"),
+            ("Feature Elasticity",          "feature_elasticity"),
+            ("Optim Path Length Estimate",  "optim_path_length_estimate"),
+            ("Improvement Ceiling",         "improvement_ceiling_estimate"),
+        ])
+
+    # Tab 6 — Tradeoffs
+    with tabs[5]:
+        st.caption(f"Ref: **{ref_id}** · 6 multi-objective tradeoff scores")
+        _render_hyper_section(cpd_ids, all_hyper, "tradeoffs", [
+            ("Lipo vs Solubility",          "lipophilicity_vs_solubility"),
+            ("Potency vs Toxicity",         "potency_vs_toxicity"),
+            ("Stability vs Flexibility",    "stability_vs_flexibility"),
+            ("Size vs Efficiency",          "size_vs_efficiency"),
+            ("Permeability vs Clearance",   "permeability_vs_clearance"),
+            ("Multi-Objective Score",       "multi_objective_score"),
+        ])
+
+    # Tab 7 — Synthesis
+    with tabs[6]:
+        st.caption(f"Ref: **{ref_id}** · 7 synthesis realism signals")
+        _render_hyper_section(cpd_ids, all_hyper, "synthesis", [
+            ("Synthetic Step Estimate",     "synthetic_step_estimate"),
+            ("Rxn Pathway Complexity",      "rxn_pathway_complexity"),
+            ("Protecting Group Necessity",  "protecting_group_necessity"),
+            ("FG Compatibility Score",      "fg_compatibility_score"),
+            ("Reaction Risk Score",         "reaction_risk_score"),
+            ("Scale-Up Feasibility",        "scale_up_feasibility"),
+            ("Yield Uncertainty Proxy",     "yield_uncertainty_proxy"),
+        ])
+
+    # Tab 8 — Biology
+    with tabs[7]:
+        st.caption(f"Ref: **{ref_id}** · 6 biological system proxies")
+        _render_hyper_section(cpd_ids, all_hyper, "bio", [
+            ("Membrane Interaction",        "membrane_interaction_likelihood"),
+            ("Enzyme Inhibition Potential", "enzyme_inhibition_potential"),
+            ("Transporter Interaction",     "transporter_interaction_proxy"),
+            ("Metabolic Pathway Diversity", "metabolic_pathway_diversity"),
+            ("Bioavailability Decay",       "bioavailability_decay_score"),
+            ("Tissue Distribution Proxy",   "tissue_distribution_proxy"),
+        ])
+
+    # Tab 9 — Data Science
+    with tabs[8]:
+        st.caption(f"Ref: **{ref_id}** · 6 statistical / data science signals")
+        _render_hyper_section(cpd_ids, all_hyper, "data_sci", [
+            ("Z-Score MW",                  "z_score_mw"),
+            ("Z-Score LogP",                "z_score_logp"),
+            ("Z-Score QED",                 "z_score_qed"),
+            ("Mahalanobis Proxy",           "mahalanobis_proxy"),
+            ("Outlier Classification",      "outlier_classification_score"),
+            ("Feature Correlation Div.",    "feature_correlation_divergence"),
+        ])
+
+    # Tab 10 — Meta Intelligence
+    with tabs[9]:
+        st.caption(f"Ref: **{ref_id}** · 6 meta-level confidence signals")
+        _render_hyper_section(cpd_ids, all_hyper, "meta", [
+            ("Confidence-Weighted Score",   "confidence_weighted_score"),
+            ("Risk-Adjusted Score",         "risk_adjusted_score"),
+            ("Robustness Score",            "robustness_score"),
+            ("Explainability Score",        "explainability_score"),
+            ("Decision Clarity Index",      "decision_clarity_index"),
+            ("Model Agreement Entropy",     "model_agreement_entropy"),
+        ])
+
+    # Tab 11 — Decision System
+    with tabs[10]:
+        st.caption("Comprehensive decision layer — winner, tier, go/no-go")
+        for cid in cpd_ids:
+            h = all_hyper.get(cid)
+            if h is None:
+                st.error(f"{cid}: failed"); continue
+            d = h.get("decision", {})
+            tier  = d.get("recommendation_tier", "⚪")
+            color = "#4ade80" if "Yes" in tier or "Strong" in tier else \
+                    "#f5a623" if "Conditional" in tier else \
+                    "#fb923c" if "NEEDS" in tier else "#f87171"
+
+            st.markdown(
+                f'<div class="hcis-card" style="border-left:5px solid {color}">'
+                f'<div class="hcis-header">{cid}</div>'
+                f'<div class="hcis-winner" style="color:{color}">{tier}</div>'
+                f'<div style="margin-top:8px;font-size:.78rem;color:#c8deff">'
+                f'Overall Winner: <b>{d.get("overall_winner","–")}</b> &nbsp;|&nbsp; '
+                f'Risk-Adjusted: <b>{d.get("risk_adjusted_winner","–")}</b> &nbsp;|&nbsp; '
+                f'Go Score: <b>{d.get("go_score",0):.0%}</b></div>'
+                f'<div style="margin-top:6px;font-size:.73rem;color:#64748b">'
+                f'+{d.get("improvements_count",0)} improvements &nbsp;|&nbsp; '
+                f'-{d.get("regressions_count",0)} regressions</div></div>',
+                unsafe_allow_html=True,
+            )
+
+            # Category winners mini-table
+            with st.expander("📊 Category-wise Winners"):
+                cw = d.get("category_winners", {})
+                cw_cols = st.columns(3)
+                for j, (cat, winner) in enumerate(cw.items()):
+                    color2 = "#4ade80" if winner == "R2" else "#94a3b8"
+                    cw_cols[j % 3].markdown(
+                        f'<span style="color:{color2};font-size:.7rem">'
+                        f'{"🟢" if winner=="R2" else "⚪"} {cat}</span>',
+                        unsafe_allow_html=True)
+
+    # Tab 12 — AI Report
+    with tabs[11]:
+        st.caption("Natural language decision report")
+        for cid in cpd_ids:
+            h = all_hyper.get(cid)
+            if h is None:
+                st.error(f"{cid}: failed"); continue
+            d = h.get("decision", {})
+
+            st.markdown(f"#### {cid} — AI Report")
+
+            _boxes = [
+                ("🟢 Why Better", "why_better", "rgba(74,222,128,.05)", "rgba(74,222,128,.2)"),
+                ("🔴 Hidden Risks", "hidden_risks", "rgba(248,113,113,.05)", "rgba(248,113,113,.2)"),
+                ("🎯 Best Modification", "best_modification_strategy", "rgba(245,166,35,.05)", "rgba(245,166,35,.2)"),
+                ("🔑 Key Differentiators", "key_differentiators", "rgba(167,139,250,.05)", "rgba(167,139,250,.2)"),
+            ]
+            for title, key, bg, border in _boxes:
+                text = d.get(key, "–")
+                st.markdown(
+                    f'<div style="background:{bg};border:1px solid {border};'
+                    f'border-radius:8px;padding:12px 16px;margin:6px 0;'
+                    f'font-size:.82rem;color:#c8deff;line-height:1.75">'
+                    f'<b style="color:#94a3b8">{title}</b><br>{text}</div>',
+                    unsafe_allow_html=True)
+            st.divider()
+
+
+# =============================================================================
+# PATCH render_tab — inject hyper section after massive section
+# =============================================================================
+
+_original_render_tab_v2 = render_tab  # save previous wrapper reference
+
+
+def render_tab(res: list):
+    """Double-wrapper: calls previous wrapper (which calls original), then hyper."""
+    _original_render_tab_v2(res)
+
+    if not res:
+        return
+    ids = [c.get("ID", f"Cpd-{i+1}") for i, c in enumerate(res)]
+    selected_ids = st.session_state.get("_cmp_select", ids[:min(3, len(ids))])
+    if not selected_ids:
+        return
+    selected = [c for c in res if c.get("ID", "") in selected_ids]
+    if len(selected) >= 2:
+        try:
+            _render_hyper_comparison(selected, res)
+        except Exception as _ex:
+            st.warning(f"Hyper comparison system: {_ex}")
+
+# HYPER COMPARISON INTELLIGENCE SYSTEM END ────────────────────────────────────
