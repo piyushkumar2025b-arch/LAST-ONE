@@ -2383,6 +2383,7 @@ if _PL_OK:
 def html_export(data):
     rows=""
     for d in data:
+        hc={"LOW":"#4ade80","MEDIUM":"#fcd34d","HIGH":"#ff5c5c"}.get(d["_herg"],"#aaa")
         ac={"Low Risk":"#4ade80","Possible Concern":"#fcd34d","Likely Mutagen":"#ff5c5c"}.get(d["_ames"],"#aaa")
         sc={"Easy":"#4ade80","Moderate":"#fcd34d","Difficult":"#fb923c","Very Hard":"#ff5c5c"}.get(d["SA_Label"],"#aaa")
         gc={"A":"#4ade80","B":"#f5a623","C":"#fcd34d","F":"#ff5c5c"}.get(d["Grade"],"#aaa")
