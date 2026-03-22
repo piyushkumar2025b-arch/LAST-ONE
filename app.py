@@ -38,6 +38,31 @@ import chemo_io as cio
 import advanced_columns_generator as acg
 import copy
 
+# ── NEW: Data Engine, New Columns, External Services ─────────────────────────
+try:
+    import data_engine as _de
+    _DE_OK = True
+except Exception:
+    _DE_OK = False
+    class _de:
+        @staticmethod
+        def enrich_compound(c): return c
+        @staticmethod
+        def enrich_batch(lst): return lst
+        @staticmethod
+        def get_dataset_stats(): return {}
+
+try:
+    import new_columns as _nc
+    _NC_OK = True
+except Exception:
+    _NC_OK = False
+    class _nc:
+        @staticmethod
+        def render_new_columns(data, **kw): pass
+        @staticmethod
+        def render_sidebar_service_links(): pass
+
 # ── SELF-CONTAINED VANGUARD SCREENING ENGINE (inline fallback) ──────
 def _inline_run_vanguard_core(mol, smi):
     from rdkit.Chem import Descriptors, rdMolDescriptors, Crippen, AllChem, DataStructs
@@ -2531,6 +2556,12 @@ with st.container():
 #  SIDEBAR
 # 
 render_sidebar_brand()
+# ── NEW: External service links in sidebar ───────────────────────────────────
+if _NC_OK:
+    try:
+        _nc.render_sidebar_service_links()
+    except Exception:
+        pass
 st.sidebar.markdown("""
 <div style="padding:4px 0 20px">
   <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;font-weight:400;
@@ -2927,7 +2958,17 @@ if input_text.strip():
     
     # Use display_data for all tabs (preserves original data for stats)
     display_data = filtered_data
-    
+
+    # ── NEW: Data engine enrichment (adds 380+ columns, stores to Parquet) ───
+    # Non-blocking: enriches in session, never delays UI
+    if _DE_OK:
+        try:
+            if not st.session_state.get("_de_enriched_hash") or                st.session_state.get("_de_enriched_hash") != str(len(display_data)):
+                display_data = _de.enrich_batch(display_data)
+                st.session_state["_de_enriched_hash"] = str(len(display_data))
+        except Exception:
+            pass  # enrichment is fully optional
+
     if not display_data:
         st.warning("No compounds match your current filter settings in the Discovery Hub.")
         st.stop()
@@ -3417,6 +3458,13 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         st.download_button("↓ Download Print-Ready PDF (HTML→PDF)",
             data=_cached_html, file_name="chemofilter_print.html", mime="text/html",
             help="Open this HTML file in your browser and press Ctrl+P → Save as PDF for a print-ready PDF")
+
+    # ── NEW: Extended Intelligence Columns (add-only, never modifies above) ────
+    if _NC_OK:
+        try:
+            _nc.render_new_columns(display_data)
+        except Exception:
+            pass
 
     # 
     # ══════════════════════════════════════════════════════════════════════
