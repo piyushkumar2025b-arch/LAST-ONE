@@ -22,6 +22,24 @@ except Exception:
     _req = None
     _REQ_OK = False
 
+# ── Reliability layer (fault-tolerant wrapper, health tracking, logging) ──────
+try:
+    from api_reliability import (
+        safe_api_call as _safe_api_call,
+        safe_get as _reliability_get,
+        safe_post as _reliability_post,
+        get_fallback as _get_fallback,
+        _update_health,
+        _audit,
+    )
+    _RELIABILITY_OK = True
+except Exception:
+    _RELIABILITY_OK = False
+    def _safe_api_call(fn, *a, **kw): return fn(*a, **{k: v for k, v in kw.items() if k not in ("source","fallback_data")})
+    def _get_fallback(k, **kw): return {"status": "failed", "data": {}, "source": k, "error": "offline"}
+    def _update_health(*a, **kw): pass
+    def _audit(*a, **kw): pass
+
 try:
     from api_registry import API_REGISTRY, TIER_META, TIER_ORDER
     _REG_OK = True
@@ -103,33 +121,38 @@ def store_result(api_key: str, smiles: str, result: dict):
 
 def _safe_get(url: str, params: dict | None = None,
               timeout: int = _TIMEOUT_DEFAULT) -> tuple:
-    """Returns (response_json, error_string). error_string is None on success."""
+    """Returns (response_json, error_string). Routes through reliability layer."""
+    if _RELIABILITY_OK:
+        import urllib.parse as _up
+        full = url + ("?" + _up.urlencode(params) if params else "")
+        result = _reliability_get(full, timeout=timeout, source="http")
+        if result.get("status") == "success":
+            return result.get("data", {}), None
+        return None, result.get("error", "Request failed")
+    # Fallback: direct call when reliability layer missing
     if not _REQ_OK:
         return None, "requests library not available"
     try:
         r = _req.get(url, params=params, timeout=timeout)
         r.raise_for_status()
         return r.json(), None
-    except _req.exceptions.Timeout:
-        return None, f"Timeout after {timeout}s"
-    except _req.exceptions.ConnectionError:
-        return None, "Connection error (offline?)"
     except Exception as e:
         return None, str(e)[:150]
 
 
 def _safe_post(url: str, json_body: dict,
                timeout: int = _TIMEOUT_DEFAULT) -> tuple:
+    if _RELIABILITY_OK:
+        result = _reliability_post(url, json_body, timeout=timeout, source="http")
+        if result.get("status") == "success":
+            return result.get("data", {}), None
+        return None, result.get("error", "Request failed")
     if not _REQ_OK:
         return None, "requests library not available"
     try:
         r = _req.post(url, json=json_body, timeout=timeout)
         r.raise_for_status()
         return r.json(), None
-    except _req.exceptions.Timeout:
-        return None, f"Timeout after {timeout}s"
-    except _req.exceptions.ConnectionError:
-        return None, "Connection error (offline?)"
     except Exception as e:
         return None, str(e)[:150]
 
@@ -488,21 +511,31 @@ _FETCH_DISPATCH = {
 
 def fetch_api(api_key: str, smiles: str = "", query: str = "", **kwargs) -> dict:
     """
-    Main dispatch function. Checks cache first, then fetches.
+    Main dispatch function. Routes through reliability layer.
+    Checks session cache → fetches → falls back on failure.
     Returns unified response dict. Never crashes.
     """
     cache_key_str = smiles + query + str(sorted(kwargs.items()))
     cached = get_cached_result(api_key, cache_key_str)
-    if cached and cached.get("status") == "ok":
+    if cached and cached.get("status") in ("ok", "success"):
         return cached
     fn = _FETCH_DISPATCH.get(api_key)
     if fn is None:
         result = _fail(api_key, "No fetch function registered for this API")
     else:
         try:
-            result = fn(smiles=smiles, query=query, **kwargs)
+            if _RELIABILITY_OK:
+                raw = _safe_api_call(
+                    fn, smiles=smiles, query=query,
+                    source=api_key, **kwargs)
+                result = raw
+            else:
+                result = fn(smiles=smiles, query=query, **kwargs)
         except Exception as e:
             result = _fail(api_key, str(e))
+    # If result still failed → use fallback
+    if result.get("status") == "failed" and _RELIABILITY_OK:
+        result = _get_fallback(api_key, smiles=smiles)
     store_result(api_key, cache_key_str, result)
     return result
 

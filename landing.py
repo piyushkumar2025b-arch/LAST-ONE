@@ -24,6 +24,17 @@ def render_landing() -> bool:
         cta = st.button("Begin Discovery →", key="_lp_cta", use_container_width=True)
 
     st.markdown(_LOWER_SECTIONS, unsafe_allow_html=True)
+
+    # ── ADDITIVE ENHANCEMENTS (do not modify anything above) ──────────────────
+    # All 10 interactive enhancements: molecule preview, sample selector,
+    # validation, insight panel, feature cards, memory, advanced toggle,
+    # API health, tooltips, micro-animations.
+    try:
+        from landing_enhancements import render_landing_enhancements
+        render_landing_enhancements()
+    except Exception:
+        pass  # enhancements are purely additive — never block launch
+
     return launched or cta
 
 
