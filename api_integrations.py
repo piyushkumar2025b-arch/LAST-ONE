@@ -1,518 +1,544 @@
 """
 api_integrations.py
 ────────────────────────────────────────────────────────────────────────────
-ChemoFilter · External API Integration Module
-• PubChem REST API  — compound enrichment, synonyms, canonical SMILES
-• ChEMBL REST API   — bioactivity data, target interactions
-• PDB REST API      — protein structure context
-• All calls: lazy, @st.cache_data(ttl=86400), timeout=5s, full fallback
-• App works 100% without internet — APIs are optional enrichment only
+ChemoFilter · External Scientific Intelligence — UI Layer
+Tier 1: Core  (PubChem, ChEMBL, PDB)
+Tier 2: Extended  (OpenFDA, UniProt, KEGG, BindingDB, Open Targets …)
+Tier 3: Experimental  (Literature, Genomics, Pharmacology …)
+All calls: lazy, cached, fail-safe. App works 100% offline.
 ────────────────────────────────────────────────────────────────────────────
 """
-
 import streamlit as st
-import urllib.parse
-import json
 
-# ── Safe imports ──────────────────────────────────────────────────────────
 try:
-    import requests as _req
-    _REQ_OK = True
+    from api_registry import API_REGISTRY, TIER_META, TIER_ORDER, TIER_CORE, TIER_EXTENDED, TIER_EXPERIMENTAL, count_by_tier
+    _REG_OK = True
 except Exception:
-    _req = None
-    _REQ_OK = False
+    _REG_OK = False
+    API_REGISTRY = {}; TIER_META = {}; TIER_ORDER = ["core","extended","experimental"]
+    TIER_CORE = {}; TIER_EXTENDED = {}; TIER_EXPERIMENTAL = {}
+    def count_by_tier(): return {}
 
-_TIMEOUT = 5  # seconds — all API calls capped here
+try:
+    from api_manager import fetch_api, is_enabled, set_enabled, status_badge, render_api_status_row
+    _MGR_OK = True
+except Exception:
+    _MGR_OK = False
+    def fetch_api(*a, **k): return {"status":"failed","data":{},"error":"api_manager unavailable"}
+    def is_enabled(k): return False
+    def set_enabled(k, v): pass
+    def status_badge(r): return "⚪"
+    def render_api_status_row(*a): pass
 
-# ─────────────────────────────────────────────────────────────────────────────
-# FALLBACK STRUCTURES — returned when any API fails
-# ─────────────────────────────────────────────────────────────────────────────
+# Keep old pubchem functions for backward compatibility
+try:
+    from api_manager import _fetch_pubchem as fetch_pubchem_by_smiles
+except Exception:
+    def fetch_pubchem_by_smiles(s): return {}
 
-_PUBCHEM_FALLBACK = {
-    "source":       "local_fallback",
-    "name":         "N/A",
-    "iupac_name":   "N/A",
-    "formula":      "N/A",
-    "cid":          None,
-    "synonyms":     [],
-    "canonical_smiles": None,
-    "inchikey":     "N/A",
-    "xlogp":        None,
-    "tpsa":         None,
-    "hbd":          None,
-    "hba":          None,
-    "mw":           None,
-    "rotatable_bonds": None,
-    "complexity":   None,
-    "charge":       None,
-    "error":        None,
-}
-
-_CHEMBL_FALLBACK = {
-    "source":       "local_fallback",
-    "chembl_id":    None,
-    "bioactivities": [],
-    "targets":      [],
-    "assay_count":  0,
-    "error":        None,
-}
-
-_PDB_FALLBACK = {
-    "source":       "local_fallback",
-    "entries":      [],
-    "count":        0,
-    "error":        None,
-}
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 1. PUBCHEM API
-# ─────────────────────────────────────────────────────────────────────────────
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def fetch_pubchem_by_smiles(smiles: str) -> dict:
-    """
-    Fetch PubChem compound data by canonical SMILES.
-    Returns full property dict. Cached 24h. Falls back gracefully.
-    """
-    if not _REQ_OK or not smiles or not smiles.strip():
-        return {**_PUBCHEM_FALLBACK, "error": "No SMILES provided or requests unavailable"}
-    try:
-        enc = urllib.parse.quote(smiles.strip())
-        base = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
-
-        # Step 1: get CID
-        url_cid = f"{base}/compound/smiles/{enc}/cids/JSON"
-        r = _req.get(url_cid, timeout=_TIMEOUT)
-        r.raise_for_status()
-        cid_data = r.json()
-        cids = cid_data.get("IdentifierList", {}).get("CID", [])
-        if not cids:
-            return {**_PUBCHEM_FALLBACK, "error": "Compound not found in PubChem"}
-        cid = cids[0]
-
-        # Step 2: get properties
-        props = "MolecularFormula,MolecularWeight,CanonicalSMILES,InChIKey," \
-                "IUPACName,XLogP,TPSA,HBondDonorCount,HBondAcceptorCount," \
-                "RotatableBondCount,Complexity,Charge"
-        url_props = f"{base}/compound/cid/{cid}/property/{props}/JSON"
-        r2 = _req.get(url_props, timeout=_TIMEOUT)
-        r2.raise_for_status()
-        pdata = r2.json().get("PropertyTable", {}).get("Properties", [{}])[0]
-
-        # Step 3: get synonyms (first 5)
-        url_syn = f"{base}/compound/cid/{cid}/synonyms/JSON"
-        try:
-            r3 = _req.get(url_syn, timeout=_TIMEOUT)
-            r3.raise_for_status()
-            syns = r3.json().get("InformationList", {}).get("Information", [{}])[0].get("Synonym", [])[:5]
-        except Exception:
-            syns = []
-
-        return {
-            "source":          "pubchem",
-            "cid":             cid,
-            "name":            syns[0] if syns else pdata.get("IUPACName", "N/A"),
-            "iupac_name":      pdata.get("IUPACName", "N/A"),
-            "formula":         pdata.get("MolecularFormula", "N/A"),
-            "synonyms":        syns,
-            "canonical_smiles": pdata.get("CanonicalSMILES"),
-            "inchikey":        pdata.get("InChIKey", "N/A"),
-            "xlogp":           pdata.get("XLogP"),
-            "tpsa":            pdata.get("TPSA"),
-            "hbd":             pdata.get("HBondDonorCount"),
-            "hba":             pdata.get("HBondAcceptorCount"),
-            "mw":              pdata.get("MolecularWeight"),
-            "rotatable_bonds": pdata.get("RotatableBondCount"),
-            "complexity":      pdata.get("Complexity"),
-            "charge":          pdata.get("Charge"),
-            "error":           None,
-        }
-
-    except Exception as e:
-        return {**_PUBCHEM_FALLBACK, "error": str(e)[:120]}
-
-
-@st.cache_data(ttl=86400, show_spinner=False)
 def fetch_pubchem_by_name(name: str) -> dict:
-    """Fetch PubChem data by compound name. Returns canonical SMILES and properties."""
-    if not _REQ_OK or not name or not name.strip():
-        return {**_PUBCHEM_FALLBACK, "error": "No name provided"}
     try:
+        import urllib.parse, requests as _r
         enc = urllib.parse.quote(name.strip())
-        url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{enc}/property/CanonicalSMILES,IUPACName,MolecularFormula,MolecularWeight/JSON"
-        r = _req.get(url, timeout=_TIMEOUT)
-        r.raise_for_status()
-        props = r.json().get("PropertyTable", {}).get("Properties", [{}])[0]
-        smiles = props.get("CanonicalSMILES", "")
-        if smiles:
-            return fetch_pubchem_by_smiles(smiles)
-        return {**_PUBCHEM_FALLBACK, "error": "No SMILES in response"}
+        url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{enc}/property/CanonicalSMILES/JSON"
+        r = _r.get(url, timeout=5); r.raise_for_status()
+        smi = r.json().get("PropertyTable",{}).get("Properties",[{}])[0].get("CanonicalSMILES","")
+        if smi:
+            res = fetch_pubchem_by_smiles(smi)
+            return res.get("data", {}) if isinstance(res, dict) and "data" in res else res
+        return {"error": "SMILES not found"}
     except Exception as e:
-        return {**_PUBCHEM_FALLBACK, "error": str(e)[:120]}
+        return {"error": str(e)[:100]}
 
+# ── Styling constants ─────────────────────────────────────────────────────
+_TIER_COLORS = {"core": "#4ade80", "extended": "#f5a623", "experimental": "#a78bfa"}
+_TIER_BG     = {"core": "rgba(74,222,128,.06)", "extended": "rgba(245,166,35,.06)", "experimental": "rgba(167,139,250,.06)"}
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 2. ChEMBL API
-# ─────────────────────────────────────────────────────────────────────────────
+def _card(content: str, color: str = "#f5a623", border_left: bool = True) -> str:
+    border = f"border-left:4px solid {color};" if border_left else ""
+    return (f'<div style="background:rgba(14,16,23,.6);{border}'
+            f'border:1px solid {color}25;border-radius:8px;'
+            f'padding:12px 16px;margin:6px 0;font-size:.78rem;color:#c8deff;line-height:1.7">'
+            f'{content}</div>')
 
-@st.cache_data(ttl=86400, show_spinner=False)
-def fetch_chembl_by_smiles(smiles: str) -> dict:
-    """
-    Search ChEMBL for compound by SMILES similarity.
-    Returns bioactivity data for top hit. Cached 24h.
-    """
-    if not _REQ_OK or not smiles or not smiles.strip():
-        return {**_CHEMBL_FALLBACK, "error": "No SMILES provided"}
-    try:
-        enc = urllib.parse.quote(smiles.strip())
-        base = "https://www.ebi.ac.uk/chembl/api/data"
+def _kv(key: str, val, mono: bool = True) -> str:
+    v = f'<code style="color:#f5a623;background:rgba(245,166,35,.08);padding:1px 6px;border-radius:3px">{val}</code>' if mono else f'<span style="color:#c8deff">{val}</span>'
+    return f'<div style="display:flex;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.03)"><span style="color:#64748b;font-size:.72rem;min-width:160px">{key}</span>{v}</div>'
 
-        # Similarity search (70% threshold)
-        url = f"{base}/similarity/{enc}/70.json?limit=5"
-        r = _req.get(url, timeout=_TIMEOUT)
-        r.raise_for_status()
-        mols = r.json().get("molecules", [])
-
-        if not mols:
-            return {**_CHEMBL_FALLBACK, "error": "No similar compounds in ChEMBL"}
-
-        top_hit = mols[0]
-        chembl_id = top_hit.get("molecule_chembl_id", "")
-
-        # Get bioactivities for top hit
-        url_bio = f"{base}/activity.json?molecule_chembl_id={chembl_id}&limit=10"
-        r2 = _req.get(url_bio, timeout=_TIMEOUT)
-        r2.raise_for_status()
-        activities_raw = r2.json().get("activities", [])
-
-        activities = []
-        for a in activities_raw[:8]:
-            if a.get("standard_value") and a.get("target_pref_name"):
-                activities.append({
-                    "target":     a.get("target_pref_name", "Unknown Target"),
-                    "type":       a.get("standard_type", "Activity"),
-                    "value":      a.get("standard_value"),
-                    "units":      a.get("standard_units", ""),
-                    "assay_desc": a.get("assay_description", ""),
-                    "doc_year":   a.get("document_year"),
-                })
-
-        # Get target list
-        url_tgt = f"{base}/target.json?molecule_chembl_id={chembl_id}&limit=5"
-        try:
-            r3 = _req.get(url_tgt, timeout=_TIMEOUT)
-            r3.raise_for_status()
-            targets = [t.get("pref_name", "") for t in r3.json().get("targets", [])[:5]
-                       if t.get("pref_name")]
-        except Exception:
-            targets = []
-
-        return {
-            "source":       "chembl",
-            "chembl_id":    chembl_id,
-            "similarity":   top_hit.get("similarity", 0),
-            "bioactivities": activities,
-            "targets":      targets,
-            "assay_count":  len(activities),
-            "mol_name":     top_hit.get("pref_name") or chembl_id,
-            "error":        None,
-        }
-
-    except Exception as e:
-        return {**_CHEMBL_FALLBACK, "error": str(e)[:120]}
-
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def fetch_chembl_targets(query: str) -> list:
-    """Search ChEMBL targets by keyword. Returns list of target dicts."""
-    if not _REQ_OK or not query:
-        return []
-    try:
-        enc = urllib.parse.quote(query.strip())
-        url = f"https://www.ebi.ac.uk/chembl/api/data/target/search.json?q={enc}&limit=5"
-        r = _req.get(url, timeout=_TIMEOUT)
-        r.raise_for_status()
-        targets = r.json().get("targets", [])
-        return [
-            {
-                "name":       t.get("pref_name", "Unknown"),
-                "type":       t.get("target_type", ""),
-                "organism":   t.get("organism", ""),
-                "chembl_id":  t.get("target_chembl_id", ""),
-            }
-            for t in targets[:5]
-        ]
-    except Exception:
-        return []
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 3. PROTEIN DATA BANK (PDB)
-# ─────────────────────────────────────────────────────────────────────────────
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def fetch_pdb_entries(query: str) -> dict:
-    """
-    Search PDB for protein structures matching a query term.
-    Returns entry metadata. Cached 24h.
-    """
-    if not _REQ_OK or not query:
-        return {**_PDB_FALLBACK, "error": "No query provided"}
-    try:
-        url = "https://search.rcsb.org/rcsbsearch/v2/query"
-        payload = {
-            "query": {
-                "type": "terminal",
-                "service": "full_text",
-                "parameters": {"value": query.strip()}
-            },
-            "return_type": "entry",
-            "request_options": {"paginate": {"start": 0, "rows": 5}}
-        }
-        r = _req.post(url, json=payload, timeout=_TIMEOUT)
-        r.raise_for_status()
-        result = r.json()
-        entries = result.get("result_set", [])
-
-        if not entries:
-            return {**_PDB_FALLBACK, "error": f"No PDB entries found for '{query}'"}
-
-        entry_data = []
-        for e in entries[:5]:
-            pdb_id = e.get("identifier", "")
-            entry_data.append({
-                "pdb_id":   pdb_id,
-                "score":    round(e.get("score", 0), 3),
-                "url":      f"https://www.rcsb.org/structure/{pdb_id}",
-            })
-
-        return {
-            "source":  "pdb",
-            "entries": entry_data,
-            "count":   result.get("total_count", len(entries)),
-            "error":   None,
-        }
-    except Exception as e:
-        return {**_PDB_FALLBACK, "error": str(e)[:120]}
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 4. UNIFIED COMPOUND ENRICHMENT
-# ─────────────────────────────────────────────────────────────────────────────
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def enrich_compound(smiles: str) -> dict:
-    """
-    Full enrichment pipeline: PubChem + ChEMBL in one call.
-    Both are cached independently. Returns combined dict.
-    """
-    pubchem = fetch_pubchem_by_smiles(smiles)
-    chembl  = fetch_chembl_by_smiles(smiles)
-    return {
-        "pubchem": pubchem,
-        "chembl":  chembl,
-        "smiles":  smiles,
-        "enriched": pubchem.get("error") is None or chembl.get("error") is None,
-    }
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 5. UI RENDERER — "External Scientific Data" section
-# ─────────────────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════
+# MAIN RENDER FUNCTION — External Scientific Intelligence
+# ═══════════════════════════════════════════════════════════════════════════
 
 def render_external_data_section(compound: dict):
     """
-    Renders the External Scientific Data enrichment section.
+    Renders the full tiered External Scientific Intelligence section.
     All API calls are lazy — only fire on button click.
-    Fully safe if all APIs fail.
+    100% safe if all APIs fail.
     """
-    smiles = compound.get("SMILES") or compound.get("smi") or ""
-    cpd_id = compound.get("ID", "Compound")
+    smiles   = compound.get("SMILES") or compound.get("smi") or ""
+    cpd_id   = compound.get("ID", "Compound")
+    cpd_name = compound.get("name", cpd_id)
 
     st.markdown("---")
-    st.markdown("### 🔬 External Scientific Data Enrichment")
-    st.caption(
-        "Fetches real-time data from PubChem, ChEMBL, and PDB. "
-        "Optional enrichment only — core analysis is unaffected if APIs are unavailable."
+    st.markdown("## 🌐 External Scientific Intelligence")
+
+    # Summary header
+    counts = count_by_tier()
+    st.markdown(
+        f'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">'
+        f'<span style="background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);'
+        f'border-radius:6px;padding:4px 12px;font-size:.7rem;color:#4ade80">'
+        f'🟢 {counts.get("core",3)} Core APIs</span>'
+        f'<span style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);'
+        f'border-radius:6px;padding:4px 12px;font-size:.7rem;color:#f5a623">'
+        f'🟡 {counts.get("extended",28)} Extended APIs</span>'
+        f'<span style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);'
+        f'border-radius:6px;padding:4px 12px;font-size:.7rem;color:#a78bfa">'
+        f'🟣 {counts.get("experimental",20)} Experimental APIs</span>'
+        f'<span style="color:#475569;font-size:.68rem;padding:4px 0">'
+        f'All lazy-loaded · 24h cached · Offline-safe</span></div>',
+        unsafe_allow_html=True,
     )
 
     if not smiles:
-        st.info("No SMILES available for this compound — cannot query external databases.")
+        st.info("No SMILES available — cannot query external databases for this compound.")
         return
 
-    # ── PubChem Section ───────────────────────────────────────────────────
-    with st.expander("🧪 PubChem — Compound Identity & Verified Properties", expanded=False):
-        _pc_key = f"_ext_pubchem_{cpd_id}"
-        if not st.session_state.get(_pc_key):
-            st.markdown(
-                '<span style="font-size:.78rem;color:#94a3b8">'
-                'Retrieves verified molecular properties, IUPAC name, synonyms, '
-                'and structure from the NIH PubChem database.</span>',
-                unsafe_allow_html=True)
-            if st.button("🔍 Fetch PubChem Data", key=f"_btn_pc_{cpd_id}"):
-                st.session_state[_pc_key] = True
-                st.rerun()
+    # ── LAYER 1: CORE ──────────────────────────────────────────────────────
+    st.markdown(
+        f'<div style="background:{_TIER_BG["core"]};border:1px solid rgba(74,222,128,.2);'
+        f'border-radius:10px;padding:14px 18px;margin:10px 0">'
+        f'<b style="color:#4ade80">🟢 Layer 1 — Core Databases</b>'
+        f'<span style="color:#64748b;font-size:.72rem;margin-left:12px">'
+        f'Always-available reference databases · Cached 24h</span></div>',
+        unsafe_allow_html=True)
+
+    core_tabs = st.tabs(["🧪 PubChem", "🎯 ChEMBL Bioactivity", "🏗️ Protein Data Bank (PDB)"])
+
+    with core_tabs[0]:
+        _render_pubchem(smiles, cpd_id, compound)
+
+    with core_tabs[1]:
+        _render_chembl(smiles, cpd_id)
+
+    with core_tabs[2]:
+        _render_pdb(cpd_id)
+
+    # ── LAYER 2: EXTENDED ──────────────────────────────────────────────────
+    st.markdown(
+        f'<div style="background:{_TIER_BG["extended"]};border:1px solid rgba(245,166,35,.2);'
+        f'border-radius:10px;padding:14px 18px;margin:10px 0">'
+        f'<b style="color:#f5a623">🟡 Layer 2 — Extended Scientific Databases</b>'
+        f'<span style="color:#64748b;font-size:.72rem;margin-left:12px">'
+        f'Click to fetch · Cached 24h per compound</span></div>',
+        unsafe_allow_html=True)
+
+    ext_tabs = st.tabs([
+        "🏛️ FDA Drug Labels",
+        "🧬 UniProt Targets",
+        "🗺️ KEGG Pathways",
+        "🏥 Clinical Trials",
+        "🛡️ GHS Safety",
+        "💊 GtoPdb Pharmacology",
+        "🌵 NCI Structure",
+        "🔄 UniChem Cross-Refs",
+    ])
+
+    with ext_tabs[0]: _render_openfda(smiles, cpd_id)
+    with ext_tabs[1]: _render_uniprot(cpd_id)
+    with ext_tabs[2]: _render_kegg(cpd_id)
+    with ext_tabs[3]: _render_clinicaltrials(cpd_id)
+    with ext_tabs[4]: _render_chemrisk(smiles, cpd_id, compound)
+    with ext_tabs[5]: _render_gtopdb(cpd_id)
+    with ext_tabs[6]: _render_nci_cactus(cpd_id)
+    with ext_tabs[7]: _render_unichem(compound)
+
+    # ── LAYER 3: EXPERIMENTAL ──────────────────────────────────────────────
+    st.markdown(
+        f'<div style="background:{_TIER_BG["experimental"]};border:1px solid rgba(167,139,250,.2);'
+        f'border-radius:10px;padding:14px 18px;margin:10px 0">'
+        f'<b style="color:#a78bfa">🟣 Layer 3 — Experimental & Literature APIs</b>'
+        f'<span style="color:#64748b;font-size:.72rem;margin-left:12px">'
+        f'Opt-in only · Toggle to enable per session</span></div>',
+        unsafe_allow_html=True)
+
+    exp_tabs = st.tabs([
+        "📰 Europe PMC Literature",
+        "🤖 Semantic Scholar AI",
+        "🏥 DisGeNET Disease",
+        "📋 API Registry Browser",
+    ])
+
+    with exp_tabs[0]: _render_europe_pmc(cpd_id)
+    with exp_tabs[1]: _render_semantic_scholar(cpd_id)
+    with exp_tabs[2]: _render_disgenet(cpd_id)
+    with exp_tabs[3]: _render_api_registry_browser()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# INDIVIDUAL API PANEL RENDERERS
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _fetch_btn(label: str, key: str) -> bool:
+    return st.button(label, key=key, type="primary")
+
+
+# ── PubChem ───────────────────────────────────────────────────────────────
+def _render_pubchem(smiles: str, cpd_id: str, compound: dict):
+    st.caption("NIH PubChem — Verified compound identity, physicochemical properties & synonyms")
+    _ss = f"_apiv2_pubchem_{cpd_id}"
+    if not st.session_state.get(_ss):
+        st.markdown(_card(
+            "Fetches verified molecular properties, IUPAC name, synonyms, InChIKey "
+            "and structure data from the NIH PubChem compound database.",
+            "#4ade80"), unsafe_allow_html=True)
+        if _fetch_btn("🔍 Fetch PubChem Data", f"_btn_pc2_{cpd_id}"):
+            st.session_state[_ss] = True; st.rerun()
+        return
+    with st.spinner("Querying PubChem..."):
+        res = fetch_api("pubchem", smiles=smiles)
+    if res.get("status") != "ok":
+        st.warning(f"PubChem: {res.get('error','Failed')}"); return
+    d = res["data"]
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("CID", d.get("cid","N/A"), help="PubChem Compound ID")
+    c2.metric("Molecular Weight (Da)", d.get("mw","N/A"))
+    c3.metric("Lipophilicity (XLogP)", d.get("xlogp","N/A"), help="XLogP from PubChem")
+    c4.metric("Polar Surface Area (Ų)", d.get("tpsa","N/A"))
+    st.markdown("".join([
+        _kv("IUPAC Name", d.get("iupac_name","N/A")),
+        _kv("Molecular Formula", d.get("formula","N/A")),
+        _kv("InChIKey", d.get("inchikey","N/A")),
+        _kv("Hydrogen Bond Donors", d.get("hbd","N/A")),
+        _kv("Hydrogen Bond Acceptors", d.get("hba","N/A")),
+        _kv("Rotatable Bonds", d.get("rotatable_bonds","N/A")),
+        _kv("Structural Complexity", d.get("complexity","N/A")),
+        _kv("Formal Charge", d.get("charge","N/A")),
+    ]), unsafe_allow_html=True)
+    if d.get("synonyms"):
+        st.markdown("**Known Names / Drug Synonyms:** " + " · ".join(f"`{s}`" for s in d["synonyms"]))
+    # Property cross-check vs local calculation
+    loc_mw = compound.get("MW","?"); loc_lp = compound.get("LogP","?")
+    with st.expander("🔍 PubChem vs Local RDKit Cross-Verification"):
+        vc = st.columns(2)
+        with vc[0]:
+            try: dmw = round(float(d.get("mw",0)) - float(loc_mw), 2); dm_str = f"{dmw:+.2f} Da"
+            except: dm_str = "N/A"
+            st.metric("MW: PubChem vs RDKit", f"{d.get('mw','?')} Da", delta=dm_str, help="Difference vs local RDKit calculation")
+        with vc[1]:
+            try: dlp = round(float(d.get("xlogp",0)) - float(loc_lp), 2); dlp_str = f"{dlp:+.2f}"
+            except: dlp_str = "N/A"
+            st.metric("LogP: PubChem XLogP vs Crippen", f"{d.get('xlogp','?')}", delta=dlp_str)
+    st.markdown(f'<a href="{d.get("pubchem_url","#")}" target="_blank" style="color:#4ade80;font-size:.75rem">🔗 View on PubChem →</a>', unsafe_allow_html=True)
+
+
+# ── ChEMBL ────────────────────────────────────────────────────────────────
+def _render_chembl(smiles: str, cpd_id: str):
+    st.caption("ChEMBL (EMBL-EBI) — Experimental bioactivity, IC50/Ki values & protein targets")
+    _ss = f"_apiv2_chembl_{cpd_id}"
+    if not st.session_state.get(_ss):
+        st.markdown(_card("Retrieves measured bioactivity data (IC₅₀, Ki), known protein targets and assay descriptions from the ChEMBL database.", "#4ade80"), unsafe_allow_html=True)
+        if _fetch_btn("🎯 Fetch ChEMBL Bioactivity Data", f"_btn_ch2_{cpd_id}"):
+            st.session_state[_ss] = True; st.rerun()
+        return
+    with st.spinner("Querying ChEMBL..."):
+        res = fetch_api("chembl", smiles=smiles)
+    if res.get("status") != "ok":
+        st.warning(f"ChEMBL: {res.get('error','Failed')}"); return
+    d = res["data"]
+    st.markdown(f"**Top Structural Match:** `{d.get('mol_name','N/A')}` (ChEMBL ID: `{d.get('chembl_id','N/A')}`, Tanimoto Similarity: `{float(d.get('similarity',0)):.0f}%`)")
+    if d.get("bioactivities"):
+        st.markdown(f"**Experimental Bioactivity Data ({d['assay_count']} assays retrieved):**")
+        import pandas as pd
+        df = pd.DataFrame(d["bioactivities"])
+        df.columns = ["Protein Target", "Activity Type", "Value", "Units", "Publication Year"]
+        st.dataframe(df, use_container_width=True, height=220)
+    else:
+        st.info("No experimental bioactivity data found for structurally similar compounds.")
+    st.markdown(f'<a href="{d.get("chembl_url","#")}" target="_blank" style="color:#4ade80;font-size:.75rem">🔗 View on ChEMBL →</a>', unsafe_allow_html=True)
+
+
+# ── PDB ───────────────────────────────────────────────────────────────────
+def _render_pdb(cpd_id: str):
+    st.caption("RCSB PDB — Protein crystal structures, binding sites & co-crystal ligand context")
+    _ss = f"_apiv2_pdb_{cpd_id}"
+    pdb_q = st.text_input("Search PDB by target or mechanism keyword", placeholder="e.g. kinase, EGFR, protease, GPCR", key=f"_pdbq2_{cpd_id}")
+    if _fetch_btn("🏗️ Search Protein Data Bank", f"_btn_pdb2_{cpd_id}"):
+        if pdb_q.strip(): st.session_state[_ss] = pdb_q.strip()
+    if st.session_state.get(_ss):
+        with st.spinner("Searching PDB..."):
+            res = fetch_api("pdb", query=st.session_state[_ss])
+        if res.get("status") != "ok":
+            st.warning(f"PDB: {res.get('error','Failed')}"); return
+        d = res["data"]
+        st.markdown(f"**{d.get('total_count',0)} total structures found.** Top results:")
+        for e in d.get("entries", []):
+            st.markdown(f'<div style="display:flex;gap:12px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)"><code style="color:#f5a623;font-size:.82rem">{e["pdb_id"]}</code><a href="{e["url"]}" target="_blank" style="color:#38bdf8;font-size:.74rem">View Structure on RCSB →</a><span style="color:#475569;font-size:.65rem">Relevance: {e["score"]}</span></div>', unsafe_allow_html=True)
+
+
+# ── OpenFDA ───────────────────────────────────────────────────────────────
+def _render_openfda(smiles: str, cpd_id: str):
+    st.caption("OpenFDA — FDA-approved drug labels, indications, warnings & adverse events")
+    drug_q = st.text_input("Drug name for FDA label lookup", placeholder="e.g. aspirin, metformin, ibuprofen", key=f"_fdaql_{cpd_id}")
+    if _fetch_btn("🏛️ Fetch FDA Drug Label", f"_btn_fda_{cpd_id}"):
+        if drug_q.strip():
+            with st.spinner("Querying FDA..."):
+                res = fetch_api("openfda", query=drug_q)
+            if res.get("status") != "ok":
+                st.warning(f"OpenFDA: {res.get('error','Not found')}"); return
+            d = res["data"]
+            st.markdown("".join([
+                _kv("Brand Name", d.get("brand_name","N/A")),
+                _kv("Generic Name", d.get("generic_name","N/A")),
+                _kv("Manufacturer", d.get("manufacturer","N/A")),
+                _kv("Route of Administration", d.get("route","N/A")),
+            ]), unsafe_allow_html=True)
+            if d.get("indications"):
+                with st.expander("📋 Indications & Usage"):
+                    st.write(d["indications"])
+            if d.get("warnings"):
+                with st.expander("⚠️ Warnings"):
+                    st.write(d["warnings"])
+
+
+# ── UniProt ───────────────────────────────────────────────────────────────
+def _render_uniprot(cpd_id: str):
+    st.caption("UniProt — Protein sequence, function & disease associations for drug targets")
+    prot_q = st.text_input("Protein or gene name", placeholder="e.g. EGFR, CDK2, PCSK9, ACE2", key=f"_uniql_{cpd_id}")
+    if _fetch_btn("🧬 Fetch UniProt Entry", f"_btn_uni_{cpd_id}"):
+        if prot_q.strip():
+            with st.spinner("Querying UniProt..."):
+                res = fetch_api("uniprot", query=prot_q)
+            if res.get("status") != "ok":
+                st.warning(f"UniProt: {res.get('error','Failed')}"); return
+            for e in res["data"].get("entries", []):
+                with st.expander(f"🧬 {e.get('name','N/A')} — {e.get('protein','N/A')}"):
+                    st.markdown("".join([
+                        _kv("UniProt Accession", e.get("accession","N/A")),
+                        _kv("Organism", e.get("organism","N/A")),
+                        _kv("Function", e.get("function","N/A"), mono=False),
+                    ]), unsafe_allow_html=True)
+
+
+# ── KEGG ──────────────────────────────────────────────────────────────────
+def _render_kegg(cpd_id: str):
+    st.caption("KEGG — Metabolic pathway mapping, enzyme interactions & drug entries")
+    kegg_q = st.text_input("Compound or drug name for KEGG lookup", placeholder="e.g. aspirin, ATP, glucose", key=f"_keggq_{cpd_id}")
+    if _fetch_btn("🗺️ Fetch KEGG Entry", f"_btn_kegg_{cpd_id}"):
+        if kegg_q.strip():
+            with st.spinner("Querying KEGG..."):
+                res = fetch_api("kegg", query=kegg_q)
+            if res.get("status") != "ok":
+                st.warning(f"KEGG: {res.get('error','Failed')}"); return
+            for c in res["data"].get("compounds", []):
+                st.markdown(f'`{c.get("id","?")}` — {c.get("name","N/A")}')
+
+
+# ── Clinical Trials ───────────────────────────────────────────────────────
+def _render_clinicaltrials(cpd_id: str):
+    st.caption("ClinicalTrials.gov — Active and completed clinical trials with phase, status & sponsor")
+    ct_q = st.text_input("Search clinical trials", placeholder="e.g. ibuprofen inflammation, EGFR lung cancer", key=f"_ctq_{cpd_id}")
+    if _fetch_btn("🏥 Search ClinicalTrials.gov", f"_btn_ct_{cpd_id}"):
+        if ct_q.strip():
+            with st.spinner("Querying ClinicalTrials.gov..."):
+                res = fetch_api("clinicaltrials", query=ct_q)
+            if res.get("status") != "ok":
+                st.warning(f"ClinicalTrials: {res.get('error','Failed')}"); return
+            d = res["data"]
+            st.markdown(f"**{d.get('total',0)} trials found.** Top results:")
+            import pandas as pd
+            df = pd.DataFrame(d.get("trials", []))
+            if not df.empty:
+                df.columns = ["NCT ID","Title","Phase","Status","Condition","Sponsor"]
+                st.dataframe(df, use_container_width=True, height=200)
+
+
+# ── GHS Safety ───────────────────────────────────────────────────────────
+def _render_chemrisk(smiles: str, cpd_id: str, compound: dict):
+    st.caption("PubChem GHS Classification — Hazard codes, signal words & precautionary statements")
+    _ss = f"_apiv2_ghs_{cpd_id}"
+    if not st.session_state.get(_ss):
+        if _fetch_btn("🛡️ Fetch GHS Safety Data", f"_btn_ghs_{cpd_id}"):
+            st.session_state[_ss] = True; st.rerun()
+        return
+    with st.spinner("Fetching GHS data..."):
+        # Get CID first via pubchem result if cached
+        pc = fetch_api("pubchem", smiles=smiles)
+        cid = pc.get("data", {}).get("cid", 0) if pc.get("status") == "ok" else 0
+        if not cid:
+            st.info("Fetch PubChem data first to obtain a CID for GHS lookup."); return
+        res = fetch_api("chemrisk", cid=int(cid))
+    if res.get("status") != "ok":
+        st.warning(f"GHS: {res.get('error','Failed')}"); return
+    ghs = res["data"].get("ghs_data", {})
+    if not ghs:
+        st.info("No GHS classification data available for this compound.")
+    for heading, values in list(ghs.items())[:8]:
+        if values:
+            st.markdown(f"**{heading}:**")
+            for v in values[:3]:
+                if v: st.markdown(f"- {v}")
+
+
+# ── GtoPdb ────────────────────────────────────────────────────────────────
+def _render_gtopdb(cpd_id: str):
+    st.caption("Guide to Pharmacology (GtoPdb) — IUPHAR/BPS curated ligand-receptor interactions")
+    gtop_q = st.text_input("Ligand or drug name for pharmacology lookup", placeholder="e.g. aspirin, adrenaline, morphine", key=f"_gtq_{cpd_id}")
+    if _fetch_btn("💊 Fetch Pharmacology Data", f"_btn_gt_{cpd_id}"):
+        if gtop_q.strip():
+            with st.spinner("Querying GtoPdb..."):
+                res = fetch_api("gtopdb", query=gtop_q)
+            if res.get("status") != "ok":
+                st.warning(f"GtoPdb: {res.get('error','Failed')}"); return
+            for lig in res["data"].get("ligands", []):
+                with st.expander(f"💊 {lig.get('name','N/A')} (Ligand ID: {lig.get('ligand_id','')})"):
+                    st.markdown("".join([
+                        _kv("Type", lig.get("type","N/A")),
+                        _kv("Approved Drug", "Yes" if lig.get("approved") else "No"),
+                    ]), unsafe_allow_html=True)
+                    st.markdown(f'<a href="{lig.get("url","#")}" target="_blank" style="color:#f5a623;font-size:.73rem">🔗 View on GtoPdb →</a>', unsafe_allow_html=True)
+
+
+# ── NCI CACTUS ────────────────────────────────────────────────────────────
+def _render_nci_cactus(cpd_id: str):
+    st.caption("NCI CACTUS — Chemical structure resolver: convert drug names to canonical SMILES")
+    nci_q = st.text_input("Enter drug or compound name", placeholder="e.g. paclitaxel, tamoxifen, cisplatin", key=f"_nciq_{cpd_id}")
+    if _fetch_btn("🌵 Resolve Structure via NCI", f"_btn_nci_{cpd_id}"):
+        if nci_q.strip():
+            with st.spinner("Querying NCI CACTUS..."):
+                res = fetch_api("nci_cactus", query=nci_q)
+            if res.get("status") != "ok":
+                st.warning(f"NCI CACTUS: {res.get('error','Failed')}"); return
+            smi = res["data"].get("smiles","")
+            if smi:
+                st.success(f"**Canonical SMILES:** `{smi}`")
+                st.markdown("Copy this SMILES and paste into the compound input panel to analyse.")
+            else:
+                st.info("No SMILES returned from NCI CACTUS.")
+
+
+# ── UniChem ───────────────────────────────────────────────────────────────
+def _render_unichem(compound: dict):
+    cpd_id  = compound.get("ID","?")
+    inchikey = compound.get("InChIKey","")
+    st.caption("UniChem (EMBL-EBI) — Cross-database chemical identifier mapping across 40+ databases")
+    if not inchikey:
+        st.info("InChIKey not available for this compound. Fetch PubChem data first.")
+        return
+    if _fetch_btn("🔄 Fetch Cross-Database References", f"_btn_uni2_{cpd_id}"):
+        with st.spinner("Querying UniChem..."):
+            res = fetch_api("unichem", inchikey=inchikey)
+        if res.get("status") != "ok":
+            st.warning(f"UniChem: {res.get('error','Failed')}"); return
+        refs = res["data"].get("cross_references", [])
+        if refs:
+            import pandas as pd
+            df = pd.DataFrame(refs)
+            df.columns = ["Database", "Compound ID", "Database URL"]
+            st.dataframe(df[["Database","Compound ID"]], use_container_width=True)
         else:
-            with st.spinner("Querying PubChem..."):
-                pc = fetch_pubchem_by_smiles(smiles)
+            st.info("No cross-database references found.")
 
-            if pc.get("error"):
-                st.warning(f"PubChem: {pc['error']}")
+
+# ── Europe PMC ────────────────────────────────────────────────────────────
+def _render_europe_pmc(cpd_id: str):
+    st.caption("Europe PMC — 37M+ open-access biomedical publications (experimental API)")
+    pmc_q = st.text_input("Literature search query", placeholder="e.g. aspirin anti-inflammatory, EGFR inhibitor cancer", key=f"_pmcq_{cpd_id}")
+    if _fetch_btn("📰 Search Biomedical Literature", f"_btn_pmc_{cpd_id}"):
+        if pmc_q.strip():
+            with st.spinner("Searching Europe PMC..."):
+                res = fetch_api("europe_pmc", query=pmc_q)
+            if res.get("status") != "ok":
+                st.warning(f"Europe PMC: {res.get('error','Failed')}"); return
+            d = res["data"]
+            st.markdown(f"**{d.get('hit_count',0):,} total publications found.** Top 5:")
+            for p in d.get("papers", []):
+                with st.expander(f"📰 {p.get('title','N/A')[:90]}..."):
+                    st.markdown("".join([
+                        _kv("PubMed ID", p.get("pmid","N/A")),
+                        _kv("Journal", p.get("journal","N/A")),
+                        _kv("Year", p.get("year","")),
+                        _kv("DOI", p.get("doi","N/A")),
+                    ]), unsafe_allow_html=True)
+                    if p.get("abstract"): st.markdown(f"*{p['abstract'][:400]}...*")
+
+
+# ── Semantic Scholar ──────────────────────────────────────────────────────
+def _render_semantic_scholar(cpd_id: str):
+    st.caption("Semantic Scholar AI — AI-indexed academic papers with TL;DR summaries")
+    ss_q = st.text_input("AI paper search query", placeholder="e.g. drug resistance mechanisms kinase, ADMET machine learning", key=f"_ssq_{cpd_id}")
+    if _fetch_btn("🤖 Search with Semantic Scholar AI", f"_btn_ss_{cpd_id}"):
+        if ss_q.strip():
+            with st.spinner("Querying Semantic Scholar..."):
+                res = fetch_api("semantic_scholar", query=ss_q)
+            if res.get("status") != "ok":
+                st.warning(f"Semantic Scholar: {res.get('error','Failed')}"); return
+            for p in res["data"].get("papers", []):
+                with st.expander(f"🤖 {p.get('title','N/A')[:90]}... ({p.get('year','')})"):
+                    st.markdown("".join([
+                        _kv("Authors", p.get("authors","N/A"), mono=False),
+                        _kv("Citations", p.get("citations",0)),
+                        _kv("DOI", p.get("doi","N/A")),
+                    ]), unsafe_allow_html=True)
+                    if p.get("tldr"): st.markdown(f"**AI Summary (TL;DR):** *{p['tldr']}*")
+
+
+# ── DisGeNET ─────────────────────────────────────────────────────────────
+def _render_disgenet(cpd_id: str):
+    st.caption("DisGeNET — Curated gene–disease association scores from genetics, literature & clinical data")
+    dg_q = st.text_input("Gene symbol", placeholder="e.g. EGFR, BRCA1, TP53, ACE2", key=f"_dgq_{cpd_id}")
+    if _fetch_btn("🏥 Fetch Disease Associations", f"_btn_dg_{cpd_id}"):
+        if dg_q.strip():
+            with st.spinner("Querying DisGeNET..."):
+                res = fetch_api("disgenet", query=dg_q)
+            if res.get("status") != "ok":
+                st.warning(f"DisGeNET: {res.get('error','Failed')}"); return
+            assocs = res["data"].get("associations", [])
+            if assocs:
+                import pandas as pd
+                df = pd.DataFrame(assocs)
+                df.columns = ["Disease Name", "Association Score", "Disease ID"]
+                st.dataframe(df, use_container_width=True)
             else:
-                c1, c2, c3 = st.columns(3)
-                c1.metric("CID", pc.get("cid", "N/A"),
-                          help="PubChem Compound Identifier (CID)")
-                c2.metric("Molecular Formula", pc.get("formula", "N/A"))
-                c3.metric("Molecular Weight (Da)", pc.get("mw", "N/A"),
-                          help="Verified molecular weight from PubChem")
+                st.info("No disease associations found for this gene.")
 
-                st.markdown(f"**IUPAC Name:** `{pc.get('iupac_name', 'N/A')}`")
-                st.markdown(f"**InChIKey:** `{pc.get('inchikey', 'N/A')}`")
 
-                if pc.get("synonyms"):
-                    st.markdown("**Known Names / Synonyms:** " +
-                                " · ".join(f"`{s}`" for s in pc["synonyms"]))
-
-                # Property comparison: PubChem vs local
-                loc_mw   = compound.get("MW", "?")
-                loc_logp = compound.get("LogP", "?")
-                st.markdown("**Property Verification (PubChem vs Local Calculation):**")
-                vcols = st.columns(4)
-                vcols[0].metric("MW (PubChem)", pc.get("mw","?"),
-                                delta=f"{round(float(pc['mw'])-float(loc_mw),2) if pc.get('mw') and loc_mw != '?' else '–'} Da",
-                                help="Difference vs local RDKit calculation")
-                vcols[1].metric("LogP (PubChem XLogP)", pc.get("xlogp","?"),
-                                delta=f"{round(float(pc['xlogp'])-float(loc_logp),2) if pc.get('xlogp') and loc_logp != '?' else '–'}",
-                                help="PubChem XLogP vs local Crippen LogP")
-                vcols[2].metric("TPSA (Ų)", pc.get("tpsa","?"),
-                                help="Topological Polar Surface Area from PubChem")
-                vcols[3].metric("Rotatable Bonds", pc.get("rotatable_bonds","?"))
-
-                st.markdown(
-                    f'<a href="https://pubchem.ncbi.nlm.nih.gov/compound/{pc["cid"]}" '
-                    f'target="_blank" style="color:#f5a623;font-size:.75rem">'
-                    f'🔗 View on PubChem →</a>',
-                    unsafe_allow_html=True)
-
-    # ── ChEMBL Section ────────────────────────────────────────────────────
-    with st.expander("🎯 ChEMBL — Bioactivity & Target Interaction Data", expanded=False):
-        _ch_key = f"_ext_chembl_{cpd_id}"
-        if not st.session_state.get(_ch_key):
-            st.markdown(
-                '<span style="font-size:.78rem;color:#94a3b8">'
-                'Retrieves experimentally measured bioactivity data, IC₅₀ / Ki values, '
-                'and known protein targets from the ChEMBL bioactivity database (EMBL-EBI).</span>',
-                unsafe_allow_html=True)
-            if st.button("🎯 Fetch ChEMBL Bioactivity Data", key=f"_btn_ch_{cpd_id}"):
-                st.session_state[_ch_key] = True
-                st.rerun()
-        else:
-            with st.spinner("Querying ChEMBL..."):
-                ch = fetch_chembl_by_smiles(smiles)
-
-            if ch.get("error"):
-                st.warning(f"ChEMBL: {ch['error']}")
-            else:
-                st.markdown(
-                    f"**Top Similar Compound:** `{ch.get('mol_name','N/A')}` "
-                    f"(ChEMBL ID: `{ch.get('chembl_id','N/A')}`, "
-                    f"Similarity: `{ch.get('similarity','?'):.0f}%`)"
-                )
-
-                if ch.get("targets"):
-                    st.markdown("**Known Protein Targets:**")
-                    for t in ch["targets"]:
-                        st.markdown(
-                            f'<span style="background:rgba(232,160,32,.08);'
-                            f'border:1px solid rgba(232,160,32,.2);border-radius:4px;'
-                            f'padding:2px 8px;font-size:.72rem;color:#f5a623;margin:2px;'
-                            f'display:inline-block">{t}</span>',
-                            unsafe_allow_html=True)
-
-                if ch.get("bioactivities"):
-                    st.markdown(f"**Experimental Bioactivity Data ({ch['assay_count']} assays):**")
-                    import pandas as pd
-                    df = pd.DataFrame(ch["bioactivities"])
-                    df.columns = ["Target", "Activity Type", "Value", "Units",
-                                  "Assay Description", "Publication Year"]
-                    st.dataframe(df[["Target", "Activity Type", "Value", "Units",
-                                     "Publication Year"]].head(8),
-                                 use_container_width=True)
-                else:
-                    st.info("No experimental bioactivity data found for similar compounds.")
-
-                st.markdown(
-                    f'<a href="https://www.ebi.ac.uk/chembl/compound_report_card/{ch["chembl_id"]}/" '
-                    f'target="_blank" style="color:#f5a623;font-size:.75rem">'
-                    f'🔗 View on ChEMBL →</a>',
-                    unsafe_allow_html=True)
-
-    # ── PDB Section ───────────────────────────────────────────────────────
-    with st.expander("🏗️ Protein Data Bank (PDB) — Target Structure Context", expanded=False):
-        _pdb_key = f"_ext_pdb_{cpd_id}"
-        pdb_query_key = f"_pdb_query_{cpd_id}"
-
+# ── API Registry Browser ─────────────────────────────────────────────────
+def _render_api_registry_browser():
+    st.caption("Browse all 53 scientific APIs available in ChemoFilter's integration system")
+    if not _REG_OK:
+        st.info("API registry not available.")
+        return
+    tier_filter = st.selectbox("Filter by tier", ["All"] + TIER_ORDER, key="_reg_tier_filter")
+    search_q = st.text_input("Search APIs", placeholder="ADMET, genomics, pathway...", key="_reg_search")
+    for tier in TIER_ORDER:
+        if tier_filter != "All" and tier_filter != tier:
+            continue
+        meta = TIER_META.get(tier, {})
+        color = meta.get("color", "#94a3b8")
+        tier_apis = {k: v for k, v in API_REGISTRY.items()
+                     if v["tier"] == tier and
+                     (not search_q or
+                      search_q.lower() in v["name"].lower() or
+                      search_q.lower() in v["description"].lower() or
+                      search_q.lower() in v["category"].lower())}
+        if not tier_apis:
+            continue
         st.markdown(
-            '<span style="font-size:.78rem;color:#94a3b8">'
-            'Search the RCSB Protein Data Bank for protein structures related to '
-            'your compound\'s likely target or mechanism.</span>',
+            f'<div style="color:{color};font-family:JetBrains Mono,monospace;'
+            f'font-size:.6rem;letter-spacing:3px;text-transform:uppercase;'
+            f'margin:14px 0 6px">{meta.get("icon","")} {meta.get("label",tier)} '
+            f'({len(tier_apis)} APIs)</div>',
             unsafe_allow_html=True)
-
-        pdb_query = st.text_input(
-            "Search PDB by target name or keyword",
-            placeholder="e.g. kinase, EGFR, protease, GPCR",
-            key=f"_pdb_q_{cpd_id}",
-        )
-
-        if st.button("🏗️ Search Protein Data Bank", key=f"_btn_pdb_{cpd_id}"):
-            st.session_state[_pdb_key] = pdb_query or "drug target"
-            st.rerun()
-
-        if st.session_state.get(_pdb_key):
-            query_used = st.session_state[_pdb_key]
-            with st.spinner(f"Searching PDB for '{query_used}'..."):
-                pdb = fetch_pdb_entries(query_used)
-
-            if pdb.get("error"):
-                st.warning(f"PDB: {pdb['error']}")
-            else:
-                st.markdown(f"**{pdb['count']} structures found.** Top results:")
-                for entry in pdb["entries"]:
-                    st.markdown(
-                        f'<div style="display:flex;align-items:center;gap:12px;'
-                        f'padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
-                        f'<code style="color:#f5a623;font-size:.8rem">{entry["pdb_id"]}</code>'
-                        f'<a href="{entry["url"]}" target="_blank" '
-                        f'style="color:#38bdf8;font-size:.75rem">View Structure ↗</a>'
-                        f'<span style="color:#64748b;font-size:.65rem">'
-                        f'Relevance: {entry["score"]}</span></div>',
-                        unsafe_allow_html=True)
-
-    # ── AI Name Lookup ────────────────────────────────────────────────────
-    with st.expander("🔤 Drug Name Lookup — Search by Common Name", expanded=False):
-        st.markdown(
-            '<span style="font-size:.78rem;color:#94a3b8">'
-            'Look up a drug by common name (e.g. aspirin, ibuprofen) to retrieve '
-            'its canonical SMILES from PubChem for analysis.</span>',
-            unsafe_allow_html=True)
-        _nl_key = f"_ext_namelookup_{cpd_id}"
-        name_query = st.text_input(
-            "Enter drug name",
-            placeholder="e.g. aspirin, caffeine, metformin",
-            key=f"_name_q_{cpd_id}",
-        )
-        if st.button("🔍 Look Up by Name", key=f"_btn_nl_{cpd_id}"):
-            if name_query.strip():
-                with st.spinner(f"Looking up '{name_query}' on PubChem..."):
-                    nl = fetch_pubchem_by_name(name_query)
-                if nl.get("error"):
-                    st.warning(f"Name lookup: {nl['error']}")
-                elif nl.get("canonical_smiles"):
-                    st.success(f"Found: `{nl['canonical_smiles']}`")
-                    st.markdown(f"**IUPAC Name:** `{nl.get('iupac_name','N/A')}`")
-                    st.markdown(
-                        "Copy the SMILES above and paste it into the input panel to analyse this compound."
-                    )
-                else:
-                    st.info("No canonical SMILES found.")
+        for key, entry in tier_apis.items():
+            req_key = " ⚠️ Requires API Key" if entry.get("requires_key") else ""
+            with st.expander(f'{entry["icon"]} {entry["name"]}{req_key}'):
+                st.markdown("".join([
+                    _kv("Category", entry["category"], mono=False),
+                    _kv("Description", entry["description"], mono=False),
+                    _kv("Base URL", entry["base_url"]),
+                    _kv("Timeout", f'{entry["timeout"]}s'),
+                    _kv("Requires API Key", "Yes ⚠️" if entry["requires_key"] else "No (Free)"),
+                    _kv("Output Fields", " · ".join(entry.get("output_fields", []))),
+                ]), unsafe_allow_html=True)
+                st.markdown(f'<a href="{entry["docs"]}" target="_blank" style="color:#38bdf8;font-size:.72rem">📖 View API Documentation →</a>', unsafe_allow_html=True)
