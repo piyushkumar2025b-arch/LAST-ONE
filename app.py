@@ -235,6 +235,16 @@ try:
 except Exception:
     _AE_OK = False
 
+# ══════════════════════════════════════════════════════════════════════════════
+# PERFORMANCE LAYER — Phase 2 (safe import, zero-modification)
+# ══════════════════════════════════════════════════════════════════════════════
+try:
+    import perf_layer as _pl
+    _PL_OK = True
+except Exception:
+    _pl = None
+    _PL_OK = False
+
 # ── API KEY: reads from Streamlit Cloud Secrets (App Settings → Secrets) ──
 def _get_api_key():
     try:
@@ -2155,6 +2165,7 @@ def fig_boiled_egg(display_data):
     return fig
 
 def fig_similarity(display_data):
+    # PERF: cached via perf_layer patch — this function body unchanged
     n=len(display_data); fps=[d["_fp"] for d in display_data]
     mat=np.array([[DataStructs.TanimotoSimilarity(fps[i],fps[j]) for j in range(n)] for i in range(n)])
     ids=[d["ID"] for d in display_data]
@@ -2200,7 +2211,27 @@ def fig_parallel(display_data):
         font=dict(family="IBM Plex Mono",color="rgba(200,222,255,0.45)",size=10),margin=dict(l=80,r=80,t=40,b=30),height=360)
     return fig
 
+@st.cache_data(show_spinner=False)
+def _fig_pca_cached(data_hash: str, is_3d: bool):
+    """Cache-safe wrapper for fig_pca — called by fig_pca via hash key."""
+    _data = st.session_state.get(f"_plyr_{data_hash}")
+    if _data is None:
+        return None
+    return _fig_pca_inner(_data, is_3d)
+
 def fig_pca(data, is_3d=False):
+    if not _PL_OK:
+        return _fig_pca_inner(data, is_3d)
+    try:
+        import hashlib as _hl
+        h = _hl.md5("|".join(d.get("ID","") for d in data).encode(),
+                    usedforsecurity=False).hexdigest()
+        st.session_state[f"_plyr_{h}"] = data
+        return _fig_pca_cached(h, is_3d)
+    except Exception:
+        return _fig_pca_inner(data, is_3d)
+
+def _fig_pca_inner(data, is_3d=False):
     if len(data)<2: return None
     fps=np.array([list(d["_fp"]) for d in data],dtype=float)
     fps_c=fps-fps.mean(0); _,_,Vt=np.linalg.svd(fps_c,full_matrices=False)
@@ -2339,10 +2370,19 @@ def fig_approved(res):
         margin=dict(l=40,r=40,t=20,b=40))
     return fig
 
+# ── PERFORMANCE LAYER PATCH (Phase 2) — wraps fig_* with st.cache_data ───
+# Safe: produces IDENTICAL outputs, just cached. Called once after all
+# fig_* functions are defined. If perf_layer unavailable, silently skipped.
+if _PL_OK:
+    try:
+        import sys as _sys
+        _patched_count = _pl.patch_fig_functions(_sys.modules[__name__])
+    except Exception:
+        _patched_count = 0
+
 def html_export(data):
     rows=""
     for d in data:
-        hc={"LOW":"#4ade80","MEDIUM":"#fcd34d","HIGH":"#ff5c5c"}.get(d["_herg"],"#aaa")
         ac={"Low Risk":"#4ade80","Possible Concern":"#fcd34d","Likely Mutagen":"#ff5c5c"}.get(d["_ames"],"#aaa")
         sc={"Easy":"#4ade80","Moderate":"#fcd34d","Difficult":"#fb923c","Very Hard":"#ff5c5c"}.get(d["SA_Label"],"#aaa")
         gc={"A":"#4ade80","B":"#f5a623","C":"#fcd34d","F":"#ff5c5c"}.get(d["Grade"],"#aaa")
@@ -3334,6 +3374,10 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
   color:rgba(232,160,32,.45);text-transform:uppercase;margin-right:8px">Export Dossier</span>
 </div>""", unsafe_allow_html=True)
     dl1,dl2,dl3,dl4 = st.columns(4)
+    # PERF: cache export bytes — computed once per unique dataset, not per rerun
+    _exp_hash = _pl._compound_hash(display_data) if _PL_OK else "0"
+    _cached_html  = _pl.get_cached_html_export(_exp_hash, html_export, display_data) if _PL_OK else html_export(display_data)
+    _cached_txt   = _pl.get_cached_text_export(_exp_hash, text_report_export, display_data) if _PL_OK else text_report_export(display_data)
     with dl1:
         st.download_button("↓  CSV Spreadsheet",
             data=df_show.assign(SMILES=[d["SMILES"] for d in display_data]).to_csv(index=False).encode(),
@@ -3341,17 +3385,15 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             help="Download all compound data as a CSV spreadsheet")
     with dl2:
         st.download_button("↓  HTML Report",
-            data=html_export(display_data), file_name="chemofilter_report.html", mime="text/html",
+            data=_cached_html, file_name="chemofilter_report.html", mime="text/html",
             help="Download a styled HTML report — open in browser then Ctrl+P to save as PDF")
     with dl3:
         st.download_button("↓  Text Report (.txt)",
-            data=text_report_export(display_data), file_name="chemofilter_report.txt", mime="text/plain",
+            data=_cached_txt, file_name="chemofilter_report.txt", mime="text/plain",
             help="Download a plain-text professional report")
     with dl4:
-        # PDF hint download (HTML file with print-ready PDF instructions)
-        _pdf_hint = html_export(display_data)
         st.download_button("↓  Print PDF (HTML→PDF)",
-            data=_pdf_hint, file_name="chemofilter_print.html", mime="text/html",
+            data=_cached_html, file_name="chemofilter_print.html", mime="text/html",
             help="Open this HTML file in your browser and press Ctrl+P → Save as PDF for a print-ready PDF")
 
     # 
@@ -3990,22 +4032,42 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             at1,at2,at3,at4 = st.tabs(["Similarity Matrix","Parallel Coordinates","PCA Space","vs Approved Drugs"])
             with at1:
                 st.caption("Tanimoto pairwise similarity of Morgan fingerprints (ECFP4)")
-                st.plotly_chart(fig_similarity(display_data), width='stretch')
+                # PERF: lazy-load O(n²) similarity matrix
+                _sim_ok = (not _PL_OK) or _pl.lazy_tab(
+                    "similarity_matrix", "Compute Similarity Matrix",
+                    f"Tanimoto matrix for {len(display_data)} compounds — click to compute.")
+                if _sim_ok:
+                    st.plotly_chart(fig_similarity(display_data), width='stretch')
             with at2:
                 st.caption("Drag axes to filter  Colour = Lead Score (red  amber  green)")
-                st.plotly_chart(fig_parallel(display_data), width='stretch')
+                # PERF: lazy-load parallel coordinates (heavy plotly trace)
+                _par_ok = (not _PL_OK) or _pl.lazy_tab(
+                    "parallel_coords", "Render Parallel Coordinates",
+                    "Multi-axis parallel coordinate plot — click to render.")
+                if _par_ok:
+                    st.plotly_chart(fig_parallel(display_data), width='stretch')
             with at3:
                 st.caption("PCA of 2048-bit Morgan fingerprints  closer = more similar")
-                p=fig_pca(display_data)
-                if p: st.plotly_chart(p, width='stretch')
+                # PERF: lazy-load PCA (fingerprint matrix computation)
+                _pca_ok = (not _PL_OK) or _pl.lazy_tab(
+                    "pca_space", "Compute PCA Projection",
+                    "PCA of 2048-bit Morgan fingerprints — click to compute.")
+                if _pca_ok:
+                    p=fig_pca(display_data)
+                    if p: st.plotly_chart(p, width='stretch')
             with at4:
                 sel=st.selectbox("Select compound",[d["ID"] for d in display_data])
                 sr=next(d for d in display_data if d["ID"]==sel)
                 st.plotly_chart(fig_approved(sr), width='stretch')
             with st.expander(" 3D Chemical Space Radar"):
                 st.markdown('<div class="ai-panel">3D Principal Component projection of all matched compounds.</div>', unsafe_allow_html=True)
-                pca3d = fig_pca(display_data, is_3d=True)
-                if pca3d: st.plotly_chart(pca3d, width='stretch', key="pca3d_tab")
+                # PERF: lazy-load 3D PCA
+                _pca3d_ok = (not _PL_OK) or _pl.lazy_tab(
+                    "pca_3d", "Compute 3D PCA",
+                    "3D chemical space projection — click to compute.")
+                if _pca3d_ok:
+                    pca3d = fig_pca(display_data, is_3d=True)
+                    if pca3d: st.plotly_chart(pca3d, width='stretch', key="pca3d_tab")
         else:
             st.info("Add 2 or more compounds to unlock comparison charts.")
 
