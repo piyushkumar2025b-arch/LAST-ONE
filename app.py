@@ -187,6 +187,54 @@ except Exception:
     def render_debug_panel(): pass
     def render_routing_explainer(q): pass
 
+# ══════════════════════════════════════════════════════════════════════════════
+# PHASE 2 — New Input Panel (safe import, no sidebar touch)
+# ══════════════════════════════════════════════════════════════════════════════
+try:
+    import smiles_input_panel as _sip
+    _SIP_OK = True
+except Exception:
+    _SIP_OK = False
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PHASE 3 — New Feature Modules (safe imports, fully isolated)
+# ══════════════════════════════════════════════════════════════════════════════
+try:
+    import scaffold_hopper as _sh
+    _SH_OK = True
+except Exception:
+    _SH_OK = False
+
+try:
+    import comparison_mode as _cm
+    _CM_OK = True
+except Exception:
+    _CM_OK = False
+
+try:
+    import drug_class_predictor as _dcp
+    _DCP_OK = True
+except Exception:
+    _DCP_OK = False
+
+try:
+    import reaction_simulator as _rs
+    _RS_OK = True
+except Exception:
+    _RS_OK = False
+
+try:
+    import admet_benchmark as _ab
+    _AB_OK = True
+except Exception:
+    _AB_OK = False
+
+try:
+    import ai_explainer_tab as _ae
+    _AE_OK = True
+except Exception:
+    _AE_OK = False
+
 # ── API KEY: reads from Streamlit Cloud Secrets (App Settings → Secrets) ──
 def _get_api_key():
     try:
@@ -2526,9 +2574,60 @@ with st.sidebar.expander("SCIENTIFIC REFERENCES"):
 [8] Rogers &amp; Hahn, JCIM 2010<br>[9] RDKit  rdkit.org</div>""",
     unsafe_allow_html=True)
 
-# 
-# CORE ANALYSIS
-# 
+# ══════════════════════════════════════════════════════════════════════════════
+# PHASE 5 — NEW SIDEBAR EXTENSIONS (append-only, DO NOT touch above expanders)
+# ══════════════════════════════════════════════════════════════════════════════
+st.sidebar.markdown("---")
+st.sidebar.markdown(
+    '<div style="font-family:\'JetBrains Mono\',monospace;font-size:.52rem;'
+    'letter-spacing:3px;color:rgba(232,160,32,.35);text-transform:uppercase;'
+    'margin:4px 0 8px">⬡ New Feature Controls</div>',
+    unsafe_allow_html=True,
+)
+
+with st.sidebar.expander("🔀 SCAFFOLD HOPPER"):
+    st.caption("Controls for Scaffold Hopper tab (Tab 35)")
+    st.session_state["_sh_show_hops"] = st.toggle(
+        "Show hop suggestions", value=True, key="_sb_sh_hops"
+    )
+    st.session_state["_sh_max_scaffolds"] = st.slider(
+        "Max scaffolds to display", 5, 20, 10, key="_sb_sh_max"
+    )
+
+with st.sidebar.expander("⚖️ COMPARISON MODE"):
+    st.caption("Controls for Comparison Mode tab (Tab 36)")
+    st.session_state["_cm_radar"] = st.toggle(
+        "Show radar chart", value=True, key="_sb_cm_radar"
+    )
+    st.session_state["_cm_delta"] = st.toggle(
+        "Show delta table", value=True, key="_sb_cm_delta"
+    )
+
+with st.sidebar.expander("📐 ADMET BENCHMARK"):
+    st.caption("Controls for ADMET Benchmark tab (Tab 39)")
+    _bench_options = [
+        "FDA Approved Drugs (n≈2000)",
+        "ChEMBL Lead Compounds (n≈5000)",
+        "Clinical Phase II Compounds",
+    ]
+    st.session_state["_ab_default_set"] = st.selectbox(
+        "Default reference set",
+        _bench_options,
+        key="_sb_ab_set",
+    )
+
+with st.sidebar.expander("🤖 AI EXPLAINER"):
+    st.caption("Controls for AI Explainer tab (Tab 40)")
+    st.session_state["_ae_default_mode"] = st.selectbox(
+        "Default analysis mode",
+        ["Overview", "Safety Analysis", "Optimisation Hints", "Property Deep Dive"],
+        key="_sb_ae_mode",
+    )
+    st.session_state["_ae_max_tokens"] = st.slider(
+        "Max response tokens", 200, 1000, 500, 100, key="_sb_ae_tokens"
+    )
+
+
 
 # ── Cache wrapper: runs only when SMILES input actually changes ───────────────
 @st.cache_data(show_spinner=False)
@@ -2544,118 +2643,128 @@ if input_text.strip():
             _raw_smiles = [s.strip() for s in input_text.split(",") if s.strip()]
             base_data = _analyze_cached(tuple(_raw_smiles))
             
-            # ── SYNTHETIC DATA GENERATOR FOR LARGE SCREENING LIBRARY (200 compounds) ──
-            data = []
-            
-            # Base data columns
-            for c in base_data:
-                if "_ext" not in c: c["_ext"] = {}
-                c["_ext"]["_adv"] = acg.generate_ultra_advanced_columns(c)
-            if base_data:
-                # Add original compounds first
-                for idx, c in enumerate(base_data):
-                    c["ID"] = f"Cpd-{idx+1:03d}"
-                    data.append(c)
+            # ── SYNTHETIC DATA GENERATOR — SESSION CACHE (Phase 1 perf fix) ──
+            # Cache busts automatically when SMILES input changes
+            _cache_key = "_synth_data_" + str(hash(tuple(c.get("SMILES","") for c in base_data)))
+            if _cache_key in st.session_state:
+                data = st.session_state[_cache_key]
+            else:
+                data = []
+
+            if not data:
+                # Base data columns
+                for c in base_data:
+                    if "_ext" not in c: c["_ext"] = {}
+                    c["_ext"]["_adv"] = acg.generate_ultra_advanced_columns(c)
+                if base_data:
+                    # Add original compounds first
+                    for idx, c in enumerate(base_data):
+                        c["ID"] = f"Cpd-{idx+1:03d}"
+                        data.append(c)
                 
-                # Generate synthetic variations to reach 200 compounds
-                for i in range(len(base_data) + 1, 201):
-                    base = random.choice(base_data)
-                    new_c = copy.deepcopy(base)
-                    new_c["ID"] = f"Cpd-{i:03d}"
+                    # Generate synthetic variations to reach 200 compounds
+                    for i in range(len(base_data) + 1, 201):
+                        base = random.choice(base_data)
+                        new_c = copy.deepcopy(base)
+                        new_c["ID"] = f"Cpd-{i:03d}"
                     
-                    # Add random noise to continuous variables
-                    def jitter(val, noise=0.15, min_val=0):
-                        try:
-                            v = float(val)
-                            return max(min_val, round(v * random.uniform(1-noise, 1+noise), 2))
-                        except:
-                            return val
+                        # Add random noise to continuous variables
+                        def jitter(val, noise=0.15, min_val=0):
+                            try:
+                                v = float(val)
+                                return max(min_val, round(v * random.uniform(1-noise, 1+noise), 2))
+                            except:
+                                return val
                             
-                    new_c["MW"] = jitter(new_c["MW"], 0.1, 150)
-                    new_c["LogP"] = round(float(new_c["LogP"]) + random.uniform(-1.5, 1.5), 2)
-                    new_c["LogP"] = max(-2, min(6, new_c["LogP"]))
-                    new_c["tPSA"] = jitter(new_c["tPSA"], 0.2, 10)
-                    new_c["QED"] = max(0.01, min(0.99, jitter(new_c["QED"], 0.2)))
-                    new_c["LeadScore"] = int(max(30, min(95, jitter(new_c["LeadScore"], 0.15))))
-                    new_c["OralBioScore"] = int(max(20, min(95, jitter(new_c["OralBioScore"], 0.2))))
-                    new_c["SA_Score"] = max(1.0, min(10.0, jitter(new_c["SA_Score"], 0.3)))
-                    new_c["NP_Score"] = max(0, min(100, jitter(new_c["NP_Score"], 0.3)))
-                    new_c["Stress"] = max(0, min(100, jitter(new_c["Stress"], 0.3)))
+                        new_c["MW"] = jitter(new_c["MW"], 0.1, 150)
+                        new_c["LogP"] = round(float(new_c["LogP"]) + random.uniform(-1.5, 1.5), 2)
+                        new_c["LogP"] = max(-2, min(6, new_c["LogP"]))
+                        new_c["tPSA"] = jitter(new_c["tPSA"], 0.2, 10)
+                        new_c["QED"] = max(0.01, min(0.99, jitter(new_c["QED"], 0.2)))
+                        new_c["LeadScore"] = int(max(30, min(95, jitter(new_c["LeadScore"], 0.15))))
+                        new_c["OralBioScore"] = int(max(20, min(95, jitter(new_c["OralBioScore"], 0.2))))
+                        new_c["SA_Score"] = max(1.0, min(10.0, jitter(new_c["SA_Score"], 0.3)))
+                        new_c["NP_Score"] = max(0, min(100, jitter(new_c["NP_Score"], 0.3)))
+                        new_c["Stress"] = max(0, min(100, jitter(new_c["Stress"], 0.3)))
                     
-                    # Update extended props if available
-                    if "_ext" in new_c:
-                        ext = new_c["_ext"]
-                        ext["Heavy_Atom_Count"] = int(new_c["MW"] / 14)
-                        ext["Ring_Count"] = random.randint(1, 5)
-                        ext["HBD"] = random.randint(0, 5)
-                        ext["HBA"] = random.randint(2, 10)
-                        ext["Rotatable_Bonds"] = random.randint(1, 10)
-                        ext["Lipinski_Violations"] = 0
-                        if new_c["MW"]>500: ext["Lipinski_Violations"]+=1
-                        if new_c["LogP"]>5: ext["Lipinski_Violations"]+=1
-                        if ext["HBD"]>5: ext["Lipinski_Violations"]+=1
-                        if ext["HBA"]>10: ext["Lipinski_Violations"]+=1
+                        # Update extended props if available
+                        if "_ext" in new_c:
+                            ext = new_c["_ext"]
+                            ext["Heavy_Atom_Count"] = int(new_c["MW"] / 14)
+                            ext["Ring_Count"] = random.randint(1, 5)
+                            ext["HBD"] = random.randint(0, 5)
+                            ext["HBA"] = random.randint(2, 10)
+                            ext["Rotatable_Bonds"] = random.randint(1, 10)
+                            ext["Lipinski_Violations"] = 0
+                            if new_c["MW"]>500: ext["Lipinski_Violations"]+=1
+                            if new_c["LogP"]>5: ext["Lipinski_Violations"]+=1
+                            if ext["HBD"]>5: ext["Lipinski_Violations"]+=1
+                            if ext["HBA"]>10: ext["Lipinski_Violations"]+=1
                         
-                        ext["Solubility_Class"] = random.choice(["Highly Soluble", "Soluble", "Moderate", "Poorly Soluble"])
-                        ext["BBB_Penetration"] = "Yes" if new_c["tPSA"]<79 and new_c["LogP"]>0 and new_c["LogP"]<5.5 else "No"
-                        ext["Toxicity_Risk"] = random.choice(["Low", "Low", "Medium", "High"])
-                        ext["Mutagenicity_Risk"] = random.choice(["Low", "Low", "Medium", "High"])
-                        ext["CYP450_Risk"] = random.choice(["Low", "Medium", "High"])
-                        ext["Plasma_Protein_Binding"] = random.choice(["<50%", "50-85%", "85-95%", ">95%"])
-                        ext["Clearance"] = random.choice(["Moderate", "High (Hepatic)", "High (Renal)"])
-                        ext["Half_Life"] = random.choice(["Short (<4h)", "Medium (4-12h)", "Long (>12h)"])
+                            ext["Solubility_Class"] = random.choice(["Highly Soluble", "Soluble", "Moderate", "Poorly Soluble"])
+                            ext["BBB_Penetration"] = "Yes" if new_c["tPSA"]<79 and new_c["LogP"]>0 and new_c["LogP"]<5.5 else "No"
+                            ext["Toxicity_Risk"] = random.choice(["Low", "Low", "Medium", "High"])
+                            ext["Mutagenicity_Risk"] = random.choice(["Low", "Low", "Medium", "High"])
+                            ext["CYP450_Risk"] = random.choice(["Low", "Medium", "High"])
+                            ext["Plasma_Protein_Binding"] = random.choice(["<50%", "50-85%", "85-95%", ">95%"])
+                            ext["Clearance"] = random.choice(["Moderate", "High (Hepatic)", "High (Renal)"])
+                            ext["Half_Life"] = random.choice(["Short (<4h)", "Medium (4-12h)", "Long (>12h)"])
                         
-                        ext["Ligand_Efficiency"] = max(0.1, round(new_c["QED"] / (new_c["MW"]/100), 2))
-                        ext["Bioavailability_Score"] = round(random.uniform(0.3, 0.9), 2)
+                            ext["Ligand_Efficiency"] = max(0.1, round(new_c["QED"] / (new_c["MW"]/100), 2))
+                            ext["Bioavailability_Score"] = round(random.uniform(0.3, 0.9), 2)
                         
-                        # Fix Drug likeness badge for synthetic data based on Lipinski
-                        if ext["Lipinski_Violations"] == 0:
-                            ext["Drug_Likeness_Badge"] = "Drug-like"
-                            ext["Badge_Color"] = "#34d399"
-                        elif ext["Lipinski_Violations"] == 1:
-                            ext["Drug_Likeness_Badge"] = "Lead-like"
-                            ext["Badge_Color"] = "#38bdf8"
-                        else:
-                            ext["Drug_Likeness_Badge"] = "Poor candidate"
-                            ext["Badge_Color"] = "#f87171"
+                            # Fix Drug likeness badge for synthetic data based on Lipinski
+                            if ext["Lipinski_Violations"] == 0:
+                                ext["Drug_Likeness_Badge"] = "Drug-like"
+                                ext["Badge_Color"] = "#34d399"
+                            elif ext["Lipinski_Violations"] == 1:
+                                ext["Drug_Likeness_Badge"] = "Lead-like"
+                                ext["Badge_Color"] = "#38bdf8"
+                            else:
+                                ext["Drug_Likeness_Badge"] = "Poor candidate"
+                                ext["Badge_Color"] = "#f87171"
                             
-                        # Fix synthetic difficulty
-                        ext["Synthetic_Difficulty"] = random.choice(["Easy", "Moderate", "Hard"])
+                            # Fix synthetic difficulty
+                            ext["Synthetic_Difficulty"] = random.choice(["Easy", "Moderate", "Hard"])
                         
-                    ext["_adv"] = acg.generate_ultra_advanced_columns(new_c)
+                        ext["_adv"] = acg.generate_ultra_advanced_columns(new_c)
                         
-                    # Recalculate Grade based on LeadScore
-                    if new_c["LeadScore"] >= 80: new_c["Grade"] = "A"
-                    elif new_c["LeadScore"] >= 60: new_c["Grade"] = "B"
-                    elif new_c["LeadScore"] >= 40: new_c["Grade"] = "C"
-                    else: new_c["Grade"] = "F"
+                        # Recalculate Grade based on LeadScore
+                        if new_c["LeadScore"] >= 80: new_c["Grade"] = "A"
+                        elif new_c["LeadScore"] >= 60: new_c["Grade"] = "B"
+                        elif new_c["LeadScore"] >= 40: new_c["Grade"] = "C"
+                        else: new_c["Grade"] = "F"
                     
-                    # ── NEW: Synthetic ChemoFilter Data ──
-                    # We'll synthesize a score package so the tabs work
-                    s_score = jitter(new_c["LeadScore"], 0.05)
-                    new_c["ChemoScore"] = s_score
-                    new_c["ChemoGrade"] = cs.get_grade(s_score)
-                    new_c["_chemo_score_pkg"] = {
-                        "score": s_score,
-                        "grade": new_c["ChemoGrade"],
-                        "components": {
-                            "Structure": round(random.uniform(0.6, 0.9), 2),
-                            "Compliance": round(random.uniform(0.5, 0.8), 2),
-                            "Drug-Likeness": round(new_c["QED"], 2),
-                            "Safety": round(random.uniform(0.4, 0.9), 2),
-                            "Synthesis": round(1.0 - (new_c["SA_Score"]/10), 2)
+                        # ── NEW: Synthetic ChemoFilter Data ──
+                        # We'll synthesize a score package so the tabs work
+                        s_score = jitter(new_c["LeadScore"], 0.05)
+                        new_c["ChemoScore"] = s_score
+                        new_c["ChemoGrade"] = cs.get_grade(s_score)
+                        new_c["_chemo_score_pkg"] = {
+                            "score": s_score,
+                            "grade": new_c["ChemoGrade"],
+                            "components": {
+                                "Structure": round(random.uniform(0.6, 0.9), 2),
+                                "Compliance": round(random.uniform(0.5, 0.8), 2),
+                                "Drug-Likeness": round(new_c["QED"], 2),
+                                "Safety": round(random.uniform(0.4, 0.9), 2),
+                                "Synthesis": round(1.0 - (new_c["SA_Score"]/10), 2)
+                            }
                         }
-                    }
-                    # Synthesize a subset of tests for the core tab (List format)
-                    new_c["_chemo_tests"] = [
-                        {"category": "Structure Integrity", "test": "Canonical Parse", "result": "PASS", "detail": "Valid"},
-                        {"category": "Physicochemical", "test": "MW", "result": "INFO", "detail": str(new_c["MW"])},
-                        {"category": "Physicochemical", "test": "LogP", "result": "INFO", "detail": str(new_c["LogP"])},
-                        {"category": "Drug-Likeness Rules", "test": "Lipinski", "result": "PASS" if ext.get("Lipinski_Violations", 0) <= 1 else "FAIL", "detail": "Compliant"},
-                        {"category": "Safety Catalogs", "test": "PAINS", "result": "PASS", "detail": "None Detected"}
-                    ]
+                        # Synthesize a subset of tests for the core tab (List format)
+                        new_c["_chemo_tests"] = [
+                            {"category": "Structure Integrity", "test": "Canonical Parse", "result": "PASS", "detail": "Valid"},
+                            {"category": "Physicochemical", "test": "MW", "result": "INFO", "detail": str(new_c["MW"])},
+                            {"category": "Physicochemical", "test": "LogP", "result": "INFO", "detail": str(new_c["LogP"])},
+                            {"category": "Drug-Likeness Rules", "test": "Lipinski", "result": "PASS" if ext.get("Lipinski_Violations", 0) <= 1 else "FAIL", "detail": "Compliant"},
+                            {"category": "Safety Catalogs", "test": "PAINS", "result": "PASS", "detail": "None Detected"}
+                        ]
                     
-                    data.append(new_c)
+                        data.append(new_c)
+
+                # ── Phase 1 perf: save to session_state cache ─────────────
+                if data:
+                    st.session_state[_cache_key] = data
 
         except Exception as e:
             import traceback
@@ -3246,6 +3355,19 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             help="Open this HTML file in your browser and press Ctrl+P → Save as PDF for a print-ready PDF")
 
     # 
+    # ══════════════════════════════════════════════════════════════════════
+    # PHASE 2 — SMILES INPUT PANEL (main-area, supplemental, non-destructive)
+    # ══════════════════════════════════════════════════════════════════════
+    if _SIP_OK:
+        try:
+            _sip_result = _sip.render_input_panel(input_text)
+            # Only override input_text if user explicitly submitted from panel
+            # (panel returns same value as current_input when not interacted with)
+            if _sip_result and _sip_result.strip() and _sip_result != input_text:
+                pass  # Panel result used on next rerun via session_state
+        except Exception:
+            pass
+
     #  TABS
     # 
     TABS = st.tabs([
@@ -3283,7 +3405,14 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         "🧪  ChemoFilter Core",
         "🎯  Dynamic Scoring",
         "📊  Population Metrics",
-        "📊  Dashboard Hub"
+        "📊  Dashboard Hub",
+        # ── NEW TABS (Phase 4) — indices 35–40 ───────────────────────────
+        "🔀  Scaffold Hopper",
+        "⚖️  Comparison Mode",
+        "💊  Drug Class AI",
+        "⚗️  Reaction Sim",
+        "📐  ADMET Bench",
+        "🤖  AI Explainer",
     ])
 
 
@@ -6060,6 +6189,70 @@ with _dlc2:
                 render_analytics_tab()
         except Exception:
             pass
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  NEW TABS — PHASE 4 (indices 35–40) — ADDITIVE ONLY
+    # ══════════════════════════════════════════════════════════════════════════
+
+    # TAB 35 — SCAFFOLD HOPPER
+    try:
+        with TABS[35]:
+            if _SH_OK and data:
+                _sh.render_tab(data)
+            else:
+                st.warning("Scaffold Hopper module not available or no data loaded.")
+    except Exception:
+        pass
+
+    # TAB 36 — COMPARISON MODE
+    try:
+        with TABS[36]:
+            if _CM_OK and data:
+                _cm.render_tab(data)
+            else:
+                st.warning("Comparison Mode module not available or no data loaded.")
+    except Exception:
+        pass
+
+    # TAB 37 — DRUG CLASS PREDICTOR
+    try:
+        with TABS[37]:
+            if _DCP_OK and data:
+                _dcp.render_tab(data)
+            else:
+                st.warning("Drug Class Predictor module not available or no data loaded.")
+    except Exception:
+        pass
+
+    # TAB 38 — REACTION SIMULATOR
+    try:
+        with TABS[38]:
+            if _RS_OK and data:
+                _rs.render_tab(data)
+            else:
+                st.warning("Reaction Simulator module not available or no data loaded.")
+    except Exception:
+        pass
+
+    # TAB 39 — ADMET BENCHMARK
+    try:
+        with TABS[39]:
+            if _AB_OK and data:
+                _ab.render_tab(data)
+            else:
+                st.warning("ADMET Benchmark module not available or no data loaded.")
+    except Exception:
+        pass
+
+    # TAB 40 — AI EXPLAINER
+    try:
+        with TABS[40]:
+            if _AE_OK and data:
+                _ae.render_tab(data, api_key=_get_api_key())
+            else:
+                st.warning("AI Explainer module not available or no data loaded.")
+    except Exception:
+        pass
 
 # ── NEW: Search Results overlay (triggered from sidebar) ──────────────────
 render_search_results()
