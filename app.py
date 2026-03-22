@@ -245,6 +245,27 @@ except Exception:
     _pl = None
     _PL_OK = False
 
+# ══════════════════════════════════════════════════════════════════════════════
+# TERMINOLOGY LAYER — Scientific humanisation (display only)
+# ══════════════════════════════════════════════════════════════════════════════
+try:
+    from terminology import label as _term_label, tip as _term_tip, TERM as _TERM
+    _TERM_OK = True
+except Exception:
+    _TERM_OK = False
+    def _term_label(k): return k
+    def _term_tip(k): return None
+
+# ══════════════════════════════════════════════════════════════════════════════
+# API INTEGRATIONS — External scientific data (lazy, cached, fail-safe)
+# ══════════════════════════════════════════════════════════════════════════════
+try:
+    import api_integrations as _api
+    _API_OK = True
+except Exception:
+    _api = None
+    _API_OK = False
+
 # ── API KEY: reads from Streamlit Cloud Secrets (App Settings → Secrets) ──
 def _get_api_key():
     try:
@@ -3684,6 +3705,25 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
         '''
         portal_html = portal_html.replace("{TOTAL}", str(cs['total'])).replace("{AVG}", str(round(cs.get('avg_score',0),1)))
         st.markdown(portal_html, unsafe_allow_html=True)
+
+        # ── External Scientific Data Enrichment (API layer — lazy, fail-safe) ──
+        if _API_OK:
+            try:
+                # Show enrichment for the first/top compound
+                _top_cpd = display_data[0] if display_data else None
+                if _top_cpd:
+                    sel_enrich = st.selectbox(
+                        "Select compound for external data enrichment",
+                        [d["ID"] for d in display_data],
+                        key="_ext_cpd_sel",
+                    )
+                    _enrich_cpd = next(
+                        (d for d in display_data if d["ID"] == sel_enrich),
+                        _top_cpd,
+                    )
+                    _api.render_external_data_section(_enrich_cpd)
+            except Exception:
+                pass
 
     #  TAB 1  FILTERING LAB
     with TABS[1]:

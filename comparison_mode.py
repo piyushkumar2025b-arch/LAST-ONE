@@ -11,6 +11,18 @@ ChemoFilter · Comparison Mode — Tab 37 (PHASE 3)
 
 import streamlit as st
 
+# NEW CODE START — terminology import (display layer only)
+try:
+    from terminology import compare_label, compare_tip, feat_label, feat_tip, FEATURE_LABELS
+    _TERM_OK = True
+except Exception:
+    _TERM_OK = False
+    def compare_label(k): return k
+    def compare_tip(k): return None
+    def feat_label(k): return k.replace("_"," ").title()
+    def feat_tip(k): return None
+# NEW CODE END
+
 try:
     import plotly.graph_objects as go
     _PLT_OK = True
@@ -37,7 +49,13 @@ def _radar_fig(compounds: list):
     if not _PLT_OK or not compounds:
         return None
 
-    categories = ["QED×100", "LeadScore", "OralBioScore", "BBB(%)", "HIA(%)"]
+    categories = [
+        "Drug-Likeness × 100 (QED)",
+        "Lead Optimisation Score",
+        "Oral Bioavailability Score",
+        "Blood-Brain Barrier Penetration (%)",
+        "Human Intestinal Absorption (%)",
+    ]
 
     fig = go.Figure()
     colors = ["#f5a623", "#4ade80", "#38bdf8", "#a78bfa", "#fb923c"]
@@ -112,7 +130,7 @@ def render_tab(res: list):
         st.info("Plotly not available — radar chart unavailable.")
 
     # ── Property table ────────────────────────────────────────────────────
-    st.subheader("Property Comparison Table")
+    st.subheader("Physicochemical & Drug-Likeness Property Comparison")
 
     # Header row
     header_cols = st.columns([2] + [1] * len(selected))
@@ -120,15 +138,19 @@ def render_tab(res: list):
     for i, cpd in enumerate(selected):
         header_cols[i + 1].markdown(f"**{cpd.get('ID', f'Cpd-{i+1}')}**")
 
-    # Data rows
+    # Data rows — use human-readable labels with tooltips
     for prop in _COMPARE_PROPS:
         row = st.columns([2] + [1] * len(selected))
-        row[0].write(prop)
+        lbl = compare_label(prop)
+        tip = compare_tip(prop)
+        row[0].markdown(
+            f'<span title="{tip or ""}" style="cursor:help;font-size:.82rem">{lbl}</span>',
+            unsafe_allow_html=True)
         values = []
         for cpd in selected:
             v = cpd.get(prop, cpd.get(prop.lower(), "–"))
             values.append(v)
-        # Highlight best/worst
+        # Highlight best
         try:
             nums = [float(v) for v in values]
             best_i = nums.index(max(nums))
@@ -143,7 +165,7 @@ def render_tab(res: list):
 
     # ── Delta matrix (first compound as reference) ────────────────────────
     if len(selected) >= 2:
-        st.subheader(f"Δ Delta vs {selected[0].get('ID', 'Cpd-1')} (reference)")
+        st.subheader(f"Property Differences (Δ) vs {selected[0].get('ID', 'Reference Compound')}")
         ref = selected[0]
         delta_cols = st.columns([2] + [1] * (len(selected) - 1))
         delta_cols[0].markdown("**Property**")
@@ -152,7 +174,11 @@ def render_tab(res: list):
 
         for prop in _COMPARE_PROPS:
             drow = st.columns([2] + [1] * (len(selected) - 1))
-            drow[0].write(prop)
+            lbl = compare_label(prop)
+            tip = compare_tip(prop)
+            drow[0].markdown(
+                f'<span title="{tip or ""}" style="cursor:help;font-size:.82rem">{lbl}</span>',
+                unsafe_allow_html=True)
             ref_v = ref.get(prop, 0)
             for i, cpd in enumerate(selected[1:]):
                 cpd_v = cpd.get(prop, 0)
@@ -477,13 +503,19 @@ def compute_advanced_deltas(r1: dict, r2: dict) -> dict:
 
 def _render_insight_table(cpd_ids, all_deltas, section, rows):
     hdr = st.columns([2] + [1] * len(cpd_ids))
-    hdr[0].markdown("**Metric**")
+    hdr[0].markdown("**Property / Metric**")
     for i, cid in enumerate(cpd_ids):
         hdr[i + 1].markdown(f"**{cid}**")
 
-    for label, key, higher_is_better in rows:
+    for label_raw, key, higher_is_better in rows:
+        # Use terminology feat_label if the raw label looks like an internal key
+        display_label = feat_label(key) if label_raw.startswith("Δ") or " " not in label_raw else label_raw
+        display_tip   = feat_tip(key)
         row = st.columns([2] + [1] * len(cpd_ids))
-        row[0].write(label)
+        row[0].markdown(
+            f'<span title="{display_tip or ""}" style="cursor:help;font-size:.8rem">'
+            f'{display_label}</span>',
+            unsafe_allow_html=True)
         for i, cid in enumerate(cpd_ids):
             deltas = all_deltas.get(cid)
             if deltas is None:
