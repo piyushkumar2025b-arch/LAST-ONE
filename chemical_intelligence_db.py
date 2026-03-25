@@ -386,7 +386,7 @@ class AetherCloudDiscovery:
         import requests
         try:
             r = requests.post(f"{self.endpoint}/api/log-molecule",
-                              json=compound_data, timeout=5)
+                              json=compound_data, timeout=2)
             return r.status_code == 200
         except:
             return False

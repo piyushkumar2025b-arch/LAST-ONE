@@ -9,12 +9,6 @@ ChemoFilter · Full Report — Standalone Page (Phase 4 multi-page migration)
 """
 import streamlit as st
 
-st.set_page_config(
-    page_title="ChemoFilter — Full Report",
-    page_icon="📊",
-    layout="wide",
-)
-
 # ── Try to load session data written by main app ──────────────────────────
 _data = None
 _synth_keys = [k for k in st.session_state if k.startswith("_synth_data_")]

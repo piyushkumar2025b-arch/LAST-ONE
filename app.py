@@ -337,18 +337,21 @@ st.markdown("""
 #MainMenu, footer, header { visibility: hidden !important; }
 
 /* Legacy variable compatibility */
---gold: var(--n-amber, #f0a020);
---bg: var(--n-bg, #020408);
---bg2: var(--n-bg2, #060d18);
---ice2: var(--n-tx, #e8f4f0);
---border: var(--n-bdr, rgba(0,210,190,0.12));
---amber: var(--n-amber, #f0a020);
---cyan: var(--n-teal, #00d2be);
---green: var(--n-green, #22d88a);
---red: var(--n-red, #ff5e6b);
---yellow: var(--n-yellow, #f5c842);
---violet: var(--n-violet, #9b82f0);
---muted: var(--n-tx2, rgba(200,230,220,0.65));
+:root {
+  --gold: var(--n-amber, #f0a020);
+  --bg: var(--n-bg, #020408);
+  --bg2: var(--n-bg2, #060d18);
+  --ice2: var(--n-tx, #e8f4f0);
+  --border: var(--n-bdr, rgba(0,210,190,0.12));
+  --amber: var(--n-amber, #f0a020);
+  --cyan: var(--n-teal, #00d2be);
+  --accent: var(--n-teal, #00d2be);
+  --green: var(--n-green, #22d88a);
+  --red: var(--n-red, #ff5e6b);
+  --yellow: var(--n-yellow, #f5c842);
+  --violet: var(--n-violet, #9b82f0);
+  --muted: var(--n-tx2, rgba(200,230,220,0.65));
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1869,7 +1872,7 @@ def ai_explain(data_str):
                 "x-api-key": _get_api_key(),
                 "anthropic-version": "2023-06-01",
             },
-            json={"model":"claude-sonnet-4-20250514","max_tokens":700,
+            json={"model":"claude-sonnet-4-5-20251001","max_tokens":700,
                   "messages":[{"role":"user","content":
                     f"You are an expert medicinal chemist. Write exactly 4 sentences: "
                     f"(1) overall lead assessment, (2) key ADMET strengths, "
@@ -1888,7 +1891,7 @@ def ai_analogues(smiles, props):
                 "x-api-key": _get_api_key(),
                 "anthropic-version": "2023-06-01",
             },
-            json={"model":"claude-sonnet-4-20250514","max_tokens":900,
+            json={"model":"claude-sonnet-4-5-20251001","max_tokens":900,
                   "messages":[{"role":"user","content":
                     f"Medicinal chemist  suggest 3 structural analogues improving drug-likeness. "
                     f"SMILES: {smiles} PROFILE: {props} "
@@ -1906,7 +1909,7 @@ def ai_repurpose(smiles, props):
                 "x-api-key": _get_api_key(),
                 "anthropic-version": "2023-06-01",
             },
-            json={"model":"claude-sonnet-4-20250514","max_tokens":500,
+            json={"model":"claude-sonnet-4-5-20251001","max_tokens":500,
                   "messages":[{"role":"user","content":
                     f"Pharmacologist  3 sentences on likely therapeutic indications for this molecule. "
                     f"Cite structural reasons. No markdown. SMILES: {smiles} PROPS: {props}"}]},timeout=12)
@@ -2266,20 +2269,13 @@ def _fig_pca_cached(data_hash: str, is_3d: bool):
     return _fig_pca_inner(_data, is_3d)
 
 def fig_pca(data, is_3d=False):
-    if not _PL_OK:
-        return _fig_pca_inner(data, is_3d)
-    try:
-        import hashlib as _hl
-        h = _hl.md5("|".join(d.get("ID","") for d in data).encode(),
-                    usedforsecurity=False).hexdigest()
-        st.session_state[f"_plyr_{h}"] = data
-        return _fig_pca_cached(h, is_3d)
-    except Exception:
-        return _fig_pca_inner(data, is_3d)
+    # Bypass cache — RDKit mol objects (_mol, _fp) are not serializable
+    return _fig_pca_inner(data, is_3d)
 
 def _fig_pca_inner(data, is_3d=False):
     if len(data)<2: return None
-    fps=np.array([list(d["_fp"]) for d in data],dtype=float)
+    fps=np.array([list(d["_fp"]) if d.get("_fp") is not None
+                  else [0]*2048 for d in data],dtype=float)
     fps_c=fps-fps.mean(0); _,_,Vt=np.linalg.svd(fps_c,full_matrices=False)
     
     if is_3d and len(data)>=3:
@@ -3848,9 +3844,14 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                             unsafe_allow_html=True)
 
                     g1,g2 = st.columns(2)
-                    with g1: st.plotly_chart(fig_gauge(res["LeadScore"],"LEAD SCORE"), width='stretch', key=f"glead_{i}")
-                    with g2: st.plotly_chart(fig_gauge(res["OralBioScore"],"ORAL BIO"), width='stretch', key=f"goral_{i}")
-                    st.plotly_chart(fig_elem(res["_elems"], res["ID"]), width='stretch', key=f"elem_{i}")
+                    with g1:
+                        try: st.plotly_chart(fig_gauge(res["LeadScore"],"LEAD SCORE"), use_container_width=True, key=f"glead_{i}")
+                        except Exception: st.metric("Lead Score", res.get("LeadScore", "—"))
+                    with g2:
+                        try: st.plotly_chart(fig_gauge(res["OralBioScore"],"ORAL BIO"), use_container_width=True, key=f"goral_{i}")
+                        except Exception: st.metric("Oral Bio", res.get("OralBioScore", "—"))
+                    try: st.plotly_chart(fig_elem(res["_elems"], res["ID"]), use_container_width=True, key=f"elem_{i}")
+                    except Exception: pass
 
                 #  COL 2: Descriptor Table + Bars
                 with c2:
@@ -3935,7 +3936,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                         "color:rgba(245,166,35,.3);text-align:center;letter-spacing:2px;"
                         "margin-bottom:4px;text-transform:uppercase'>Drug-Likeness Radar</div>",
                         unsafe_allow_html=True)
-                    st.plotly_chart(fig_radar(res), width='stretch', key=f"rad_{i}")
+                    st.plotly_chart(fig_radar(res), use_container_width=True, key=f"rad_{i}")
 
                     # Tox pills
                     def tpill(cls,icon,label,detail):
@@ -4088,15 +4089,15 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
           <div class="sec-line"></div>
           <span class="sec-tag">Daina & Zoete, ChemMedChem 2016 · Bubble size = Lead Optimisation Score</span>
         </div>""", unsafe_allow_html=True)
-        st.plotly_chart(fig_boiled_egg(display_data), width='stretch')
+        st.plotly_chart(fig_boiled_egg(display_data), use_container_width=True)
 
         q1,q2 = st.columns(2)
         with q1:
             st.markdown('<div class="sec" style="margin-top:8px"><span class="sec-num">02b</span><span class="sec-title">Drug-Likeness Score (QED) Distribution</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
-            st.plotly_chart(fig_qed_sa(display_data), width='stretch')
+            st.plotly_chart(fig_qed_sa(display_data), use_container_width=True)
         with q2:
             st.markdown('<div class="sec" style="margin-top:8px"><span class="sec-num">03c</span><span class="sec-title">Synthetic Accessibility Score (SA) Distribution</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
-            st.plotly_chart(fig_sa(display_data), width='stretch')
+            st.plotly_chart(fig_sa(display_data), use_container_width=True)
 
     #  TAB 7  ANALYSIS SUITE 
     with TABS[7]:
@@ -4123,7 +4124,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     "similarity_matrix", "Compute Similarity Matrix",
                     f"Tanimoto matrix for {len(display_data)} compounds — click to compute.")
                 if _sim_ok:
-                    st.plotly_chart(fig_similarity(display_data), width='stretch')
+                    st.plotly_chart(fig_similarity(display_data), use_container_width=True)
             with at2:
                 st.caption("Drag axes to filter  Colour = Lead Score (red  amber  green)")
                 # PERF: lazy-load parallel coordinates (heavy plotly trace)
@@ -4131,7 +4132,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     "parallel_coords", "Render Parallel Coordinates",
                     "Multi-axis parallel coordinate plot — click to render.")
                 if _par_ok:
-                    st.plotly_chart(fig_parallel(display_data), width='stretch')
+                    st.plotly_chart(fig_parallel(display_data), use_container_width=True)
             with at3:
                 st.caption("PCA of 2048-bit Morgan fingerprints  closer = more similar")
                 # PERF: lazy-load PCA (fingerprint matrix computation)
@@ -4140,11 +4141,11 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     "PCA of 2048-bit Morgan fingerprints — click to compute.")
                 if _pca_ok:
                     p=fig_pca(display_data)
-                    if p: st.plotly_chart(p, width='stretch')
+                    if p: st.plotly_chart(p, use_container_width=True)
             with at4:
                 sel=st.selectbox("Select compound",[d["ID"] for d in display_data])
                 sr=next(d for d in display_data if d["ID"]==sel)
-                st.plotly_chart(fig_approved(sr), width='stretch')
+                st.plotly_chart(fig_approved(sr), use_container_width=True)
             with st.expander(" 3D Chemical Space Radar"):
                 st.markdown('<div class="ai-panel">3D Principal Component projection of all matched compounds.</div>', unsafe_allow_html=True)
                 # PERF: lazy-load 3D PCA
@@ -4153,7 +4154,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     "3D chemical space projection — click to compute.")
                 if _pca3d_ok:
                     pca3d = fig_pca(display_data, is_3d=True)
-                    if pca3d: st.plotly_chart(pca3d, width='stretch', key="pca3d_tab")
+                    if pca3d: st.plotly_chart(pca3d, use_container_width=True, key="pca3d_tab")
         else:
             st.info("Add 2 or more compounds to unlock comparison charts.")
 
@@ -5272,7 +5273,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                 "x-api-key": _get_api_key(),
                 "anthropic-version": "2023-06-01",
             },
-                            json={"model":"claude-sonnet-4-20250514","max_tokens":600,
+                            json={"model":"claude-sonnet-4-5-20251001","max_tokens":600,
                                   "messages":[{"role":"user","content":synth_prompt}]},timeout=15)
                         synth_plan = r_synth.json()["content"][0]["text"] if r_synth.status_code==200 else "Route generation error."
                     except: synth_plan = "AI Synthesis engine offline."

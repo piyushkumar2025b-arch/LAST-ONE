@@ -7,7 +7,7 @@ def calculate_chemo_score(results, weights=None):
     weights: dict with weights for different categories
     Returns a dictionary (Package) with:
       - score: float (0-100)
-      - grade: str (A+, A, B, C, F)
+      - grade: str (A, B, C, F)
       - components: dict (breakdown of scores)
     """
     if not results: return {"score": 0.0, "grade": "F", "components": {}, "weights": {}}
@@ -98,11 +98,9 @@ def calculate_chemo_score(results, weights=None):
     }
 
 def get_grade(score):
-    if score >= 90: return "A+"
     if score >= 80: return "A"
-    if score >= 70: return "B+"
     if score >= 60: return "B"
-    if score >= 50: return "C"
+    if score >= 40: return "C"
     return "F"
 
 def get_chemoscore_pkg(results):
