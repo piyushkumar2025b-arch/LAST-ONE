@@ -2745,30 +2745,31 @@ if input_text.strip():
                 data = []
 
             if not data:
-                # Base data columns
+                # Base data columns — enrich with advanced columns
                 for c in base_data:
                     if "_ext" not in c: c["_ext"] = {}
                     c["_ext"]["_adv"] = acg.generate_ultra_advanced_columns(c)
+
                 if base_data:
                     # Add original compounds first
                     for idx, c in enumerate(base_data):
                         c["ID"] = f"Cpd-{idx+1:03d}"
                         data.append(c)
-                
+
+                    # Jitter helper — defined once outside loop
+                    def jitter(val, noise=0.15, min_val=0):
+                        try:
+                            v = float(val)
+                            return max(min_val, round(v * random.uniform(1-noise, 1+noise), 2))
+                        except Exception:
+                            return val
+
                     # Generate synthetic variations to reach 200 compounds
                     for i in range(len(base_data) + 1, 201):
                         base = random.choice(base_data)
                         new_c = copy.deepcopy(base)
                         new_c["ID"] = f"Cpd-{i:03d}"
-                    
-                        # Add random noise to continuous variables
-                        def jitter(val, noise=0.15, min_val=0):
-                            try:
-                                v = float(val)
-                                return max(min_val, round(v * random.uniform(1-noise, 1+noise), 2))
-                            except:
-                                return val
-                            
+
                         new_c["MW"] = jitter(new_c["MW"], 0.1, 150)
                         new_c["LogP"] = round(float(new_c["LogP"]) + random.uniform(-1.5, 1.5), 2)
                         new_c["LogP"] = max(-2, min(6, new_c["LogP"]))
@@ -2779,34 +2780,34 @@ if input_text.strip():
                         new_c["SA_Score"] = max(1.0, min(10.0, jitter(new_c["SA_Score"], 0.3)))
                         new_c["NP_Score"] = max(0, min(100, jitter(new_c["NP_Score"], 0.3)))
                         new_c["Stress"] = max(0, min(100, jitter(new_c["Stress"], 0.3)))
-                    
+
                         # Update extended props if available
-                        if "_ext" in new_c:
-                            ext = new_c["_ext"]
+                        ext = new_c.get("_ext", {})
+                        if ext:
                             ext["Heavy_Atom_Count"] = int(new_c["MW"] / 14)
                             ext["Ring_Count"] = random.randint(1, 5)
                             ext["HBD"] = random.randint(0, 5)
                             ext["HBA"] = random.randint(2, 10)
                             ext["Rotatable_Bonds"] = random.randint(1, 10)
                             ext["Lipinski_Violations"] = 0
-                            if new_c["MW"]>500: ext["Lipinski_Violations"]+=1
-                            if new_c["LogP"]>5: ext["Lipinski_Violations"]+=1
-                            if ext["HBD"]>5: ext["Lipinski_Violations"]+=1
-                            if ext["HBA"]>10: ext["Lipinski_Violations"]+=1
-                        
+                            if new_c["MW"] > 500: ext["Lipinski_Violations"] += 1
+                            if new_c["LogP"] > 5: ext["Lipinski_Violations"] += 1
+                            if ext["HBD"] > 5: ext["Lipinski_Violations"] += 1
+                            if ext["HBA"] > 10: ext["Lipinski_Violations"] += 1
+
                             ext["Solubility_Class"] = random.choice(["Highly Soluble", "Soluble", "Moderate", "Poorly Soluble"])
-                            ext["BBB_Penetration"] = "Yes" if new_c["tPSA"]<79 and new_c["LogP"]>0 and new_c["LogP"]<5.5 else "No"
+                            ext["BBB_Penetration"] = "Yes" if new_c["tPSA"] < 79 and new_c["LogP"] > 0 and new_c["LogP"] < 5.5 else "No"
                             ext["Toxicity_Risk"] = random.choice(["Low", "Low", "Medium", "High"])
                             ext["Mutagenicity_Risk"] = random.choice(["Low", "Low", "Medium", "High"])
                             ext["CYP450_Risk"] = random.choice(["Low", "Medium", "High"])
                             ext["Plasma_Protein_Binding"] = random.choice(["<50%", "50-85%", "85-95%", ">95%"])
                             ext["Clearance"] = random.choice(["Moderate", "High (Hepatic)", "High (Renal)"])
                             ext["Half_Life"] = random.choice(["Short (<4h)", "Medium (4-12h)", "Long (>12h)"])
-                        
-                            ext["Ligand_Efficiency"] = max(0.1, round(new_c["QED"] / (new_c["MW"]/100), 2))
+
+                            ext["Ligand_Efficiency"] = max(0.1, round(new_c["QED"] / (new_c["MW"] / 100), 2))
                             ext["Bioavailability_Score"] = round(random.uniform(0.3, 0.9), 2)
-                        
-                            # Fix Drug likeness badge for synthetic data based on Lipinski
+
+                            # Drug likeness badge based on Lipinski violations
                             if ext["Lipinski_Violations"] == 0:
                                 ext["Drug_Likeness_Badge"] = "Drug-like"
                                 ext["Badge_Color"] = "#34d399"
@@ -2816,20 +2817,17 @@ if input_text.strip():
                             else:
                                 ext["Drug_Likeness_Badge"] = "Poor candidate"
                                 ext["Badge_Color"] = "#f87171"
-                            
-                            # Fix synthetic difficulty
+
                             ext["Synthetic_Difficulty"] = random.choice(["Easy", "Moderate", "Hard"])
-                        
-                        ext["_adv"] = acg.generate_ultra_advanced_columns(new_c)
-                        
+                            ext["_adv"] = acg.generate_ultra_advanced_columns(new_c)
+
                         # Recalculate Grade based on LeadScore
                         if new_c["LeadScore"] >= 80: new_c["Grade"] = "A"
                         elif new_c["LeadScore"] >= 60: new_c["Grade"] = "B"
                         elif new_c["LeadScore"] >= 40: new_c["Grade"] = "C"
                         else: new_c["Grade"] = "F"
-                    
-                        # ── NEW: Synthetic ChemoFilter Data ──
-                        # We'll synthesize a score package so the tabs work
+
+                        # Synthetic ChemoFilter Data
                         s_score = jitter(new_c["LeadScore"], 0.05)
                         new_c["ChemoScore"] = s_score
                         new_c["ChemoGrade"] = cs.get_grade(s_score)
@@ -2841,10 +2839,9 @@ if input_text.strip():
                                 "Compliance": round(random.uniform(0.5, 0.8), 2),
                                 "Drug-Likeness": round(new_c["QED"], 2),
                                 "Safety": round(random.uniform(0.4, 0.9), 2),
-                                "Synthesis": round(1.0 - (new_c["SA_Score"]/10), 2)
+                                "Synthesis": round(1.0 - (new_c["SA_Score"] / 10), 2)
                             }
                         }
-                        # Synthesize a subset of tests for the core tab (List format)
                         new_c["_chemo_tests"] = [
                             {"category": "Structure Integrity", "test": "Canonical Parse", "result": "PASS", "detail": "Valid"},
                             {"category": "Physicochemical", "test": "MW", "result": "INFO", "detail": str(new_c["MW"])},
@@ -2852,10 +2849,10 @@ if input_text.strip():
                             {"category": "Drug-Likeness Rules", "test": "Lipinski", "result": "PASS" if ext.get("Lipinski_Violations", 0) <= 1 else "FAIL", "detail": "Compliant"},
                             {"category": "Safety Catalogs", "test": "PAINS", "result": "PASS", "detail": "None Detected"}
                         ]
-                    
+
                         data.append(new_c)
 
-                # ── Phase 1 perf: save to session_state cache ─────────────
+                # Save to session_state cache
                 if data:
                     st.session_state[_cache_key] = data
 
