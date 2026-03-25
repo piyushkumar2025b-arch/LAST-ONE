@@ -123,8 +123,8 @@ def _mol_to_svg(smi: str, width: int = 700, height: int = 500) -> str | None:
         drawer.drawOptions().addStereoAnnotation = True
         drawer.drawOptions().addAtomIndices = False
         drawer.drawOptions().padding = 0.1
-        # Dark background styling
-        drawer.drawOptions().backgroundColour = (0.02, 0.04, 0.08, 1.0)
+        # Use white background so default black bonds and text are visible
+        drawer.drawOptions().backgroundColour = (1.0, 1.0, 1.0, 1.0)
         drawer.drawOptions().bondLineWidth = 2.0
         drawer.DrawMolecule(mol)
         drawer.FinishDrawing()
@@ -482,7 +482,7 @@ if active_smiles:
                         if scaf:
                             rdDepictor.Compute2DCoords(scaf)
                             dr = rdMolDraw2D.MolDraw2DSVG(400, 300)
-                            dr.drawOptions().backgroundColour = (0.02, 0.04, 0.08, 1.0)
+                            dr.drawOptions().backgroundColour = (1.0, 1.0, 1.0, 1.0)
                             dr.DrawMolecule(scaf)
                             dr.FinishDrawing()
                             st.markdown(dr.GetDrawingText(), unsafe_allow_html=True)
@@ -492,7 +492,7 @@ if active_smiles:
                         if generic:
                             rdDepictor.Compute2DCoords(generic)
                             dr2 = rdMolDraw2D.MolDraw2DSVG(400, 300)
-                            dr2.drawOptions().backgroundColour = (0.02, 0.04, 0.08, 1.0)
+                            dr2.drawOptions().backgroundColour = (1.0, 1.0, 1.0, 1.0)
                             dr2.DrawMolecule(generic)
                             dr2.FinishDrawing()
                             st.markdown(dr2.GetDrawingText(), unsafe_allow_html=True)

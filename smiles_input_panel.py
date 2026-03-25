@@ -207,7 +207,7 @@ def render_input_panel(current_input: str = "") -> str:
                 )
 
         # Action buttons
-        btn1, btn2, _ = st.columns([1, 1, 4])
+        btn1, btn2, _ = st.columns([3, 3, 1])
         with btn1:
             if st.button("✓ Confirm & Analyse Compounds", key="_sip_apply", type="primary"):
                 st.session_state["_sip_smiles"] = new_smiles
