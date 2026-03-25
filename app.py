@@ -2723,7 +2723,7 @@ with st.sidebar.expander("🤖 AI Scientific Explanation Controls"):
 
 
 # ── Cache wrapper: runs only when SMILES input actually changes ───────────────
-@st.cache_data(show_spinner=False)
+@st.cache_resource(show_spinner=False)
 def _analyze_cached(smiles_tuple: tuple) -> list:
     """Cached analysis — identical SMILES input returns instantly from cache."""
     return analyze(list(smiles_tuple))
@@ -3682,9 +3682,9 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
 
         # CLOUD DATA ACQUISITION
         try:
-            cs = cloud_engine.get_global_discovery_stats()
+            cloud_stats = cloud_engine.get_global_discovery_stats()
         except Exception:
-            cs = {"total": 0, "avg_score": 0}
+            cloud_stats = {"total": 0, "avg_score": 0}
 
         portal_html = '''
         <div style='margin-top:40px; display:grid; grid-template-columns: 2fr 1fr; gap:30px'>
@@ -3748,7 +3748,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
             </div>
         </div>
         '''
-        portal_html = portal_html.replace("{TOTAL}", str(cs['total'])).replace("{AVG}", str(round(cs.get('avg_score',0),1)))
+        portal_html = portal_html.replace("{TOTAL}", str(cloud_stats['total'])).replace("{AVG}", str(round(cloud_stats.get('avg_score',0),1)))
         st.markdown(portal_html, unsafe_allow_html=True)
 
         # ── External Scientific Data Enrichment (API layer — lazy, fail-safe) ──
