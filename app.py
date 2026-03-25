@@ -1815,6 +1815,7 @@ def mol_img_b64(mol, sz=(280,210)):
     try:
         from rdkit.Chem.Draw import rdMolDraw2D
         drawer = rdMolDraw2D.MolDraw2DSVG(sz[0], sz[1])
+        drawer.drawOptions().backgroundColour = (1.0, 1.0, 1.0, 1.0)
         drawer.DrawMolecule(mol)
         drawer.FinishDrawing()
         svg = drawer.GetDrawingText()
