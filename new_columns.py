@@ -34,8 +34,8 @@ except ImportError:
 # URL BUILDERS
 # ─────────────────────────────────────────────────────────────────────────────
 
-_VIZ_BASE    = "/Visualization"   # Local multipage relative path
-_PORTAL_BASE = "/Data_Portal"     # Local multipage relative path
+_VIZ_BASE    = "http://localhost:8501/visualization"
+_PORTAL_BASE = "http://localhost:8501/data_portal"
 
 def get_visualization_url(smiles: str, base: str = _VIZ_BASE) -> str:
     """Build deep-link URL to visualization app for a given SMILES."""
@@ -336,12 +336,12 @@ def render_sidebar_service_links():
     text-transform:uppercase;color:rgba(0,210,190,.4);margin-bottom:8px">
     ⬡ External Services
   </div>
-  <a href="Visualization" target="_self"
+  <a href="/visualization" target="_blank"
      style="display:block;font-size:.68rem;color:#00d2be;text-decoration:none;
      padding:4px 0;border-bottom:1px solid rgba(0,210,190,.07)">
     🔬 Visualization App →
   </a>
-  <a href="Data_Portal" target="_self"
+  <a href="/data_portal" target="_blank"
      style="display:block;font-size:.68rem;color:#a78bfa;text-decoration:none;
      padding:4px 0">
     📊 Data Portal →
