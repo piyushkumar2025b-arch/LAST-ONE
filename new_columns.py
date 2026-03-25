@@ -34,18 +34,18 @@ except ImportError:
 # URL BUILDERS
 # ─────────────────────────────────────────────────────────────────────────────
 
-_VIZ_BASE    = "http://localhost:8502"   # default viz app port
-_PORTAL_BASE = "http://localhost:8503"   # default data portal port
+_VIZ_BASE    = "/Visualization"   # Local multipage relative path
+_PORTAL_BASE = "/Data_Portal"     # Local multipage relative path
 
 def get_visualization_url(smiles: str, base: str = _VIZ_BASE) -> str:
     """Build deep-link URL to visualization app for a given SMILES."""
     encoded = urllib.parse.quote(smiles.strip(), safe="")
-    return f"{base}/?smiles={encoded}"
+    return f"{base}?smiles={encoded}"
 
 def get_portal_url(smiles: str, base: str = _PORTAL_BASE) -> str:
     """Build deep-link URL to data portal for a given SMILES."""
     encoded = urllib.parse.quote(smiles.strip(), safe="")
-    return f"{base}/?smiles={encoded}"
+    return f"{base}?smiles={encoded}"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -336,12 +336,12 @@ def render_sidebar_service_links():
     text-transform:uppercase;color:rgba(0,210,190,.4);margin-bottom:8px">
     ⬡ External Services
   </div>
-  <a href="http://localhost:8502" target="_blank"
+  <a href="Visualization" target="_self"
      style="display:block;font-size:.68rem;color:#00d2be;text-decoration:none;
      padding:4px 0;border-bottom:1px solid rgba(0,210,190,.07)">
     🔬 Visualization App →
   </a>
-  <a href="http://localhost:8503" target="_blank"
+  <a href="Data_Portal" target="_self"
      style="display:block;font-size:.68rem;color:#a78bfa;text-decoration:none;
      padding:4px 0">
     📊 Data Portal →
