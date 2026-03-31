@@ -49,6 +49,8 @@ Use this directory to navigate the massive suite of architectural blueprints and
   * A workflow guide tailored for researchers, professors, undergraduate students, and data engineers. Instructs each persona on exactly how to use the software.
 * **[UI/UX Design System](UI_UX_DESIGN_SYSTEM.md)**
   * Documentation for the custom "Crystalline Obsidian" CSS variables overriding Streamlit defaults.
+* **[Ethics & Safety Compliance](ETHICS_AND_SAFETY.md)**
+  * Details our stance on dual-use bio-security risks and the hardcoded mathematical rejection of neuro-toxins.
 * **[Contributing Guidelines](CONTRIBUTING.md)**
   * System rules for developers to isolate RDKit errors in `except` blocks and branch efficiently.
 * **[System Changelog](CHANGELOG.md)**
