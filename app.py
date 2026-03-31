@@ -343,10 +343,7 @@ st.markdown("""
   max-width: 1600px !important;
   margin: 0 auto !important;
 }
-<<<<<<< HEAD
 #MainMenu, footer { visibility: hidden !important; }
-=======
->>>>>>> 9e517c86f85568e1e0d58e77ed240babf26ce445
 
 /* Premium Typography System */
 h1, h2, h3 { 
