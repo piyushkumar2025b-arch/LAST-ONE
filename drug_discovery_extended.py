@@ -205,7 +205,7 @@ def get_structural_metrics(mol):
     try:
         from rdkit.Chem import GraphDescriptors
         topo_complexity = round(GraphDescriptors.BertzCT(mol), 1)
-    except:
+    except Exception:
         topo_complexity = 0
 
     # Fragment Diversity Score
@@ -228,7 +228,7 @@ def get_structural_metrics(mol):
     try:
         from rdkit.Chem.rdMolDescriptors import CalcKappa3
         shape_3d = round(CalcKappa3(mol), 3)
-    except:
+    except Exception:
         shape_3d = 0
 
     return {

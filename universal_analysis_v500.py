@@ -383,7 +383,7 @@ class UniversalAnalysisEngineV500:
         from rdkit.Chem import GraphDescriptors
         bertz = 0
         try: bertz = GraphDescriptors.BertzCT(mol)
-        except: pass
+        except Exception: pass
         sc = len(Chem.FindMolChiralCenters(mol, includeUnassigned=True))
         sp = rdMolDescriptors.CalcNumSpiroAtoms(mol)
         bh = rdMolDescriptors.CalcNumBridgeheadAtoms(mol)

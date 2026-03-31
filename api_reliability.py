@@ -70,12 +70,13 @@ def _cached(source: str, data: Any) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _audit(source: str, event: str, detail: str = ""):
-    """Append structured event to session-state audit log."""
+    """Append structured event to session-state audit log. Limited to 100 entries."""
     if "_api_log" not in st.session_state:
         st.session_state["_api_log"] = []
     entry = {"ts": time.strftime("%H:%M:%S"), "api": source,
              "event": event, "detail": detail[:200]}
-    st.session_state["_api_log"].append(entry)
+    # Truncate to prevent memory bloat (BUG-004)
+    st.session_state["_api_log"] = (st.session_state["_api_log"] + [entry])[-100:]
     _LOG.info("[%s] %s — %s", source, event, detail[:120])
 
 
@@ -304,26 +305,21 @@ def _disk_cached_post(url: str, body_json: str, timeout: int = 5) -> dict:
 def safe_get(url: str, params: dict | None = None,
              timeout: int = 5, source: str = "http") -> dict:
     """
-    Safe, cached GET. Returns unified response dict.
-    Handles timeouts, connection errors, and bad status codes.
+    Safe, cached GET. Returns unified response dict. Consolidated on st.cache_data.
     """
     full_url = url
     if params:
         import urllib.parse
         full_url = url + "?" + urllib.parse.urlencode(params)
-    # Check session cache first (fastest)
-    ck = _cache_key(source, full_url)
-    hit = _session_get(ck)
-    if hit and hit.get("status") == "success":
-        return hit
+    
+    # Redundant session_get removed to save memory (BUG-005)
     result = _disk_cached_get(full_url, timeout=timeout)
     if result.get("status") == "success":
         data = result["data"].get("json", {})
         latency = result["data"].get("latency", 0)
         _update_health(source, "success", latency)
-        out = _ok(source, data)
-        _session_put(ck, out)
-        return out
+        return _ok(source, data)
+        
     _update_health(source, "failed")
     _audit(source, "get_failed", result.get("error", ""))
     return _fail(source, result.get("error", "Request failed"))
@@ -331,21 +327,18 @@ def safe_get(url: str, params: dict | None = None,
 
 def safe_post(url: str, body: dict,
               timeout: int = 5, source: str = "http") -> dict:
-    """Safe, cached POST."""
+    """Safe, cached POST. Consolidated on st.cache_data."""
     import json as _json
     body_str = _json.dumps(body, sort_keys=True)
-    ck = _cache_key(source, url, body_str)
-    hit = _session_get(ck)
-    if hit and hit.get("status") == "success":
-        return hit
+    
+    # Redundant session_get removed to save memory (BUG-005)
     result = _disk_cached_post(url, body_str, timeout=timeout)
     if result.get("status") == "success":
         data = result["data"].get("json", {})
         latency = result["data"].get("latency", 0)
         _update_health(source, "success", latency)
-        out = _ok(source, data)
-        _session_put(ck, out)
-        return out
+        return _ok(source, data)
+
     _update_health(source, "failed")
     _audit(source, "post_failed", result.get("error", ""))
     return _fail(source, result.get("error", "Request failed"))

@@ -117,7 +117,7 @@ def molecular_geometry_analyzer(mol):
         k1 = round(CalcKappa1(mol), 3)
         k2 = round(CalcKappa2(mol), 3)
         k3 = round(CalcKappa3(mol), 3)
-    except:
+    except Exception:
         k1 = k2 = k3 = 0
 
     # Hybridization analysis
@@ -236,7 +236,7 @@ def electron_density_analysis(mol):
     """Analyze electron density distribution using Gasteiger charges."""
     try:
         AllChem.ComputeGasteigerCharges(mol)
-    except:
+    except Exception:
         return {"Error": "Could not compute Gasteiger charges"}
 
     charges = []
@@ -283,7 +283,7 @@ def charge_distribution_data(mol):
     """Prepare charge distribution data for visualization."""
     try:
         AllChem.ComputeGasteigerCharges(mol)
-    except:
+    except Exception:
         return {"atoms": [], "charge_histogram": []}
 
     atoms = []
@@ -515,7 +515,7 @@ def conformer_comparison(mol, n_conformers=5):
                     energy = round(ff.CalcEnergy(), 2)
                 else:
                     energy = 0.0
-            except:
+            except Exception:
                 energy = 0.0
 
             energies.append(energy)

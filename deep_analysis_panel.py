@@ -153,7 +153,7 @@ def sort_compounds(compounds, sort_by="LeadScore", ascending=False):
     """Sort compounds by any numeric property."""
     try:
         return sorted(compounds, key=lambda c: float(c.get(sort_by, 0)), reverse=not ascending)
-    except:
+    except Exception:
         return compounds
 
 
@@ -193,7 +193,7 @@ def get_compound_ranking(compounds, metric="LeadScore"):
     """Rank compounds by a given metric."""
     try:
         sorted_cpds = sorted(compounds, key=lambda c: float(c.get(metric, 0)), reverse=True)
-    except:
+    except Exception:
         sorted_cpds = compounds
 
     rankings = []

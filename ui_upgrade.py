@@ -29,6 +29,8 @@ def _inject_fonts():
     st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 """, unsafe_allow_html=True)
 
 
@@ -36,7 +38,7 @@ def _inject_design_system():
     st.markdown("""
 <style>
 /* ════════════════════════════════════════════════════════════════════
-   NOVA DESIGN TOKENS — Crystalline Obsidian
+   PHARMA-CORE DESIGN TOKENS — Analytical Research Environment
    ════════════════════════════════════════════════════════════════════ */
 :root {
   /* Core surfaces */
@@ -50,6 +52,10 @@ def _inject_design_system():
   /* Glass surfaces */
   --n-glass:    rgba(6, 20, 40, 0.6);
   --n-glass2:   rgba(10, 28, 54, 0.45);
+
+  /* Spacing Scale */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px;
+  --space-4: 16px; --space-6: 24px; --space-8: 32px;
 
   /* Borders */
   --n-bdr:      rgba(0, 210, 190, 0.12);
@@ -87,18 +93,35 @@ def _inject_design_system():
   --n-violet:   #9b82f0;
   --n-blue:     #4aa3f5;
 
-  /* Layout */
+  /* Layout & Shadows */
   --n-r:        14px;
   --n-r2:       10px;
   --n-r3:       6px;
   --n-shadow:   0 20px 60px rgba(0, 0, 0, 0.7), 0 4px 16px rgba(0, 0, 0, 0.4);
   --n-shadow2:  0 8px 32px rgba(0, 0, 0, 0.5);
   --n-shadow3:  0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-flat:  0 0 0 1px var(--n-bdr2);
+  --shadow-hover: 0 4px 12px rgba(0, 210, 190, 0.08), 0 0 0 1px var(--n-teal-bdr);
+  --shadow-premium: 0 10px 40px -10px rgba(0,0,0,0.8), 0 2px 10px rgba(0, 210, 190, 0.05);
 
   /* Typography */
   --n-font-head: 'Syne', sans-serif;
   --n-font-body: 'Inter', sans-serif;
   --n-font-mono: 'JetBrains Mono', monospace;
+
+  /* Extended Typography Scale */
+  --n-font-h1: 800 24px/1.2 'Syne', sans-serif;
+  --n-font-h2: 700 18px/1.3 'Syne', sans-serif;
+  --n-font-h3: 600 14px/1.4 'Syne', sans-serif;
+  --n-font-lbl: 600 11px/1.5 'JetBrains Mono', monospace;
+  --n-font-data: 500 13px/1.4 'JetBrains Mono', monospace;
+  --n-font-body-sm: 400 12px/1.6 'Inter', sans-serif;
+
+  /* Extended Shadow Scale */
+  --shadow-low:    0 2px 4px rgba(0, 210, 190, 0.05);
+  --shadow-med:    0 8px 16px rgba(0, 210, 190, 0.10);
+  --shadow-high:   0 16px 32px rgba(0, 0, 0, 0.80), 0 0 20px rgba(0, 210, 190, 0.15);
+  --shadow-float:  0 16px 32px rgba(0, 0, 0, 0.60), 0 0 0 1px var(--n-teal-bdr);
 }
 
 /* ════════════ GLOBAL RESET ════════════ */
@@ -110,6 +133,13 @@ html, body,
   background: var(--n-bg) !important;
   font-family: var(--n-font-body) !important;
   color: var(--n-tx) !important;
+  line-height: 1.5 !important;
+}
+/* NUCLEAR ICON SHIELD — NEVER uppercase icons or force swap their fonts */
+[data-testid="stIcon"], svg, .material-symbols-rounded, .material-icons, .material-icons-outlined {
+  text-transform: none !important;
+  font-family: inherit !important;
+  font-variant-ligatures: normal !important;
 }
 
 /* Grid overlay */
@@ -136,19 +166,29 @@ html, body,
 }
 
 /* Hide Streamlit chrome */
-#MainMenu, footer, header,
+#MainMenu, footer,
 [data-testid="stToolbar"],
 .stDeployButton { visibility: hidden !important; }
+
+/* Force hamburger menu / sidebar toggle to be fully visible and above other elements */
+[data-testid="collapsedControl"],
+.stSidebarCollapsedControl {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  z-index: 999999 !important;
+}
 
 /* ════════════ CONTAINER ════════════ */
 [data-testid="block-container"] {
   padding: 2rem 3.5rem !important;
   max-width: 1480px !important;
   margin: 0 auto !important;
+  line-height: 1.5 !important;
 }
 
 /* ════════════ SIDEBAR — Command Center ════════════ */
-[data-testid="stSidebar"] {
+section[data-testid="stSidebar"] {
   background: var(--n-bg1) !important;
   border-right: 1px solid var(--n-bdr) !important;
   backdrop-filter: blur(20px) !important;
@@ -166,16 +206,17 @@ html, body,
 }
 [data-testid="stSidebar"] * { color: var(--n-tx) !important; }
 
-/* Sidebar labels */
-[data-testid="stSidebar"] .stSelectbox label,
-[data-testid="stSidebar"] .stTextInput label,
-[data-testid="stSidebar"] .stSlider label,
-[data-testid="stSidebar"] .stRadio label {
+/* Sidebar labels - aggressive excluding of icons */
+[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] label {
   font-family: var(--n-font-mono) !important;
   font-size: 0.58rem !important;
   letter-spacing: 2px !important;
   text-transform: uppercase !important;
   color: var(--n-tx3) !important;
+}
+[data-testid="stSidebar"] label svg, 
+[data-testid="stSidebar"] label [data-testid="stIcon"] {
+  text-transform: none !important;
 }
 
 /* ════════════ TYPOGRAPHY ════════════ */
@@ -378,11 +419,18 @@ code {
 .stExpander:hover { border-color: var(--n-bdr) !important; }
 .stExpander summary {
   padding: 14px 20px !important;
+  text-transform: uppercase !important;
   font-family: var(--n-font-mono) !important;
   font-size: 0.68rem !important;
   letter-spacing: 1.5px !important;
-  text-transform: uppercase !important;
   color: var(--n-tx2) !important;
+}
+/* Detailed icon protection inside expanders */
+.stExpander summary svg, 
+.stExpander summary [data-testid="stIcon"],
+.stExpander summary .material-symbols-rounded {
+  text-transform: none !important;
+  display: inline-block !important;
 }
 .stExpander [data-testid="stExpanderDetails"] {
   background: var(--n-bg2) !important;
@@ -435,6 +483,12 @@ code {
 [data-testid="stDataFrame"] tbody tr:nth-child(even) {
   background: rgba(0,210,190,0.025) !important;
 }
+[data-testid="stDataFrame"] tbody tr {
+  transition: background-color 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+[data-testid="stDataFrame"] tbody tr:hover {
+  background-color: rgba(0, 210, 190, 0.04) !important;
+}
 [data-testid="stDataFrame"] tbody td {
   font-family: var(--n-font-mono) !important;
   font-size: 0.75rem !important;
@@ -485,6 +539,27 @@ code {
   0%   { background-position: -200% center; }
   100% { background-position:  200% center; }
 }
+
+/* SKELETON LOADER (Non-Blocking Data Transition) */
+.skeleton-data {
+  background: linear-gradient(90deg, var(--n-bg2) 25%, var(--n-bg3) 50%, var(--n-bg2) 75%);
+  background-size: 400% 100%;
+  animation: skelPulse 1.2s ease-in-out infinite;
+  border-radius: var(--space-1);
+  pointer-events: none;
+  opacity: 0.7;
+}
+@keyframes skelPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.data-ready {
+  animation: smoothReveal 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes smoothReveal {
+  from { opacity: 0.2; transform: translateY(4px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -493,7 +568,7 @@ def _inject_component_library():
     st.markdown("""
 <style>
 /* ════════════════════════════════════════════════════════════════════
-   NOVA COMPONENT LIBRARY
+   PHARMA-CORE ANALYTICAL COMPONENT ASSETS
    ════════════════════════════════════════════════════════════════════ */
 
 /* ── HERO BANNER ── */
@@ -535,7 +610,7 @@ def _inject_component_library():
 .hero-title {
   font-family: var(--n-font-head);
   font-size: 3.5rem; font-weight: 800;
-  letter-spacing: -2px; line-height: 1;
+  letter-spacing: -2px; line-height: 1.2;
   color: var(--n-tx); margin-bottom: 10px;
 }
 .hero-title span {
@@ -561,7 +636,7 @@ def _inject_component_library():
   font-size: 4rem; font-weight: 800;
   color: var(--n-teal);
   text-shadow: 0 0 40px var(--n-teal-glow);
-  line-height: 1;
+  line-height: 1.2;
 }
 .hss-lbl {
   font-family: var(--n-font-mono);
@@ -611,7 +686,7 @@ def _inject_component_library():
 .sc-val {
   font-family: var(--n-font-head);
   font-size: 1.6rem; font-weight: 700;
-  line-height: 1; margin-bottom: 5px;
+  line-height: 1.3; margin-bottom: 5px;
   cursor: help;
 }
 .sc-lbl {
@@ -651,11 +726,12 @@ def _inject_component_library():
   background: var(--n-bg2);
   border: 1px solid var(--n-bdr2);
   border-radius: var(--n-r);
-  padding: 20px;
-  transition: border-color 0.2s, transform 0.2s;
+  padding: var(--space-6);
+  box-shadow: var(--shadow-flat);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   position: relative; overflow: hidden;
 }
-.card:hover { border-color: var(--n-bdr); }
+.card:hover { border-color: var(--n-teal-bdr); transform: translateY(-3px); box-shadow: var(--shadow-premium); }
 .card-inner { position: relative; z-index: 1; }
 
 /* ── AI PANEL ── */
@@ -665,6 +741,11 @@ def _inject_component_library():
   border-radius: var(--n-r);
   padding: 18px 20px;
   margin-bottom: 12px;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ai-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
 }
 .ai-head {
   font-family: var(--n-font-mono);
@@ -712,7 +793,9 @@ def _inject_component_library():
   color: var(--n-tx3);
   border-bottom: 1px solid var(--n-bdr4);
   letter-spacing: 0.5px;
+  transition: color 0.2s ease;
 }
+.dtable tr:hover .dk { color: var(--n-teal); opacity: 0.8; }
 .dv {
   text-align: right;
   color: var(--n-tx);
@@ -986,7 +1069,7 @@ def _inject_component_library():
 .batch-stat-n {
   font-family: var(--n-font-head);
   font-size: 1.6rem; font-weight: 700;
-  color: var(--n-teal); line-height: 1;
+  color: var(--n-teal); line-height: 1.3;
 }
 .batch-stat-l {
   font-family: var(--n-font-mono);
@@ -1010,6 +1093,101 @@ def _inject_component_library():
   font-size: 0.74rem; font-family: var(--n-font-body);
   background: var(--n-bg3); border: 1px solid var(--n-bdr2);
   color: var(--n-tx2);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   DATA-STATE TRANSITION SYSTEM — Non-blocking UI feedback layer
+   ════════════════════════════════════════════════════════════════════ */
+
+/* 1. SKELETON LOADER — rendered while data_engine is computing */
+.skeleton-data {
+  background: linear-gradient(
+    90deg,
+    var(--n-bg2) 25%,
+    var(--n-bg3) 50%,
+    var(--n-bg2) 75%
+  );
+  background-size: 400% 100%;
+  animation: skelPulse 1.2s ease-in-out infinite;
+  border-radius: var(--n-r3);
+  pointer-events: none;
+  opacity: 0.7;
+  min-height: 36px;
+}
+
+.skeleton-box {
+  background: linear-gradient(
+    90deg,
+    var(--n-bg2) 25%,
+    var(--n-bg3) 50%,
+    var(--n-bg2) 75%
+  );
+  background-size: 400% 100%;
+  animation: skelPulse 1.5s ease-in-out infinite;
+  border-radius: var(--n-r2);
+  min-height: 40px;
+}
+
+@keyframes skelPulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 2. PROGRESSIVE REVEAL — data replaces skeleton */
+.data-ready {
+  animation: smoothReveal 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.data-loaded {
+  animation: dataReveal 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes smoothReveal {
+  from { opacity: 0.2; transform: translateY(4px) scale(0.99); }
+  to   { opacity: 1;   transform: translateY(0)   scale(1);    }
+}
+
+@keyframes dataReveal {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* 3. VALUE UPDATE HIGHLIGHT — teal flash when a metric changes */
+.value-updated {
+  animation: valueFlash 0.8s ease-out forwards;
+}
+
+@keyframes valueFlash {
+  0%   { background: rgba(0, 210, 190, 0.18); border-radius: var(--n-r3); }
+  100% { background: transparent; }
+}
+
+/* 4. INLINE ERROR STATE */
+.sci-alert {
+  border-left: 2px solid var(--n-red);
+  background: var(--n-red-bg);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--n-font-mono);
+  font-size: 0.72rem;
+  color: var(--n-tx2);
+  animation: smoothReveal 0.3s ease-out;
+  border-radius: 0 var(--n-r3) var(--n-r3) 0;
+}
+
+/* 5. CARD HOVER DEPTH */
+.card {
+  padding: var(--space-6);
+  border-radius: var(--n-r2);
+  box-shadow: var(--shadow-flat);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  background: var(--n-bg2);
+  border: 1px solid var(--n-bdr2);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+  border-color: var(--n-teal-bdr);
 }
 </style>
 """, unsafe_allow_html=True)

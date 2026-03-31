@@ -388,7 +388,7 @@ class AetherCloudDiscovery:
             r = requests.post(f"{self.endpoint}/api/log-molecule",
                               json=compound_data, timeout=2)
             return r.status_code == 200
-        except:
+        except Exception:
             return False
 
     def get_global_discovery_stats(self):
@@ -396,7 +396,7 @@ class AetherCloudDiscovery:
         try:
             r = requests.get(f"{self.endpoint}/api/get-discovery-stats", timeout=5)
             return r.json()
-        except:
+        except Exception:
             return {"total": 0, "avg_score": 0}
 
 

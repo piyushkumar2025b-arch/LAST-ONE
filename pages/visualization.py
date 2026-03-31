@@ -32,7 +32,7 @@ st.set_page_config(
 st.markdown("""<style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap');
 :root { --teal:#00d2be; --bg:#020408; --bg1:#040a12; --tx:#e4eeec; --tx2:rgba(180,220,215,.6); }
-#MainMenu, footer, header, [data-testid="stToolbar"], .stDeployButton { visibility:hidden !important; }
+#MainMenu, footer, [data-testid="stToolbar"], .stDeployButton { visibility:hidden !important; }
 [data-testid="stAppViewContainer"], [data-testid="stMain"] {
   background: var(--bg) !important; padding:0 !important; }
 [data-testid="block-container"] { padding: 8px 16px !important; max-width:100% !important; }
@@ -123,8 +123,6 @@ def _mol_to_svg(smi: str, width: int = 700, height: int = 500) -> str | None:
         drawer.drawOptions().addStereoAnnotation = True
         drawer.drawOptions().addAtomIndices = False
         drawer.drawOptions().padding = 0.1
-        # Use white background so default black bonds and text are visible
-        drawer.drawOptions().backgroundColour = (1.0, 1.0, 1.0, 1.0)
         drawer.drawOptions().bondLineWidth = 2.0
         drawer.DrawMolecule(mol)
         drawer.FinishDrawing()
@@ -482,7 +480,6 @@ if active_smiles:
                         if scaf:
                             rdDepictor.Compute2DCoords(scaf)
                             dr = rdMolDraw2D.MolDraw2DSVG(400, 300)
-                            dr.drawOptions().backgroundColour = (1.0, 1.0, 1.0, 1.0)
                             dr.DrawMolecule(scaf)
                             dr.FinishDrawing()
                             st.markdown(dr.GetDrawingText(), unsafe_allow_html=True)
@@ -492,7 +489,6 @@ if active_smiles:
                         if generic:
                             rdDepictor.Compute2DCoords(generic)
                             dr2 = rdMolDraw2D.MolDraw2DSVG(400, 300)
-                            dr2.drawOptions().backgroundColour = (1.0, 1.0, 1.0, 1.0)
                             dr2.DrawMolecule(generic)
                             dr2.FinishDrawing()
                             st.markdown(dr2.GetDrawingText(), unsafe_allow_html=True)
@@ -502,41 +498,124 @@ if active_smiles:
 
         with tab_data:
             try:
-                import sys, os
-                sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                from data_engine import compute_feature_vector
                 import pandas as pd
+                from rdkit import Chem
+                from rdkit.Chem import Descriptors, rdMolDescriptors, Crippen
+                from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 
-                with st.spinner("Computing full feature vector…"):
-                    fv = compute_feature_vector(active_smiles)
+                mol_data = Chem.MolFromSmiles(active_smiles)
+                if mol_data is None:
+                    st.error("Invalid SMILES — cannot compute data.")
+                else:
+                    # ── Core properties ──────────────────────────────────────
+                    mw   = round(Descriptors.MolWt(mol_data), 2)
+                    logp = round(Crippen.MolLogP(mol_data), 2)
+                    tpsa = round(Descriptors.TPSA(mol_data), 2)
+                    hbd  = rdMolDescriptors.CalcNumHBD(mol_data)
+                    hba  = rdMolDescriptors.CalcNumHBA(mol_data)
+                    rotb = rdMolDescriptors.CalcNumRotatableBonds(mol_data)
+                    rings = rdMolDescriptors.CalcNumRings(mol_data)
+                    arom = rdMolDescriptors.CalcNumAromaticRings(mol_data)
+                    ha   = mol_data.GetNumHeavyAtoms()
+                    fsp3 = round(rdMolDescriptors.CalcFractionCSP3(mol_data), 3)
+                    qed  = round(Descriptors.qed(mol_data), 3)
 
-                # Display by category
-                cats = {
-                    "Core": ["mw","exact_mw","logp","tpsa","hbd","hba",
-                              "rotatable_bonds","rings","aromatic_rings",
-                              "heavy_atoms","fsp3","qed","bertz_complexity"],
-                    "Drug-Likeness": ["lipinski_pass","veber_pass","ghose_pass",
-                                      "egan_pass","muegge_pass","ro3_pass",
-                                      "drug_likeness_score","drug_like_flag",
-                                      "lead_like_flag","fragment_like_flag"],
-                    "ADMET": ["hia_predicted","bbb_predicted","cns_mpo_score",
-                               "oral_bioavailability_score","cyp3a4_inhibitor",
-                               "cyp2d6_inhibitor","cyp1a2_inhibitor",
-                               "herg_risk","dili_risk","ames_mutagenicity"],
-                    "Efficiency": ["lead_score","grade","ligand_efficiency",
-                                   "lipophilic_efficiency","optimization_score",
-                                   "risk_reward_score","development_priority",
-                                   "synthetic_accessibility","np_likeness_score"],
-                    "Decision": ["key_concern","recommendation","next_step"],
-                }
-                for cat_name, keys in cats.items():
-                    with st.expander(f"📂 {cat_name}"):
-                        rows = [(k, fv.get(k, "—")) for k in keys if k in fv]
-                        if rows:
+                    # ── Drug-likeness ─────────────────────────────────────────
+                    lip  = int(mw <= 500 and logp <= 5 and hbd <= 5 and hba <= 10)
+                    veb  = int(tpsa <= 140 and rotb <= 10)
+                    gho  = int(160 <= mw <= 480 and -0.4 <= logp <= 5.6 and ha <= 70)
+                    egan = int(tpsa <= 131 and logp <= 5.88)
+                    mue  = int(200 <= mw <= 600 and -2 <= logp <= 5 and tpsa <= 150)
+                    dl   = round((lip + veb + gho + egan + mue) / 5.0, 2)
+
+                    # ── ADMET heuristics ──────────────────────────────────────
+                    hia  = int(tpsa <= 120 and mw <= 500)
+                    bbb  = int(tpsa <= 90 and logp >= 0 and mw <= 450)
+                    cns  = sum([int(logp <= 5), int(tpsa <= 90), int(mw <= 360), int(hbd == 0)])
+                    cyp3a4 = int(mw >= 400 and logp >= 3)
+                    cyp2d6 = int(arom >= 2)
+                    cyp1a2 = int(arom >= 3 and logp >= 2)
+
+                    # ── Toxicity ──────────────────────────────────────────────
+                    herg = ("HIGH" if logp >= 3 and arom >= 2
+                            else "MEDIUM" if arom >= 2 else "LOW")
+                    nitro_count = sum(1 for a in mol_data.GetAtoms() if a.GetAtomicNum() == 7)
+                    ames = int(nitro_count > 0)
+                    dili = int(mw >= 450 or logp >= 4)
+
+                    pains_n = brenk_n = total_alerts = 0
+                    try:
+                        params = FilterCatalogParams()
+                        params.AddCatalog(FilterCatalogParams.FilterCatalogs.PAINS)
+                        params.AddCatalog(FilterCatalogParams.FilterCatalogs.BRENK)
+                        cat_filter = FilterCatalog(params)
+                        matches = list(cat_filter.GetMatches(mol_data))
+                        pains_n = sum(1 for e in matches if "PAINS" in e.GetDescription())
+                        brenk_n = sum(1 for e in matches if "Brenk" in e.GetDescription())
+                        total_alerts = len(matches)
+                    except Exception:
+                        pass
+
+                    # ── Scoring ───────────────────────────────────────────────
+                    ha_safe = max(ha, 1)
+                    le  = round(1.4 * 5.0 / ha_safe, 3)
+                    lle = round(5.0 - logp, 2)
+                    ls  = round(min(100, max(0,
+                        50.0 + (qed - 0.5)*30 + (lip+veb+egan)*5
+                        - total_alerts*3 - pains_n*5 + cns*1.5)), 1)
+                    grade = "A" if ls >= 75 else "B" if ls >= 55 else "C" if ls >= 40 else "D"
+
+                    def yn(v): return "✅ Yes" if v == 1 else "❌ No"
+
+                    # ── Render tables ─────────────────────────────────────────
+                    all_cats = [
+                        ("🔬 Core Properties", [
+                            ("Molecular Weight", f"{mw} Da"),
+                            ("LogP", logp), ("TPSA", f"{tpsa} Å²"),
+                            ("H-Bond Donors", hbd), ("H-Bond Acceptors", hba),
+                            ("Rotatable Bonds", rotb), ("Rings", rings),
+                            ("Aromatic Rings", arom), ("Heavy Atoms", ha),
+                            ("Fsp3", fsp3), ("QED", qed),
+                        ]),
+                        ("💊 Drug-Likeness", [
+                            ("Lipinski Ro5", yn(lip)), ("Veber Rule", yn(veb)),
+                            ("Ghose Filter", yn(gho)), ("Egan Filter", yn(egan)),
+                            ("Muegge Filter", yn(mue)),
+                            ("Drug-Likeness Score", f"{dl} / 1.0"),
+                        ]),
+                        ("🧬 ADMET Parameters", [
+                            ("HIA — Human Intestinal Absorption", yn(hia)),
+                            ("BBB — Blood-Brain Barrier Penetration", yn(bbb)),
+                            ("CNS MPO Score", f"{cns} / 4"),
+                            ("CYP3A4 Inhibitor", yn(cyp3a4)),
+                            ("CYP2D6 Inhibitor", yn(cyp2d6)),
+                            ("CYP1A2 Inhibitor", yn(cyp1a2)),
+                        ]),
+                        ("⚠️ Toxicity", [
+                            ("hERG Cardiac Risk", herg),
+                            ("DILI Risk", yn(dili)),
+                            ("AMES Mutagenicity", yn(ames)),
+                            ("PAINS Alerts", pains_n),
+                            ("Brenk Alerts", brenk_n),
+                            ("Total Structural Alerts", total_alerts),
+                        ]),
+                        ("📊 Scoring", [
+                            ("Lead Score (0–100)", ls),
+                            ("Grade", grade),
+                            ("Ligand Efficiency (LE)", le),
+                            ("Lipophilic Efficiency (LLE)", lle),
+                        ]),
+                    ]
+
+                    for cat_name, rows in all_cats:
+                        is_admet = "ADMET" in cat_name
+                        with st.expander(cat_name, expanded=is_admet):
                             df_cat = pd.DataFrame(rows, columns=["Property", "Value"])
                             st.dataframe(df_cat, use_container_width=True, hide_index=True)
+
             except Exception as e:
-                st.info(f"Full data requires data_engine.py: {str(e)[:100]}")
+                st.error(f"Data error: {e}")
+                st.code(str(e))
 else:
     st.markdown("""
 <div style="text-align:center;padding:80px 40px;font-family:'JetBrains Mono',monospace">

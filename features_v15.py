@@ -108,7 +108,7 @@ def scaffold_type(mol):
         from rdkit.Chem.Scaffolds import MurckoScaffold
         scaff = MurckoScaffold.GetScaffoldForMol(mol)
         return Chem.MolToSmiles(scaff) if scaff else "Linear/Small"
-    except: return "Unknown"
+    except Exception: return "Unknown"
 
 def ring_complexity(mol):
     """Analysis of ring system architecture."""
