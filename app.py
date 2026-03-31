@@ -318,6 +318,13 @@ if not st.session_state.entered_app:
 # Professional UI layer — injects theme system + components
 inject_ui()
 
+# Force-unhide sidebar — landing page CSS sets it to display:none and persists after rerun
+st.markdown("""
+<style>
+section[data-testid="stSidebar"] { display: flex !important; }
+</style>
+""", unsafe_allow_html=True)
+
 # CLOUD DISCOVERY INITIALIZATION (v1M)
 cloud_engine = cid.get_cloud_engine()
 
