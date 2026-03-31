@@ -110,6 +110,13 @@ html, body,
   background: var(--n-bg) !important;
   font-family: var(--n-font-body) !important;
   color: var(--n-tx) !important;
+  line-height: 1.5 !important;
+}
+/* NUCLEAR ICON SHIELD — NEVER uppercase icons or force swap their fonts */
+[data-testid="stIcon"], svg, .material-symbols-rounded, .material-icons, .material-icons-outlined {
+  text-transform: none !important;
+  font-family: inherit !important;
+  font-variant-ligatures: normal !important;
 }
 
 /* Grid overlay */
@@ -136,19 +143,29 @@ html, body,
 }
 
 /* Hide Streamlit chrome */
-#MainMenu, footer, header,
+#MainMenu, footer,
 [data-testid="stToolbar"],
 .stDeployButton { visibility: hidden !important; }
+
+/* Force hamburger menu / sidebar toggle to be fully visible and above other elements */
+[data-testid="collapsedControl"],
+.stSidebarCollapsedControl {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  z-index: 999999 !important;
+}
 
 /* ════════════ CONTAINER ════════════ */
 [data-testid="block-container"] {
   padding: 2rem 3.5rem !important;
   max-width: 1480px !important;
   margin: 0 auto !important;
+  line-height: 1.5 !important;
 }
 
 /* ════════════ SIDEBAR — Command Center ════════════ */
-[data-testid="stSidebar"] {
+section[data-testid="stSidebar"] {
   background: var(--n-bg1) !important;
   border-right: 1px solid var(--n-bdr) !important;
   backdrop-filter: blur(20px) !important;
@@ -166,16 +183,17 @@ html, body,
 }
 [data-testid="stSidebar"] * { color: var(--n-tx) !important; }
 
-/* Sidebar labels */
-[data-testid="stSidebar"] .stSelectbox label,
-[data-testid="stSidebar"] .stTextInput label,
-[data-testid="stSidebar"] .stSlider label,
-[data-testid="stSidebar"] .stRadio label {
+/* Sidebar labels - aggressive excluding of icons */
+[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] label {
   font-family: var(--n-font-mono) !important;
   font-size: 0.58rem !important;
   letter-spacing: 2px !important;
   text-transform: uppercase !important;
   color: var(--n-tx3) !important;
+}
+[data-testid="stSidebar"] label svg, 
+[data-testid="stSidebar"] label [data-testid="stIcon"] {
+  text-transform: none !important;
 }
 
 /* ════════════ TYPOGRAPHY ════════════ */
@@ -378,11 +396,18 @@ code {
 .stExpander:hover { border-color: var(--n-bdr) !important; }
 .stExpander summary {
   padding: 14px 20px !important;
+  text-transform: uppercase !important;
   font-family: var(--n-font-mono) !important;
   font-size: 0.68rem !important;
   letter-spacing: 1.5px !important;
-  text-transform: uppercase !important;
   color: var(--n-tx2) !important;
+}
+/* Detailed icon protection inside expanders */
+.stExpander summary svg, 
+.stExpander summary [data-testid="stIcon"],
+.stExpander summary .material-symbols-rounded {
+  text-transform: none !important;
+  display: inline-block !important;
 }
 .stExpander [data-testid="stExpanderDetails"] {
   background: var(--n-bg2) !important;
@@ -535,7 +560,7 @@ def _inject_component_library():
 .hero-title {
   font-family: var(--n-font-head);
   font-size: 3.5rem; font-weight: 800;
-  letter-spacing: -2px; line-height: 1;
+  letter-spacing: -2px; line-height: 1.2;
   color: var(--n-tx); margin-bottom: 10px;
 }
 .hero-title span {
@@ -561,7 +586,7 @@ def _inject_component_library():
   font-size: 4rem; font-weight: 800;
   color: var(--n-teal);
   text-shadow: 0 0 40px var(--n-teal-glow);
-  line-height: 1;
+  line-height: 1.2;
 }
 .hss-lbl {
   font-family: var(--n-font-mono);
@@ -611,7 +636,7 @@ def _inject_component_library():
 .sc-val {
   font-family: var(--n-font-head);
   font-size: 1.6rem; font-weight: 700;
-  line-height: 1; margin-bottom: 5px;
+  line-height: 1.3; margin-bottom: 5px;
   cursor: help;
 }
 .sc-lbl {
@@ -986,7 +1011,7 @@ def _inject_component_library():
 .batch-stat-n {
   font-family: var(--n-font-head);
   font-size: 1.6rem; font-weight: 700;
-  color: var(--n-teal); line-height: 1;
+  color: var(--n-teal); line-height: 1.3;
 }
 .batch-stat-l {
   font-family: var(--n-font-mono);

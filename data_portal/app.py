@@ -25,7 +25,7 @@ st.set_page_config(
 st.markdown("""<style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Syne:wght@600;700;800&family=Inter:wght@300;400;500&display=swap');
 :root {--teal:#00d2be;--amber:#f0a020;--green:#22d88a;--bg:#020408;--bg1:#040a12;--bg2:#06101e;--tx:#e4eeec;--tx2:rgba(180,220,215,.6);--bdr:rgba(0,210,190,.1);}
-#MainMenu,footer,header,[data-testid="stToolbar"],.stDeployButton{visibility:hidden!important;}
+#MainMenu,footer,[data-testid="stToolbar"],.stDeployButton{visibility:hidden!important;}
 [data-testid="stAppViewContainer"],[data-testid="stMain"]{background:var(--bg)!important;}
 [data-testid="block-container"]{padding:16px 32px!important;max-width:100%!important;}
 .port-hero{padding:32px 0 20px;border-bottom:1px solid var(--bdr);margin-bottom:24px;}
@@ -113,7 +113,9 @@ if "Overview" in page:
     designed for high-throughput ADMET screening and lead identification.
     The system operates across 6 architectural layers:
   </div>
-  <br>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:rgba(0,190,170,0.3);margin-bottom:12px;letter-spacing:1px">
+    (Architectural components; non-interactive summary)
+  </div>
   <span class="badge badge-t">Core Engine</span>
   <span class="badge badge-t">Data Layer (Parquet)</span>
   <span class="badge badge-t">API Layer (50+ APIs)</span>

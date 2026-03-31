@@ -334,7 +334,7 @@ st.markdown("""
   max-width: 1480px !important;
   margin: 0 auto !important;
 }
-#MainMenu, footer, header { visibility: hidden !important; }
+#MainMenu, footer { visibility: hidden !important; }
 
 /* Legacy variable compatibility */
 :root {
@@ -1818,7 +1818,6 @@ def mol_img_b64(mol, sz=(280,210)):
         rdDepictor.Compute2DCoords(mol)
         drawer = rdMolDraw2D.MolDraw2DSVG(sz[0], sz[1])
         drawer.drawOptions().clearBackground = True
-        drawer.drawOptions().backgroundColour = (1.0, 1.0, 1.0, 1.0)
         drawer.DrawMolecule(mol)
         drawer.FinishDrawing()
         svg = drawer.GetDrawingText()
@@ -2055,9 +2054,9 @@ def analyze(smiles_list):
             "Complexity":cx,
             "CYP_Hits":sum(1 for v in cyp.values() if v["hit"]),
             "logS":round(ls,2) if ls else "N/A","Solubility":sl,
-            "CNS_MPO":cm,"hERG":hl,"Ames":al,"HIA":"" if hia else "",
-            "BBB":"" if bbb else "","Veber":"" if (rot<=10 and tp<=140) else "",
-            "PAINS":"" if pains else "",
+            "CNS_MPO":cm,"hERG":hl,"Ames":al,"HIA":"✅" if hia else "❌",
+            "BBB":"✅" if bbb else "❌","Veber":"✅" if (rot<=10 and tp<=140) else "❌",
+            "PAINS":f"⚠️ {sum(1 for _ in [pains] if pains)}" if pains else "✅ Clean",
             "ChemoScore": chemo_score_pkg["score"],
             "LeadScore": chemo_score_pkg["score"], # Synchronize with legacy LeadScore
             "ChemoGrade": chemo_score_pkg["grade"],

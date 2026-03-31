@@ -59,7 +59,7 @@ _LANDING_CSS = """<style>
 }
 
 /* Reset Streamlit for landing */
-#MainMenu, footer, header,
+#MainMenu, footer,
 [data-testid="stToolbar"],
 .stDeployButton { visibility: hidden !important; }
 section[data-testid="stSidebar"] { display: none !important; }
