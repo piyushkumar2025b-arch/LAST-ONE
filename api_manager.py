@@ -120,41 +120,70 @@ def store_result(api_key: str, smiles: str, result: dict):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _safe_get(url: str, params: dict | None = None,
-              timeout: int = _TIMEOUT_DEFAULT) -> tuple:
-    """Returns (response_json, error_string). Routes through reliability layer."""
-    if _RELIABILITY_OK:
-        import urllib.parse as _up
-        full = url + ("?" + _up.urlencode(params) if params else "")
-        result = _reliability_get(full, timeout=timeout, source="http")
-        if result.get("status") == "success":
-            return result.get("data", {}), None
-        return None, result.get("error", "Request failed")
-    # Fallback: direct call when reliability layer missing
-    if not _REQ_OK:
-        return None, "requests library not available"
-    try:
-        r = _req.get(url, params=params, timeout=timeout)
-        r.raise_for_status()
-        return r.json(), None
-    except Exception as e:
-        return None, str(e)[:150]
+              timeout: int = _TIMEOUT_DEFAULT, max_retries: int = 3) -> tuple:
+    """
+    Returns (response_json_or_None, error_string_or_None).
+    Exponential backoff with jitter. Works with or without reliability layer.
+    """
+    import time, random
+    last_err = "No attempts made"
+
+    for attempt in range(max_retries):
+        try:
+            if _RELIABILITY_OK:
+                import urllib.parse as _up
+                full = url + ("?" + _up.urlencode(params) if params else "")
+                result = _reliability_get(full, timeout=timeout, source="http")
+                if result.get("status") == "success":
+                    return result.get("data", {}), None
+                last_err = result.get("error", "reliability layer failed")
+            else:
+                if not _REQ_OK:
+                    return None, "requests library not available"
+                r = _req.get(url, params=params, timeout=timeout)
+                r.raise_for_status()
+                return r.json(), None
+        except Exception as e:
+            last_err = str(e)[:150]
+
+        if attempt < max_retries - 1:
+            # Jittered backoff: base 2^attempt seconds ± 0–500ms
+            sleep_time = (2 ** attempt) + random.uniform(0, 0.5)
+            time.sleep(sleep_time)
+
+    return None, last_err
 
 
 def _safe_post(url: str, json_body: dict,
-               timeout: int = _TIMEOUT_DEFAULT) -> tuple:
-    if _RELIABILITY_OK:
-        result = _reliability_post(url, json_body, timeout=timeout, source="http")
-        if result.get("status") == "success":
-            return result.get("data", {}), None
-        return None, result.get("error", "Request failed")
-    if not _REQ_OK:
-        return None, "requests library not available"
-    try:
-        r = _req.post(url, json=json_body, timeout=timeout)
-        r.raise_for_status()
-        return r.json(), None
-    except Exception as e:
-        return None, str(e)[:150]
+               timeout: int = _TIMEOUT_DEFAULT, max_retries: int = 3) -> tuple:
+    """
+    Returns (response_json_or_None, error_string_or_None).
+    Exponential backoff with jitter. Works with or without reliability layer.
+    """
+    import time, random
+    last_err = "No attempts made"
+
+    for attempt in range(max_retries):
+        try:
+            if _RELIABILITY_OK:
+                result = _reliability_post(url, json_body, timeout=timeout, source="http")
+                if result.get("status") == "success":
+                    return result.get("data", {}), None
+                last_err = result.get("error", "reliability layer failed")
+            else:
+                if not _REQ_OK:
+                    return None, "requests library not available"
+                r = _req.post(url, json=json_body, timeout=timeout)
+                r.raise_for_status()
+                return r.json(), None
+        except Exception as e:
+            last_err = str(e)[:150]
+
+        if attempt < max_retries - 1:
+            sleep_time = (2 ** attempt) + random.uniform(0, 0.5)
+            time.sleep(sleep_time)
+
+    return None, last_err
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -491,6 +520,14 @@ def _fetch_unichem(inchikey: str) -> dict:
 # DISPATCH TABLE — maps api_key → fetch function
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _payload_hash(endpoint: str, payload: dict) -> str:
+    """
+    Deterministic SHA-256 fingerprint for a (endpoint, payload) pair.
+    Used to detect duplicate API calls that can be served from disk cache.
+    """
+    canonical = f"{endpoint}::{sorted(payload.items()) if payload else ''}"
+    return hashlib.sha256(canonical.encode()).hexdigest()[:16]
+
 _FETCH_DISPATCH = {
     "pubchem":          lambda smiles, query, **kw: _fetch_pubchem(smiles),
     "chembl":           lambda smiles, query, **kw: _fetch_chembl(smiles),
@@ -519,6 +556,14 @@ def fetch_api(api_key: str, smiles: str = "", query: str = "", **kwargs) -> dict
     cached = get_cached_result(api_key, cache_key_str)
     if cached and cached.get("status") in ("ok", "success"):
         return cached
+
+    # Deduplicate: if the same logical request was already completed this session
+    dedup_key = _payload_hash(api_key, {"smiles": smiles, "query": query, **kwargs})
+    if dedup_key in st.session_state:
+        cached_dedup = st.session_state[dedup_key]
+        if cached_dedup.get("status") in ("ok", "success"):
+            return cached_dedup
+
     fn = _FETCH_DISPATCH.get(api_key)
     if fn is None:
         result = _fail(api_key, "No fetch function registered for this API")
@@ -536,7 +581,12 @@ def fetch_api(api_key: str, smiles: str = "", query: str = "", **kwargs) -> dict
     # If result still failed → use fallback
     if result.get("status") == "failed" and _RELIABILITY_OK:
         result = _get_fallback(api_key, smiles=smiles)
-    store_result(api_key, cache_key_str, result)
+        
+    # Only persist successful results to session state cache
+    if result.get("status") in ("ok", "success"):
+        store_result(api_key, cache_key_str, result)
+        st.session_state[dedup_key] = result
+        
     return result
 
 

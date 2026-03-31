@@ -19,9 +19,13 @@ def render_landing() -> bool:
 
     st.markdown(_POST_BUTTON_HTML, unsafe_allow_html=True)
 
-    col4, col5, col6 = st.columns([2, 1, 2])
+    col4, col5, col6, col7 = st.columns([1.5, 1.2, 1.2, 1.5])
     with col5:
         cta = st.button("Begin Discovery →", key="_lp_cta", use_container_width=True)
+    with col6:
+        demo = st.button("🚀 Demo Mode", key="_lp_demo", use_container_width=True)
+        if demo:
+            st.session_state["_demo_all_drugs"] = True
 
     st.markdown(_LOWER_SECTIONS, unsafe_allow_html=True)
 
@@ -35,7 +39,7 @@ def render_landing() -> bool:
     except Exception:
         pass  # enhancements are purely additive — never block launch
 
-    return launched or cta
+    return launched or cta or demo
 
 
 _LANDING_CSS = """<style>
@@ -177,6 +181,9 @@ _LANDING_HTML = """
   <div class="l-eyebrow">
     <div class="l-edot"></div>
     Computational Drug Discovery Platform · VIT Chennai MDP 2026
+  </div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--l-teal);margin-top:-30px;margin-bottom:40px;letter-spacing:2px;font-weight:600;text-transform:uppercase;">
+    Chemistry → CS → Data Science → AI → Pharmacology
   </div>
 
   <h1 class="l-headline">

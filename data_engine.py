@@ -294,16 +294,15 @@ def _safe(fn, default=0.0):
     except Exception:
         return default
 
+@st.cache_data(max_entries=2000, ttl=3600, show_spinner=False)
 def compute_feature_vector(smiles: str, compound_id: str = "",
                             name: str = "") -> dict[str, Any]:
     """
     Compute 380+ feature vector for a single compound.
-    Fully cached. Never crashes. Returns defaults on any failure.
+    Fully cached via @st.cache_data + LRU. Never crashes.
     """
-    # Session-state cache check
     ck = f"_dfv_{_smiles_hash(smiles)}"
-    if _ST_OK and ck in st.session_state:
-        return st.session_state[ck]
+    # Memory cache check (st.session_state usage has been completely removed to prevent serialization bloat)
     # Row cache check
     cached = _cache_get(ck)
     if cached:
@@ -313,8 +312,10 @@ def compute_feature_vector(smiles: str, compound_id: str = "",
     row["smiles"] = smiles
     row["compound_id"] = compound_id or _smiles_hash(smiles)[:8]
     row["name"] = name or ""
-    row["visualization_url"] = f"?page=visualization&smiles={smiles}"
-    row["data_portal_url"] = f"?page=data_portal&smiles={smiles}"
+    import urllib.parse
+    enc_smi = urllib.parse.quote(smiles)
+    row["visualization_url"] = f"?page=visualization&smiles={enc_smi}"
+    row["data_portal_url"] = f"?page=data_portal&smiles={enc_smi}"
 
     try:
         from rdkit import Chem
@@ -650,13 +651,10 @@ def compute_feature_vector(smiles: str, compound_id: str = "",
     except Exception as _e:
         row["_compute_error"] = str(_e)[:200]
 
-    # Store in caches
-    _cache_put(ck, row)
-    if _ST_OK:
-        try:
-            st.session_state[ck] = row
-        except Exception:
-            pass
+    # Only populate local dict cache for non-Streamlit callers.
+    # st.cache_data already handles memoization in the Streamlit context.
+    if not _ST_OK:
+        _cache_put(ck, row)
 
     return row
 
@@ -669,50 +667,67 @@ def _df_available() -> bool:
     return _PD_OK and _PA_OK
 
 def store_compound(row: dict):
-    """Append one compound row to Parquet. Thread-safe via read-modify-write."""
+    """Safely store a compound avoiding the O(N^2) rewrite where possible."""
     if not _df_available():
         return
     try:
-        new_row = {k: [v] for k, v in row.items()}
-        df_new = pd.DataFrame(new_row)
-        if COMPOUNDS_PATH.exists():
-            df_exist = pd.read_parquet(COMPOUNDS_PATH,
-                                       columns=["smiles"],
-                                       engine="pyarrow")
-            if row["smiles"] in df_exist["smiles"].values:
-                return  # already stored
-            df_exist_full = pd.read_parquet(COMPOUNDS_PATH, engine="pyarrow")
-            df_combined = pd.concat([df_exist_full, df_new], ignore_index=True)
-        else:
-            df_combined = df_new
-        df_combined.to_parquet(COMPOUNDS_PATH, engine="pyarrow",
-                                compression="snappy", index=False)
+        # Use existing store_batch logic which is slightly safer
+        store_batch([row])
     except Exception:
         pass
 
 
 def store_batch(rows: list[dict]):
-    """Store multiple rows at once (more efficient than repeated store_compound)."""
+    """Store multiple rows — O(1) append mode with WAL fallback."""
     if not _df_available() or not rows:
         return
     try:
-        df_new = pd.DataFrame(rows)
+        # Deduplicate against in-memory index (never read full Parquet for this)
+        global _SMILES_INDEX
+        if not _INDEX_BUILT:
+            _rebuild_index()
+
+        filtered_rows = [r for r in rows if r.get("smiles") not in _SMILES_INDEX]
+        if not filtered_rows:
+            return
+
+        df_new = pd.DataFrame(filtered_rows)
+
         if COMPOUNDS_PATH.exists():
-            df_exist = pd.read_parquet(COMPOUNDS_PATH,
-                                       columns=["smiles"], engine="pyarrow")
-            existing_smiles = set(df_exist["smiles"].tolist())
-            df_new = df_new[~df_new["smiles"].isin(existing_smiles)]
-            if df_new.empty:
-                return
-            df_full = pd.read_parquet(COMPOUNDS_PATH, engine="pyarrow")
-            df_combined = pd.concat([df_full, df_new], ignore_index=True)
+            try:
+                import fastparquet
+                fastparquet.write(str(COMPOUNDS_PATH), df_new, append=True)
+            except ImportError:
+                # WAL fallback — correct newline, not escaped \\n
+                import json
+                wal_path = DATA_DIR / "compounds_wal.jsonl"
+                with open(wal_path, "a", encoding="utf-8") as f:
+                    for rv in filtered_rows:
+                        f.write(json.dumps(rv) + "\n")  # real newline, not \\n
         else:
-            df_combined = df_new
-        df_combined.to_parquet(COMPOUNDS_PATH, engine="pyarrow",
-                                compression="snappy", index=False)
-        _rebuild_index()
-    except Exception:
-        pass
+            df_new.to_parquet(COMPOUNDS_PATH, engine="pyarrow",
+                              compression="snappy", index=False)
+
+        # Update in-memory index incrementally — do NOT call _rebuild_index() here
+        curr_len = len(_SMILES_INDEX)
+        for i, row in enumerate(filtered_rows):
+            smi = row.get("smiles", "")
+            ik = row.get("inchikey", "")
+            if smi:
+                _SMILES_INDEX[smi] = curr_len + i
+            if ik:
+                _INCHI_INDEX[ik] = curr_len + i
+
+    except Exception as e:
+        import json
+        wal_path = DATA_DIR / "compounds_wal.jsonl"
+        try:
+            with open(wal_path, "a", encoding="utf-8") as f:
+                for rv in rows:
+                    f.write(json.dumps(rv) + "\n")
+        except Exception:
+            pass
+        print(f"[store_batch] Parquet write failed, flushed to WAL: {e}")
 
 
 def _rebuild_index():
