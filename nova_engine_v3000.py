@@ -348,7 +348,7 @@ class NovaIntelligenceV3000:
                 dims["Globularity"] = round(
                     min(dims.values())/max(dims.values()), 3)
                 return dims
-        except:
+        except Exception:
             pass
         # Fallback from 2D
         asa = rdMolDescriptors.CalcLabuteASA(mol)
@@ -406,7 +406,7 @@ class NovaIntelligenceV3000:
                 "SideChain_HA": total_ha - core_ha,
                 "Core_Fraction": round(core_ha/total_ha, 3) if total_ha>0 else 0
             }
-        except:
+        except Exception:
             return {"Murcko_Core": "N/A", "Core_HA": 0,
                     "SideChain_HA": 0, "Core_Fraction": 0}
 

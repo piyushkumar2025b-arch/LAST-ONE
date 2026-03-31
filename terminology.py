@@ -258,7 +258,7 @@ SECTION_TITLES = {
     "drug_class":        "💊 Drug Class Prediction & Target Category",
     "reaction_sim":      "⚗️ Medicinal Chemistry Reaction Simulator",
     "admet_bench":       "📐 ADMET Benchmarking vs Approved Drug Space",
-    "ai_explainer":      "🤖 AI-Powered Scientific Explanation Engine",
+    "ai_explainer":      "⚗️ Mechanistic SAR Derivation Profiler",
     "external_data":     "🔬 External Scientific Data Enrichment",
 }
 
@@ -609,27 +609,27 @@ FEATURE_LABELS = {
                                     "Aromatic atom fraction of conjugated system — measures resonance delocalisation."),
     "charge_mobility":             ("Charge Mobility Index",
                                     "Product of orbital overlap and π-electron score — estimates charge transport ability."),
-    # Meta / Engine
-    "engine_agreement_score":      ("Predictive Model Agreement Score",
-                                    "Fraction of consensus among all scoring engines. High agreement = high confidence prediction."),
+    # Meta / Consensus Prediction
+    "engine_agreement_score":      ("Algorithmic Consensus Metric",
+                                    "Fraction of statistical consensus across all predictive modalities."),
     "prediction_stability_idx":    ("Prediction Stability Index",
-                                    "Inverse coefficient of variation across engine scores. High = stable, reproducible predictions."),
+                                    "Inverse coefficient of variation across modalities. High = stable predictions."),
     "confidence_interval_range":   ("Prediction Confidence Interval Width (95% CI)",
-                                    "2× standard deviation of engine scores. Narrow CI = more precise prediction."),
+                                    "2× standard deviation of consensus scores. Narrow CI = more precise prediction."),
     "engine_divergence_score":     ("Inter-Model Divergence Score",
-                                    "Normalised standard deviation of engine outputs. Low divergence = high model consensus."),
+                                    "Normalised standard deviation of modality outputs. Low divergence = high statistical consensus."),
     "consensus_strength":          ("Model Consensus Strength",
                                     "Fraction of models scoring within one standard deviation of the mean."),
     "reliability_score":           ("Overall Prediction Reliability Score",
-                                    "Composite of agreement, stability, and consensus — measures how trustworthy the prediction is."),
-    "engine_count":                ("Active Prediction Model Count",
-                                    "Number of independent scoring models contributing to the consensus."),
-    "top_engine_score":            ("Highest Individual Model Score",
-                                    "Maximum score from any single model — upper bound of predicted activity."),
+                                    "Composite of agreement, stability, and consensus."),
+    "engine_count":                ("Active Predictive Modalities",
+                                    "Number of independent predictive nodes contributing to the consensus."),
+    "top_engine_score":            ("Peak Individual Model Score",
+                                    "Maximum score from any single node — upper bound of predicted activity."),
     "bottom_engine_score":         ("Lowest Individual Model Score",
-                                    "Minimum score from any single model — lower bound of predicted activity."),
-    "engine_spread_pct":           ("Model Score Range (% of Mean)",
-                                    "Max–min spread as percentage of mean score. High spread indicates model disagreement."),
+                                    "Minimum score from any single node — lower bound of predicted activity."),
+    "engine_spread_pct":           ("Model Score Variance (% of Mean)",
+                                    "Max–min spread as percentage of mean score."),
     # Efficiency deep
     "ligand_efficiency":           ("Ligand Efficiency (LE)",
                                     "kcal/mol per heavy atom proxy. The gold standard efficiency metric in fragment-based drug discovery."),
@@ -678,13 +678,13 @@ FEATURE_LABELS = {
     "risk_adjusted_score":         ("Toxicity Risk-Adjusted Lead Score",
                                     "Lead Score penalised by PAINS and hERG flags. Better reflects true development value."),
     "robustness_score":            ("Prediction Robustness Score",
-                                    "Inverse coefficient of variation across engine scores. High robustness = reliable prediction."),
+                                    "Inverse coefficient of variation across predictive modalities. High robustness = reliable prediction."),
     "explainability_score":        ("Prediction Explainability Score",
                                     "Structural simplicity + drug-likeness — simpler, drug-like molecules have more interpretable predictions."),
     "decision_clarity_index":      ("Decision Clarity Index",
                                     "Absolute margin from the 50-point decision boundary. High clarity = unambiguous Go or No-Go."),
     "model_agreement_entropy":     ("Model Agreement Entropy",
-                                    "Inverse normalised Shannon entropy of engine score distribution. High = uniform agreement."),
+                                    "Inverse normalised Shannon entropy of model distribution. High = uniform agreement."),
     # Benchmark
     "drug_space_distance":         ("Distance from Approved Drug Chemical Space",
                                     "100 − percentile rank. Higher = further from FDA approved drug property space."),
@@ -708,21 +708,118 @@ FEATURE_LABELS = {
                                     "NP Score normalised to 0–1. Measures structural resemblance to bioactive natural products."),
 }
 
+# ═════════════════════════════════════════════════════════════════════════════
+# SCIENTIFIC REGISTRY — Categorical extension of TERM
+# Replaces all "AI / Engine / Smart" nomenclature with research-grade identifiers
+# Query order: SCIENTIFIC_REGISTRY → TERM (legacy fallback)
+# ═════════════════════════════════════════════════════════════════════════════
+
+SCIENTIFIC_REGISTRY: dict[str, dict[str, tuple[str, str]]] = {
+    "Physicochemical": {
+        "mw":           ("Molecular Weight (MW)", "Total molecular mass in Daltons (Da)."),
+        "logp":         ("Lipophilicity (LogP)", "Octanol-water partition coefficient. Ideal range: -0.4 to 5.6."),
+        "tpsa":         ("Topological Polar Surface Area (TPSA)", "Sum of polar atom surface areas. Oral absorption limit: ≤140 Ų."),
+        "hbd":          ("Hydrogen Bond Donors (HBD)", "Count of N–H and O–H groups. Lipinski limit: ≤5."),
+        "hba":          ("Hydrogen Bond Acceptors (HBA)", "Count of N and O atoms. Lipinski limit: ≤10."),
+        "fsp3":         ("Fraction sp³ Carbons (Fsp3)", "Proportion of saturated carbons. >0.4 improves aqueous solubility."),
+        "qed":          ("Drug-Likeness Score (QED)", "Quantitative Estimate of Drug-likeness (0–1). >0.6 is drug-like."),
+        "log_s_esol":   ("ESOL Aqueous Solubility (logS)", "Predicted aqueous solubility via ESOL model. logS > -4 is acceptable."),
+        "rotatable_bonds": ("Rotatable Bond Count", "Single bonds permitting free rotation. >10 reduces oral bioavailability."),
+    },
+    "Structural_Alerts": {
+        "pains_count":       ("PAINS Structural Alert Count", "Pan-Assay Interference Compound alerts — predicts assay false positives."),
+        "brenk_count":       ("Brenk Structural Alert Count", "Toxicophore and metabolic liability alert count (Brenk filter)."),
+        "total_alert_count": ("Total Structural Alert Count", "Aggregate of all PAINS, Brenk, and NIH structural alerts."),
+        "ames_mutagenicity": ("Ames Mutagenicity Prediction", "Predicted bacterial mutagenicity. Indicates potential genotoxicity."),
+        "dili_risk":         ("Drug-Induced Liver Injury Risk (DILI)", "Predicted hepatotoxic liability based on physicochemical surrogates."),
+        "herg_risk":         ("hERG Cardiac Liability", "Predicted hERG potassium channel blockade risk. HIGH = potential QT prolongation."),
+        "toxicophore_count": ("Toxicophore Fragment Count", "Number of reactive chemical groups known to cause toxicity."),
+    },
+    "SAR_Inference": {
+        # All 'AI / Engine / Smart' terms are remapped here
+        "ai_explainer":              ("Mechanistic SAR Derivation Profiler",
+                                      "Structure-Activity Relationship inference engine. Derives mechanism from structural features."),
+        "engine_agreement_score":    ("Algorithmic Consensus Metric",
+                                      "Normalized agreement score across independent statistical ensemble models."),
+        "engine_count":              ("Active Predictive Modalities",
+                                      "Number of independent ensemble nodes contributing to the consensus prediction."),
+        "engine_divergence_score":   ("Inter-Model Divergence Score",
+                                      "Normalized standard deviation across ensemble model outputs. High = unstable prediction."),
+        "universal_analysis":        ("Universal Pharmacophore Profiling Suite",
+                                      "High-throughput physicochemical and pharmacophoric filtering pipeline."),
+        "smart_filter":              ("Adaptive Structural Exclusion Filter",
+                                      "Context-aware chemical space filter using substructure and physicochemical constraints."),
+        "ai_score":                  ("Ensemble Predictive Confidence Score",
+                                      "Aggregated statistical confidence of multi-model consensus prediction."),
+    },
+    "Efficiency_Metrics": {
+        "ligand_efficiency":     ("Ligand Efficiency (LE)", "Binding energy per heavy atom. Optimal scaffold optimisation guide."),
+        "lipophilic_efficiency": ("Lipophilic Ligand Efficiency (LLE)", "pIC50 minus LogP. LLE > 5 is excellent."),
+        "lead_score":            ("Lead Optimisation Score", "Composite decision score (0–100) integrating ADMET, safety, and drug-likeness."),
+        "drug_likeness_score":   ("Drug-Likeness Composite Score", "Fraction of Lipinski/Veber/Ghose/Egan/Muegge rules passed (0–1)."),
+        "synthetic_accessibility": ("Synthetic Accessibility Index", "Estimated synthetic difficulty (1=trivial, 10=impractical)."),
+        "optimization_score":    ("Multi-Parameter Optimisation Score (MPO)", "Weighted composite of LE, drug-likeness, and alert-free structure."),
+    },
+}
+
+def label(key: str) -> str:
+    """
+    Safe label lookup. Priority: SCIENTIFIC_REGISTRY → TERM legacy fallback.
+    Always returns a human-readable string. Never raises.
+    """
+    k = key.lower().replace(" ", "_").replace("-", "_")
+
+    # 1. Search categorical registry first
+    for _cat, term_map in SCIENTIFIC_REGISTRY.items():
+        if k in term_map:
+            return term_map[k][0]
+
+    # 2. Legacy TERM fallback
+    if k in TERM:
+        return TERM[k][0]
+        
+    # 2.5 FEATURE_LABELS fallback
+    if k in FEATURE_LABELS:
+        return FEATURE_LABELS[k][0]
+
+    # 3. Graceful degradation
+    return key.replace("_", " ").title()
+
+def tooltip(key: str) -> str:
+    """
+    Safe tooltip lookup. Priority: SCIENTIFIC_REGISTRY → TERM legacy fallback.
+    Always returns a string. Never raises.
+    """
+    k = key.lower().replace(" ", "_").replace("-", "_")
+
+    for _cat, term_map in SCIENTIFIC_REGISTRY.items():
+        if k in term_map:
+            return term_map[k][1]
+
+    if k in TERM:
+        return TERM[k][1]
+        
+    if k in FEATURE_LABELS:
+        return FEATURE_LABELS[k][1]
+
+    return f"No definition available for '{key}'."
+
+def category(key: str) -> str:
+    """Return the registry category for a key, or 'General' if not found."""
+    k = key.lower().replace(" ", "_").replace("-", "_")
+    for cat, term_map in SCIENTIFIC_REGISTRY.items():
+        if k in term_map:
+            return cat
+    return "General"
+
 
 def feat_label(key: str) -> str:
-    """Human-readable label for an advanced feature key."""
-    entry = FEATURE_LABELS.get(key)
-    if entry:
-        return entry[0]
-    # fallback
-    return key.replace("_", " ").replace("idx", "Index").replace("proxy", "Proxy").title()
-
+    """Legacy wrapper over label()"""
+    return label(key)
 
 def feat_tip(key: str) -> str | None:
-    """Tooltip for an advanced feature key."""
-    entry = FEATURE_LABELS.get(key)
-    return entry[1] if entry else None
-
+    """Legacy wrapper over tooltip()"""
+    return tooltip(key)
 
 def feat_label_tip(key: str) -> tuple:
     """Return (label, tooltip) tuple for advanced features."""

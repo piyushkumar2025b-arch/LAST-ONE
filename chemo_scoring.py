@@ -104,5 +104,10 @@ def get_grade(score):
     return "F"
 
 def get_chemoscore_pkg(results):
-    """Direct alias/wrapper for app.py and chemo_batch.py compatibility."""
-    return calculate_chemo_score(results)
+    pkg = calculate_chemo_score(results)
+    return {
+        "score": pkg.get("score", 0.0),
+        "grade": pkg.get("grade", "F"),
+        "components": pkg.get("components", {}),
+        "weights": pkg.get("weights", {}),
+    }

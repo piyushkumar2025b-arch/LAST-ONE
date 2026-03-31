@@ -13,7 +13,7 @@ import streamlit as st
 _data = None
 _synth_keys = [k for k in st.session_state if k.startswith("_synth_data_")]
 if _synth_keys:
-    _data = st.session_state[_synth_keys[0]]
+    _data = st.session_state.get(_synth_keys[0]) if _synth_keys else None
 
 st.markdown("""
 <div style="font-family:'JetBrains Mono',monospace;font-size:.55rem;
@@ -21,7 +21,7 @@ letter-spacing:3px;color:rgba(232,160,32,.45);text-transform:uppercase;
 margin-bottom:20px">⬡ ChemoFilter · Full Report Export</div>
 """, unsafe_allow_html=True)
 
-if not _data:
+if not _data or not isinstance(_data, list):
     st.info(
         "**No analysis data available.**\n\n"
         "Run an analysis from the main ChemoFilter page first, "

@@ -1,4 +1,4 @@
-"""
+# NOTE: This is the standalone visualization micro-app.\n# The Streamlit multi-page version lives at pages/visualization.py\n# Keep these in sync or consolidate into one file.\n"""
 visualization_app/app.py
 ────────────────────────────────────────────────────────────────────────────
 ChemoFilter · Visualization Micro-App

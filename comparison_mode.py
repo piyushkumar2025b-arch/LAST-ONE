@@ -64,8 +64,10 @@ def _radar_fig(compounds: list):
         qed_val  = float(cpd.get("QED", cpd.get("_qed", 0.5))) * 100
         lead_val = float(cpd.get("LeadScore", 60))
         oral_val = float(cpd.get("OralBioScore", 60))
-        bbb_val  = 80.0 if cpd.get("_bbb") else 20.0
-        hia_val  = 80.0 if cpd.get("_hia") else 20.0
+        
+        # BUG-009 Fix: Use actual predicted scores if available, else fallback
+        bbb_val  = float(cpd.get("_bbb_score", 80.0 if cpd.get("_bbb") else 20.0))
+        hia_val  = float(cpd.get("_hia_score", 80.0 if cpd.get("_hia") else 20.0))
 
         r_vals = [qed_val, lead_val, oral_val, bbb_val, hia_val]
 

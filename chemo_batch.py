@@ -81,7 +81,7 @@ def get_scaffold_distribution(df):
                 scaff_smi = Chem.MolToSmiles(scaff_mol)
                 if scaff_smi:
                     scaffolds.append(scaff_smi)
-        except:
+        except Exception:
             continue
             
     from collections import Counter

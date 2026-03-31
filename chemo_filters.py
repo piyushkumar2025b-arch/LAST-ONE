@@ -154,11 +154,11 @@ _STRUCTURAL_ALERTS_SMARTS = {
 # Generate chain/ring variations into SMARTS dict
 for _i in range(2, 51):
     _m = _STRUCTURAL_ALERTS_SMARTS["MedChem_Filters"]
-    _m[f"chain_len_{_i}"]       = "C" * _i
-    _m[f"ring_size_{_i}"]       = "C" * _i if _i > 2 else "CCC"
-    _m[f"branched_alkane_{_i}"] = "C" * _i + "(C)C"
-    _m[f"fluorine_count_{_i}"]  = "C" * _i + "F"
-    _m[f"oxygen_insertion_{_i}"]= "C" * (_i // 2) + "O" + "C" * (_i // 2)
+    # BUG-008 Fix: Use [C;R0] for chain carbons to avoid matching rings/aromatics
+    _m[f"chain_len_{_i}"]       = "[C;R0]" * _i
+    # Ring size variation using recursive SMARTS or ring-membership
+    _m[f"ring_size_{_i}"]       = f"[R{_i}]" if _i >= 3 else "CCC"
+    _m[f"branched_alkane_{_i}"] = "[C;R0]" * _i + "([C;R0])[C;R0]"
 
 # ── PRE-COMPILE all SMARTS at module import (runs once, not per molecule) ────
 # Skips patterns that fail to compile — safe fallback.
@@ -318,7 +318,7 @@ def get_scaffold_info(mol):
     try:
         scaf = MurckoScaffold.GetScaffoldForMol(mol)
         return {"scaffold_smiles": Chem.MolToSmiles(scaf), "scaffold_heavy": scaf.GetNumHeavyAtoms()}
-    except: return {}
+    except Exception: return {}
 
 def compute_similarity(mol1, mol2):
     if not mol1 or not mol2: return 0.0
