@@ -81,7 +81,7 @@ def _call_gemini(prompt: str, api_key: str, max_tokens: int = 600) -> str:
         return "Google Generative AI library not installed. Please install with `pip install google-generativeai`."
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-pro")
+        model = genai.GenerativeModel("gemini-2.5-pro-preview-03-25")
         config = genai.GenerationConfig(max_output_tokens=max_tokens)
         response = model.generate_content(prompt, generation_config=config)
         return response.text if response.text else "No response from Gemini."
