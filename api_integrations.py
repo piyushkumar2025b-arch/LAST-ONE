@@ -223,11 +223,11 @@ def _render_pubchem(smiles: str, cpd_id: str, compound: dict):
         vc = st.columns(2)
         with vc[0]:
             try: dmw = round(float(d.get("mw",0)) - float(loc_mw), 2); dm_str = f"{dmw:+.2f} Da"
-            except: dm_str = "N/A"
+            except Exception: dm_str = "N/A"
             st.metric("MW: PubChem vs RDKit", f"{d.get('mw','?')} Da", delta=dm_str, help="Difference vs local RDKit calculation")
         with vc[1]:
             try: dlp = round(float(d.get("xlogp",0)) - float(loc_lp), 2); dlp_str = f"{dlp:+.2f}"
-            except: dlp_str = "N/A"
+            except Exception: dlp_str = "N/A"
             st.metric("LogP: PubChem XLogP vs Crippen", f"{d.get('xlogp','?')}", delta=dlp_str)
     st.markdown(f'<a href="{d.get("pubchem_url","#")}" target="_blank" style="color:#4ade80;font-size:.75rem">🔗 View on PubChem →</a>', unsafe_allow_html=True)
 

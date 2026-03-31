@@ -358,7 +358,7 @@ def plot_compound_heatmap(compounds_data, properties=None):
             val = c.get(prop, 0)
             try:
                 val = float(val)
-            except:
+            except Exception:
                 val = 0
             row.append(val)
         z.append(row)

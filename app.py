@@ -50,7 +50,7 @@ except Exception:
         @staticmethod
         def enrich_batch(lst): return lst
         @staticmethod
-        def get_dataset_stats(): return {}
+        def get_dataset_stats(): return {"compound_count": 0, "feature_count": 0, "status": "unavailable"}
 
 try:
     import new_columns as _nc
@@ -294,7 +294,7 @@ except Exception:
 # ── API KEY: reads from Streamlit Cloud Secrets (App Settings → Secrets) ──
 def _get_api_key():
     try:
-        return st.secrets.get("ANTHROPIC_API_KEY", "")
+        return st.secrets.get("GOOGLE_API_KEY", "")
     except Exception:
         return ""
 
@@ -1498,7 +1498,7 @@ def load_sascorer():
             m    = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(m)
             return m
-    except: pass
+    except Exception: pass
     return None
 sascorer = load_sascorer()
 
@@ -1521,13 +1521,13 @@ CYP_RULES = {
 def sa_score(mol):
     if sascorer:
         try: return round(sascorer.calculateScore(mol), 2)
-        except: pass
+        except Exception: pass
     try:
         r=rdMolDescriptors.CalcNumRings(mol)
         s=len(Chem.FindMolChiralCenters(mol,includeUnassigned=True))
         h=mol.GetNumHeavyAtoms(); a=Descriptors.NumAromaticRings(mol)
         return min(10.0,max(1.0,round(1+(r*.4+s*.8+h/30+a*.3)*1.2,2)))
-    except: return 5.0
+    except Exception: return 5.0
 
 def sa_label(v):
     if v<=3: return "Easy",       "ok"
@@ -1552,7 +1552,7 @@ def complexity_score(mol):
         sp=rdMolDescriptors.CalcNumSpiroAtoms(mol)
         mac=1 if any(len(x)>=10 for x in mol.GetRingInfo().AtomRings()) else 0
         return round(min(100, r*6+s*10+h*.5+br*8+sp*7+mac*15),1)
-    except: return 50.0
+    except Exception: return 50.0
 
 def elem_comp(mol):
     d={}
@@ -1585,7 +1585,7 @@ def esol(mol):
         rot=Descriptors.NumRotatableBonds(mol); h=mol.GetNumHeavyAtoms()
         na=sum(1 for a in mol.GetAtoms() if a.GetIsAromatic())
         return round(.16-.63*lp-.0062*mw+.066*rot-.74*(na/h if h else 0),2)
-    except: return None
+    except Exception: return None
 
 def metabolism_pulse(mol):
     """Predicts potential metabolic sites using structural alerts."""
@@ -1722,7 +1722,7 @@ def np_score(mol):
         # Empirical NP-likeness formula
         s = fsp3*40 + min(rings,5)*8 + min(stereo,4)*10 + bridge*5
         return round(min(100, s),1)
-    except: return 50.0
+    except Exception: return 50.0
 
 @st.cache_data(show_spinner=False)
 def molecular_stress(smi: str) -> float:
@@ -1856,7 +1856,7 @@ def pubchem(smiles):
         if resp.status_code==200:
             p=resp.json()["PropertyTable"]["Properties"][0]
             return p.get("IUPACName",""),p.get("MolecularFormula","")
-    except: pass
+    except Exception: pass
     return "",""
 
 @st.cache_data(show_spinner=False)
@@ -1864,7 +1864,7 @@ def scaffold(smiles):
     try:
         mol=Chem.MolFromSmiles(smiles)
         if mol: return Chem.MolToSmiles(MurckoScaffold.GetScaffoldForMol(mol))
-    except: pass
+    except Exception: pass
     return ""
 
 @st.cache_data(show_spinner=False)
@@ -1883,7 +1883,7 @@ def ai_explain(data_str):
                     f"(3) key liabilities, (4) one structural improvement. "
                     f"No markdown, no lists. DATA: {data_str}"}]},timeout=15)
         if resp.status_code==200: return resp.json()["content"][0]["text"]
-    except: pass
+    except Exception: pass
     return "AI analysis unavailable."
 
 @st.cache_data(show_spinner=False)
@@ -1901,7 +1901,7 @@ def ai_analogues(smiles, props):
                     f"SMILES: {smiles} PROFILE: {props} "
                     f"Return ONLY a JSON array with 3 objects, keys: smiles, change, expected_improvement. No other text."}]},timeout=18)
         if resp.status_code==200: return resp.json()["content"][0]["text"]
-    except: pass
+    except Exception: pass
     return "[]"
 
 @st.cache_data(show_spinner=False)
@@ -1918,7 +1918,7 @@ def ai_repurpose(smiles, props):
                     f"Pharmacologist  3 sentences on likely therapeutic indications for this molecule. "
                     f"Cite structural reasons. No markdown. SMILES: {smiles} PROPS: {props}"}]},timeout=12)
         if resp.status_code==200: return resp.json()["content"][0]["text"]
-    except: pass
+    except Exception: pass
     return "Repurposing analysis unavailable."
 
 # 
@@ -2105,7 +2105,7 @@ def analyze(smiles_list):
 
         # r["LeadScore"]=calc_lead_score(r) # Overridden by ChemoScore for consistency
         r["OralBioScore"]=oral_bio_score(r)
-        r["PromiscuityRisk"]=promiscuity(r)
+        r["PromiscuityRisk"]="Low" if sum(1 for v in cyp.values() if v["hit"]) <= 1 else "Medium" if sum(1 for v in cyp.values() if v["hit"]) <= 3 else "High"
         r["_tips"]=opt_tips(r)
 
         # ── NEW: Extended Drug Discovery Analysis ──
@@ -2219,8 +2219,8 @@ def fig_boiled_egg(display_data):
 
 def fig_similarity(display_data):
     # PERF: cached via perf_layer patch — this function body unchanged
-    n=len(display_data); fps=[d["_fp"] for d in display_data]
-    mat=np.array([[DataStructs.TanimotoSimilarity(fps[i],fps[j]) for j in range(n)] for i in range(n)])
+    n=len(display_data); fps=[d["_fp"] if (d.get("_fp") is not None) else None for d in display_data]
+    mat=np.array([[DataStructs.TanimotoSimilarity(fps[i],fps[j]) if fps[i] is not None and fps[j] is not None else 0.0 for j in range(n)] for i in range(n)])
     ids=[d["ID"] for d in display_data]
     fig=go.Figure(go.Heatmap(z=mat,x=ids,y=ids,
         colorscale=[[0,"#ffffff"],[.3,"#111b2e"],[.6,"#7c4a00"],[1,"#f5a623"]],
@@ -2435,7 +2435,7 @@ def html_export(data):
         gc={"A":"#4ade80","B":"#f5a623","C":"#fcd34d","F":"#ff5c5c"}.get(d["Grade"],"#aaa")
         lc=score_hex(d["LeadScore"])
         v10 = d.get("_v10000", {}).get("Aether_Score", "N/A")
-        rows+=f"<tr><td>{d['ID']}</td><td style='color:{lc};font-weight:700'>{d['LeadScore']}</td><td style='color:{gc};font-weight:700'>{d['Grade']}</td><td>{v10}</td><td>{d['QED']}</td><td>{d['MW']}</td><td>{d['LogP']}</td><td>{d['tPSA']}</td><td>{d['HIA']}</td><td>{d['BBB']}</td><td>{d.get('logS','N/A')}</td><td style='color:{sc}'>{d['SA_Score']} ({d['SA_Label']})</td><td style='color:{hc}'>{d['_herg']}</td><td style='color:{ac}'>{d['_ames']}</td><td>{d['CYP_Hits']}/5</td><td>{d['CNS_MPO']}/6</td><td>{d['PromiscuityRisk']:.0f}</td><td>{d['PAINS']}</td></tr>"
+        rows+=f"<tr><td>{d['ID']}</td><td style='color:{lc};font-weight:700'>{d['LeadScore']}</td><td style='color:{gc};font-weight:700'>{d['Grade']}</td><td>{v10}</td><td>{d['QED']}</td><td>{d['MW']}</td><td>{d['LogP']}</td><td>{d['tPSA']}</td><td>{d['HIA']}</td><td>{d['BBB']}</td><td>{d.get('logS','N/A')}</td><td style='color:{sc}'>{d['SA_Score']} ({d['SA_Label']})</td><td style='color:{hc}'>{d['_herg']}</td><td style='color:{ac}'>{d['_ames']}</td><td>{d['CYP_Hits']}/5</td><td>{d['CNS_MPO']}/6</td><td>{d['PromiscuityRisk']}</td><td>{d['PAINS']}</td></tr>"
     return f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>ChemoFilter v50000 Report</title>
 <style>
@@ -2722,8 +2722,14 @@ with st.sidebar.expander("🤖 AI Scientific Explanation Controls"):
 
 
 
-# ── Cache wrapper: runs only when SMILES input actually changes ───────────────
-@st.cache_resource(show_spinner=False)
+def jitter(val, noise=0.15, min_val=0):
+    try:
+        v = float(val)
+        return max(min_val, round(v * random.uniform(1-noise, 1+noise), 2))
+    except Exception:
+        return val
+
+@st.cache_data(show_spinner=False)
 def _analyze_cached(smiles_tuple: tuple) -> list:
     """Cached analysis — identical SMILES input returns instantly from cache."""
     return analyze(list(smiles_tuple))
@@ -2756,47 +2762,39 @@ if input_text.strip():
                         c["ID"] = f"Cpd-{idx+1:03d}"
                         data.append(c)
 
-                    # Jitter helper — defined once outside loop
-                    def jitter(val, noise=0.15, min_val=0):
-                        try:
-                            v = float(val)
-                            return max(min_val, round(v * random.uniform(1-noise, 1+noise), 2))
-                        except Exception:
-                            return val
-
                     # Generate synthetic variations to reach 200 compounds
                     for i in range(len(base_data) + 1, 201):
                         base = random.choice(base_data)
                         new_c = copy.deepcopy(base)
                         new_c["ID"] = f"Cpd-{i:03d}"
 
-                        new_c["MW"] = jitter(new_c["MW"], 0.1, 150)
-                        new_c["LogP"] = round(float(new_c["LogP"]) + random.uniform(-1.5, 1.5), 2)
+                        new_c["MW"] = jitter(new_c.get("MW", 350), 0.1, 150)
+                        new_c["LogP"] = round(float(new_c.get("LogP", 2.5)) + random.uniform(-1.5, 1.5), 2)
                         new_c["LogP"] = max(-2, min(6, new_c["LogP"]))
-                        new_c["tPSA"] = jitter(new_c["tPSA"], 0.2, 10)
-                        new_c["QED"] = max(0.01, min(0.99, jitter(new_c["QED"], 0.2)))
-                        new_c["LeadScore"] = int(max(30, min(95, jitter(new_c["LeadScore"], 0.15))))
-                        new_c["OralBioScore"] = int(max(20, min(95, jitter(new_c["OralBioScore"], 0.2))))
-                        new_c["SA_Score"] = max(1.0, min(10.0, jitter(new_c["SA_Score"], 0.3)))
-                        new_c["NP_Score"] = max(0, min(100, jitter(new_c["NP_Score"], 0.3)))
-                        new_c["Stress"] = max(0, min(100, jitter(new_c["Stress"], 0.3)))
+                        new_c["tPSA"] = jitter(new_c.get("tPSA", 80.0), 0.2, 10)
+                        new_c["QED"] = max(0.01, min(0.99, jitter(new_c.get("QED", 0.5), 0.2)))
+                        new_c["LeadScore"] = int(max(30, min(95, jitter(new_c.get("LeadScore", 50), 0.15))))
+                        new_c["OralBioScore"] = int(max(20, min(95, jitter(new_c.get("OralBioScore", 60), 0.2))))
+                        new_c["SA_Score"] = max(1.0, min(10.0, jitter(new_c.get("SA_Score", 5.0), 0.3)))
+                        new_c["NP_Score"] = max(0, min(100, jitter(new_c.get("NP_Score", 50), 0.3)))
+                        new_c["Stress"] = max(0, min(100, jitter(new_c.get("Stress", 50), 0.3)))
 
                         # Update extended props if available
                         ext = new_c.get("_ext", {})
                         if ext:
-                            ext["Heavy_Atom_Count"] = int(new_c["MW"] / 14)
+                            ext["Heavy_Atom_Count"] = int(new_c.get("MW", 350) / 14)
                             ext["Ring_Count"] = random.randint(1, 5)
                             ext["HBD"] = random.randint(0, 5)
                             ext["HBA"] = random.randint(2, 10)
                             ext["Rotatable_Bonds"] = random.randint(1, 10)
                             ext["Lipinski_Violations"] = 0
-                            if new_c["MW"] > 500: ext["Lipinski_Violations"] += 1
-                            if new_c["LogP"] > 5: ext["Lipinski_Violations"] += 1
+                            if new_c.get("MW", 0) > 500: ext["Lipinski_Violations"] += 1
+                            if new_c.get("LogP", 0) > 5: ext["Lipinski_Violations"] += 1
                             if ext["HBD"] > 5: ext["Lipinski_Violations"] += 1
                             if ext["HBA"] > 10: ext["Lipinski_Violations"] += 1
 
                             ext["Solubility_Class"] = random.choice(["Highly Soluble", "Soluble", "Moderate", "Poorly Soluble"])
-                            ext["BBB_Penetration"] = "Yes" if new_c["tPSA"] < 79 and new_c["LogP"] > 0 and new_c["LogP"] < 5.5 else "No"
+                            ext["BBB_Penetration"] = "Yes" if new_c.get("tPSA", 100) < 79 and new_c.get("LogP", 0) > 0 and new_c.get("LogP", 0) < 5.5 else "No"
                             ext["Toxicity_Risk"] = random.choice(["Low", "Low", "Medium", "High"])
                             ext["Mutagenicity_Risk"] = random.choice(["Low", "Low", "Medium", "High"])
                             ext["CYP450_Risk"] = random.choice(["Low", "Medium", "High"])
@@ -2804,7 +2802,7 @@ if input_text.strip():
                             ext["Clearance"] = random.choice(["Moderate", "High (Hepatic)", "High (Renal)"])
                             ext["Half_Life"] = random.choice(["Short (<4h)", "Medium (4-12h)", "Long (>12h)"])
 
-                            ext["Ligand_Efficiency"] = max(0.1, round(new_c["QED"] / (new_c["MW"] / 100), 2))
+                            ext["Ligand_Efficiency"] = max(0.1, round(new_c.get("QED", 0.5) / (new_c.get("MW", 350) / 100), 2))
                             ext["Bioavailability_Score"] = round(random.uniform(0.3, 0.9), 2)
 
                             # Drug likeness badge based on Lipinski violations
@@ -2822,13 +2820,13 @@ if input_text.strip():
                             ext["_adv"] = acg.generate_ultra_advanced_columns(new_c)
 
                         # Recalculate Grade based on LeadScore
-                        if new_c["LeadScore"] >= 80: new_c["Grade"] = "A"
-                        elif new_c["LeadScore"] >= 60: new_c["Grade"] = "B"
-                        elif new_c["LeadScore"] >= 40: new_c["Grade"] = "C"
+                        if new_c.get("LeadScore", 0) >= 80: new_c["Grade"] = "A"
+                        elif new_c.get("LeadScore", 0) >= 60: new_c["Grade"] = "B"
+                        elif new_c.get("LeadScore", 0) >= 40: new_c["Grade"] = "C"
                         else: new_c["Grade"] = "F"
 
                         # Synthetic ChemoFilter Data
-                        s_score = jitter(new_c["LeadScore"], 0.05)
+                        s_score = jitter(new_c.get("LeadScore", 50), 0.05)
                         new_c["ChemoScore"] = s_score
                         new_c["ChemoGrade"] = cs.get_grade(s_score)
                         new_c["_chemo_score_pkg"] = {
@@ -2837,9 +2835,9 @@ if input_text.strip():
                             "components": {
                                 "Structure": round(random.uniform(0.6, 0.9), 2),
                                 "Compliance": round(random.uniform(0.5, 0.8), 2),
-                                "Drug-Likeness": round(new_c["QED"], 2),
+                                "Drug-Likeness": round(new_c.get("QED", 0.5), 2),
                                 "Safety": round(random.uniform(0.4, 0.9), 2),
-                                "Synthesis": round(1.0 - (new_c["SA_Score"] / 10), 2)
+                                "Synthesis": round(1.0 - (new_c.get("SA_Score", 5.0) / 10), 2)
                             }
                         }
                         new_c["_chemo_tests"] = [
@@ -2850,6 +2848,58 @@ if input_text.strip():
                             {"category": "Safety Catalogs", "test": "PAINS", "result": "PASS", "detail": "None Detected"}
                         ]
 
+                        new_c.setdefault("_hia", bool(new_c.get("tPSA", 100) < 142))
+                        new_c.setdefault("_bbb", bool(new_c.get("tPSA", 100) < 79 and -2 < new_c.get("LogP", 3) < 6))
+                        new_c.setdefault("_pains", False)
+                        new_c.setdefault("_herg", "LOW")
+                        new_c.setdefault("_qed", new_c.get("QED", 0.5))
+                        new_c.setdefault("_sa", new_c.get("SA_Score", 5.0))
+                        new_c.setdefault("_fp", None)
+                        new_c.setdefault("_vc", 0)
+                        new_c.setdefault("_org", True)
+                        new_c.setdefault("_lp", new_c.get("LogP", 2.5))
+                        new_c.setdefault("_mw", new_c.get("MW", 350.0))
+                        new_c.setdefault("_tp", new_c.get("tPSA", 80.0))
+                        new_c.setdefault("_rot", new_c.get("RotBonds", 5))
+                        new_c.setdefault("_sim", 0.1)
+                        new_c.setdefault("_hbd", 2)
+                        new_c.setdefault("_hba", 5)
+                        new_c.setdefault("_ar", 2)
+                        new_c.setdefault("_cm", 5.0)
+                        new_c.setdefault("_ames", "Low Risk")
+                        new_c.setdefault("_af", [])
+                        new_c.setdefault("_hf", [])
+                        new_c.setdefault("_ls", -3.0)
+                        new_c.setdefault("_sl", "Moderate")
+                        new_c.setdefault("_sc", "warn")
+                        new_c.setdefault("_cx", 40.0)
+                        new_c.setdefault("_fsp3", 0.3)
+                        new_c.setdefault("_vl", [])
+                        new_c.setdefault("_h", int(new_c.get("MW", 350) / 14))
+                        new_c.setdefault("_rings", 2)
+                        new_c.setdefault("_stereo", 0)
+                        new_c.setdefault("_elems", {"C": 20, "H": 24, "N": 2, "O": 3})
+                        new_c.setdefault("_meta", {})
+                        new_c.setdefault("_conf", "")
+                        new_c.setdefault("_ld", new_c.get("LogP", 2.5))
+                        new_c.setdefault("_ppb", "50-85%")
+                        new_c.setdefault("_rc", "Moderate")
+                        new_c.setdefault("_gc", {})
+                        new_c.setdefault("_frags", {})
+                        new_c.setdefault("_war", [])
+                        new_c.setdefault("_iso", [])
+                        new_c.setdefault("_diss", "Moderate")
+                        new_c.setdefault("_eco", "Unknown")
+                        new_c.setdefault("_cost", "Moderate")
+                        new_c.setdefault("_dfi", "Low")
+                        new_c.setdefault("_barcode", f"CPD-SYN-{i:04d}")
+                        new_c.setdefault("_v15", {})
+                        new_c.setdefault("_v20", {})
+                        new_c.setdefault("_acc", {})
+                        new_c.setdefault("_v50", {})
+                        new_c.setdefault("_sa_lbl", "Moderate")
+                        new_c.setdefault("_cyp", {})
+                        new_c.setdefault("PromiscuityRisk", random.choice(["Low", "Low", "Medium", "High"]))
                         data.append(new_c)
 
                 # Save to session_state cache
@@ -2869,13 +2919,13 @@ if input_text.strip():
     display_data = data  # initialize before filters; will be narrowed by Discovery Hub below
     total  = len(data)
     ga     = sum(1 for d in display_data if d["Grade"]=="A")
-    hia_ok = sum(1 for d in display_data if d["_hia"])
-    bbb_ok = sum(1 for d in display_data if d["_bbb"])
-    pf     = sum(1 for d in display_data if d["_pains"])
-    hh     = sum(1 for d in display_data if d["_herg"]=="HIGH")
-    aqed   = sum(d["_qed"] for d in data)/total
-    als    = sum(d["LeadScore"] for d in data)/total
-    asa    = sum(d["_sa"] for d in data)/total
+    hia_ok = sum(1 for d in display_data if d.get("_hia", False))
+    bbb_ok = sum(1 for d in display_data if d.get("_bbb", False))
+    pf     = sum(1 for d in display_data if d.get("_pains", False))
+    hh     = sum(1 for d in display_data if d.get("_herg", "LOW") == "HIGH")
+    aqed   = sum(d.get("_qed", d.get("QED", 0.5)) for d in data)/total
+    als    = sum(d.get("LeadScore", 0) for d in data)/total
+    asa    = sum(d.get("_sa", d.get("SA_Score", 5.0)) for d in data)/total
 
     # ── NEW: Batch Intelligence Calculation ──────────────────────────
     batch_intel = cb.extract_dataset_intelligence(pd.DataFrame(display_data))
@@ -2994,7 +3044,7 @@ if input_text.strip():
             "id":_d["ID"],"grade":_d["Grade"],
             "lead":_d["LeadScore"],"oral":_d["OralBioScore"],
             "qed":round(_d["QED"],3),"np":round(_d["NP_Score"],1),
-            "stress":round(_d["Stress"],1),"prom":round(_d["PromiscuityRisk"],0),
+            "stress":round(_d["Stress"],1),"prom":_d.get("PromiscuityRisk", "Unknown"),
             "mw":round(_d["MW"],1),"logp":round(_d["LogP"],2),"tpsa":round(_d["tPSA"],1),
             "fsp3":round(_d["Fsp3"],2),"sa":round(_d["SA_Score"],2),
             "sa_lbl":_d["SA_Label"],"cplx":round(_d["Complexity"],1),
@@ -5280,7 +5330,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                             json={"model":"claude-sonnet-4-5-20251001","max_tokens":600,
                                   "messages":[{"role":"user","content":synth_prompt}]},timeout=15)
                         synth_plan = r_synth.json()["content"][0]["text"] if r_synth.status_code==200 else "Route generation error."
-                    except: synth_plan = "AI Synthesis engine offline."
+                    except Exception: synth_plan = "AI Synthesis engine offline."
                     
                     st.markdown(f'<div class="ai-body">{synth_plan}</div>', unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)

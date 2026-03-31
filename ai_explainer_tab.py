@@ -14,10 +14,10 @@ import streamlit as st
 import json
 
 try:
-    import anthropic
-    _ANTHRO_OK = True
+    import google.generativeai as genai
+    _GEMINI_OK = True
 except Exception:
-    _ANTHRO_OK = False
+    _GEMINI_OK = False
 
 # ── Prompt builder ────────────────────────────────────────────────────────
 
@@ -76,17 +76,15 @@ def _build_prompt(compound: dict, mode: str) -> str:
         )
 
 
-def _call_claude(prompt: str, api_key: str, max_tokens: int = 600) -> str:
-    if not _ANTHRO_OK:
-        return "Anthropic library not installed."
+def _call_gemini(prompt: str, api_key: str, max_tokens: int = 600) -> str:
+    if not _GEMINI_OK:
+        return "Google Generative AI library not installed. Please install with `pip install google-generativeai`."
     try:
-        client = anthropic.Anthropic(api_key=api_key)
-        msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=max_tokens,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return msg.content[0].text if msg.content else "No response."
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-1.5-pro")
+        config = genai.GenerationConfig(max_output_tokens=max_tokens)
+        response = model.generate_content(prompt, generation_config=config)
+        return response.text if response.text else "No response from Gemini."
     except Exception as e:
         return f"API error: {e}"
 
@@ -97,7 +95,7 @@ def render_tab(res: list, api_key: str = ""):
     st.markdown(
         '<div style="font-family:\'JetBrains Mono\',monospace;font-size:.6rem;'
         'letter-spacing:3px;color:rgba(232,160,32,.5);text-transform:uppercase;'
-        'margin-bottom:12px">⬡ AI Explainer — Claude-Powered Analysis Narrative</div>',
+        'margin-bottom:12px">⬡ AI Explainer — Gemini-Powered Analysis Narrative</div>',
         unsafe_allow_html=True,
     )
 
@@ -107,8 +105,8 @@ def render_tab(res: list, api_key: str = ""):
 
     if not api_key:
         st.info(
-            "🔑 **AI Explainer requires an Anthropic API key.**  \n"
-            "Add `ANTHROPIC_API_KEY` to your Streamlit Cloud secrets "
+            "🔑 **AI Explainer requires a Gemini API key.**  \n"
+            "Add `GOOGLE_API_KEY` to your Streamlit Cloud secrets "
             "(App Settings → Secrets) to enable AI explanations."
         )
         return
@@ -143,8 +141,8 @@ def render_tab(res: list, api_key: str = ""):
     # Generate button
     if st.button("✨ Generate Scientific AI Explanation", key="_aiexp_run", type="primary"):
         prompt = _build_prompt(compound, mode)
-        with st.spinner("Claude is thinking..."):
-            response = _call_claude(prompt, api_key, max_tok)
+        with st.spinner("Gemini is thinking..."):
+            response = _call_gemini(prompt, api_key, max_tok)
 
         # Render response in styled box
         st.markdown(
@@ -173,7 +171,7 @@ def render_tab(res: list, api_key: str = ""):
             for cpd in top3:
                 with st.spinner(f"Explaining {cpd.get('ID', '–')}..."):
                     p = _build_prompt(cpd, "Compound Overview & Drug-Likeness Assessment")
-                    r = _call_claude(p, api_key, 300)
+                    r = _call_gemini(p, api_key, 300)
                 st.markdown(f"### {cpd.get('ID', '–')}")
                 st.markdown(r)
                 st.divider()

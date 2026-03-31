@@ -318,7 +318,7 @@ def get_scaffold_info(mol):
     try:
         scaf = MurckoScaffold.GetScaffoldForMol(mol)
         return {"scaffold_smiles": Chem.MolToSmiles(scaf), "scaffold_heavy": scaf.GetNumHeavyAtoms()}
-    except: return {}
+    except Exception: return {}
 
 def compute_similarity(mol1, mol2):
     if not mol1 or not mol2: return 0.0

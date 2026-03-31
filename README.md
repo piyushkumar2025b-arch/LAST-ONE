@@ -27,7 +27,7 @@ git push -u origin main
 2. Go to the **Secrets** tab
 3. Paste this:
 ```toml
-ANTHROPIC_API_KEY = "sk-ant-your-key-here"
+GOOGLE_API_KEY = "AIza-your-key-here"
 ```
 4. Click **Save** — the app will reboot with AI features enabled
 
@@ -87,7 +87,7 @@ chemofilter/
 
 | Key | Where to set | Purpose |
 |-----|-------------|---------|
-| `ANTHROPIC_API_KEY` | Streamlit Cloud → App Settings → Secrets | AI Explainer, Analogues, Repurposing |
+| `GOOGLE_API_KEY` | Streamlit Cloud → App Settings → Secrets | AI Explainer, Analogues, Repurposing |
 
 ---
 

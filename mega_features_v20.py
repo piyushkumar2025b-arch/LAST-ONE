@@ -629,19 +629,19 @@ def idiosyncratic_tox_flag(mol):
 
 def shape_index_kappa1(mol):
     try: return round(CalcKappa1(mol), 3)
-    except: return 0
+    except Exception: return 0
 
 def shape_index_kappa2(mol):
     try: return round(CalcKappa2(mol), 3)
-    except: return 0
+    except Exception: return 0
 
 def shape_index_kappa3(mol):
     try: return round(CalcKappa3(mol), 3)
-    except: return 0
+    except Exception: return 0
 
 def labute_asa(mol):
     try: return round(CalcLabuteASA(mol), 2)
-    except: return 0
+    except Exception: return 0
 
 def chi_indices(mol):
     """Chi connectivity indices (topological)."""
@@ -654,14 +654,14 @@ def chi_indices(mol):
             "Chi0n": round(CalcChi0n(mol), 3),
             "Chi1n": round(CalcChi1n(mol), 3),
         }
-    except:
+    except Exception:
         return {}
 
 def wiener_index(mol):
     """Wiener topological index."""
     try:
         return GraphDescriptors.BalabanJ(mol)
-    except:
+    except Exception:
         return 0
 
 def molecular_flexibility(mol):
@@ -709,7 +709,7 @@ def isomer_count_hint(mol):
 def graph_complexity(mol):
     """Bertz complexity index."""
     try: return round(GraphDescriptors.BertzCT(mol), 1)
-    except: return 0
+    except Exception: return 0
 
 def mol_volume(mol):
     return round(CalcLabuteASA(mol)*0.8, 1)
@@ -731,7 +731,7 @@ def nitrogen_saturation(mol):
 
 def surface_roughness(mol):
     try: return round(CalcKappa3(mol), 3)
-    except: return 0
+    except Exception: return 0
 
 def scaffold_complexity_index(mol):
     """Rings + stereocenters + bridgeheads + spiro as composite."""
