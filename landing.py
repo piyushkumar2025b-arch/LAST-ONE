@@ -139,6 +139,124 @@ html, body,
   0%   { top: -100%; }
   100% { top: 200%; }
 }
+
+/* ═══════════ ENHANCEMENT: Particle Drift Keyframes ═══════════ */
+@keyframes lDrift1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+  33%       { transform: translate(20px, -30px) scale(1.3); opacity: 0.7; }
+  66%       { transform: translate(-15px, 10px) scale(0.8); opacity: 0.3; }
+}
+@keyframes lDrift2 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.3; }
+  50%       { transform: translate(-25px, 20px); opacity: 0.6; }
+}
+@keyframes lDrift3 {
+  0%   { transform: translateY(0px); opacity: 0.2; }
+  50%  { transform: translateY(-40px); opacity: 0.5; }
+  100% { transform: translateY(0px); opacity: 0.2; }
+}
+.l-particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.l-p {
+  position: absolute; border-radius: 50%;
+  filter: blur(1px);
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* ═══════════ ENHANCEMENT: Nav Underline + Version Hover ═══════════ */
+.l-nl {
+  position: relative;
+  overflow: hidden;
+}
+.l-nl::after {
+  content: '';
+  position: absolute; bottom: -2px; left: 0; right: 0; height: 1px;
+  background: var(--l-teal);
+  transform: translateX(-110%);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.l-nl:hover::after {
+  transform: translateX(0);
+}
+.l-nl:hover {
+  color: var(--l-teal) !important;
+}
+.l-ver:hover {
+  background: rgba(0,210,190,0.12) !important;
+  border-color: rgba(0,210,190,0.35) !important;
+  box-shadow: 0 0 20px rgba(0,210,190,0.15);
+  transition: all 0.3s;
+}
+
+/* ═══════════ ENHANCEMENT: Chip Float + Glow ═══════════ */
+@keyframes lChipFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-4px); }
+}
+.l-chip { animation: lChipFloat 3s ease-in-out infinite; }
+.l-chips .l-chip:nth-child(1)  { animation-delay: 0.0s; }
+.l-chips .l-chip:nth-child(2)  { animation-delay: 0.2s; }
+.l-chips .l-chip:nth-child(3)  { animation-delay: 0.4s; }
+.l-chips .l-chip:nth-child(4)  { animation-delay: 0.6s; }
+.l-chips .l-chip:nth-child(5)  { animation-delay: 0.8s; }
+.l-chips .l-chip:nth-child(6)  { animation-delay: 1.0s; }
+.l-chips .l-chip:nth-child(7)  { animation-delay: 1.2s; }
+.l-chips .l-chip:nth-child(8)  { animation-delay: 1.4s; }
+.l-chips .l-chip:nth-child(9)  { animation-delay: 0.1s; }
+.l-chips .l-chip:nth-child(10) { animation-delay: 0.3s; }
+.l-chips .l-chip:nth-child(11) { animation-delay: 0.5s; }
+.l-chips .l-chip:nth-child(12) { animation-delay: 0.7s; }
+.l-chips .l-chip:nth-child(13) { animation-delay: 0.9s; }
+.l-chips .l-chip:nth-child(14) { animation-delay: 1.1s; }
+.l-chips .l-chip:nth-child(15) { animation-delay: 1.3s; }
+.l-chips .l-chip:nth-child(16) { animation-delay: 0.15s; }
+.l-chip-t:hover { box-shadow: 0 0 16px rgba(0,210,190,0.35); transform: translateY(-5px) scale(1.05); transition: all 0.2s; }
+.l-chip-a:hover { box-shadow: 0 0 16px rgba(240,160,32,0.35); transform: translateY(-5px) scale(1.05); transition: all 0.2s; }
+.l-chip-d:hover { box-shadow: 0 0 16px rgba(167,139,250,0.35); transform: translateY(-5px) scale(1.05); transition: all 0.2s; }
+
+/* ═══════════ ENHANCEMENT: Typing Cursor on Subheadline ═══════════ */
+@keyframes lBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.l-subhead::after {
+  content: '_';
+  color: var(--l-teal);
+  animation: lBlink 1.2s ease-in-out infinite;
+  margin-left: 2px;
+}
+
+/* ═══════════ ENHANCEMENT: Hero Beam Sweep ═══════════ */
+@keyframes lBeamSweep {
+  0%   { opacity: 0; transform: translateX(-100%) rotate(-20deg); }
+  20%  { opacity: 0.6; }
+  80%  { opacity: 0.3; }
+  100% { opacity: 0; transform: translateX(200%) rotate(-20deg); }
+}
+.l-hero::before {
+  content: '';
+  position: absolute;
+  top: -10%; left: 0;
+  width: 30%; height: 120%;
+  background: linear-gradient(90deg, transparent, rgba(0,210,190,0.04), transparent);
+  transform: rotate(-20deg);
+  pointer-events: none;
+  animation: lBeamSweep 3s cubic-bezier(0.4, 0, 0.6, 1) 0.5s both;
+}
+
+/* ═══════════ ENHANCEMENT: Eyebrow Gradient Border ═══════════ */
+@keyframes lBorderSpin {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+.l-eyebrow {
+  background:
+    linear-gradient(var(--l-bg1), var(--l-bg1)) padding-box,
+    linear-gradient(90deg, var(--l-teal), var(--l-amber), var(--l-teal)) border-box !important;
+  border: 1px solid transparent !important;
+  background-size: 300% !important;
+  animation: lFadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both,
+             lBorderSpin 6s linear infinite !important;
+}
 </style>"""
 
 
@@ -152,6 +270,22 @@ _LANDING_HTML = """
   <div class="l-o l-o3"></div>
   <div class="l-o l-o4"></div>
   <div class="l-o l-o5"></div>
+</div>
+
+<!-- ── PARTICLE FIELD ── -->
+<div class="l-particles">
+  <div class="l-p" style="width:3px;height:3px;top:15%;left:12%;animation:lDrift1 18s infinite;background:#00d2be;"></div>
+  <div class="l-p" style="width:2px;height:2px;top:28%;left:80%;animation:lDrift2 24s infinite 3s;background:#00d2be;"></div>
+  <div class="l-p" style="width:4px;height:4px;top:60%;left:5%;animation:lDrift3 20s infinite 1s;background:#f0a020;"></div>
+  <div class="l-p" style="width:2px;height:2px;top:75%;left:90%;animation:lDrift1 22s infinite 6s;background:#22d88a;"></div>
+  <div class="l-p" style="width:3px;height:3px;top:40%;left:95%;animation:lDrift2 19s infinite 2s;background:#00d2be;"></div>
+  <div class="l-p" style="width:2px;height:2px;top:85%;left:25%;animation:lDrift3 26s infinite 4s;background:#a78bfa;"></div>
+  <div class="l-p" style="width:3px;height:3px;top:10%;left:55%;animation:lDrift1 21s infinite 7s;background:#00f5e0;"></div>
+  <div class="l-p" style="width:2px;height:2px;top:50%;left:48%;animation:lDrift2 17s infinite 5s;background:#f0a020;"></div>
+  <div class="l-p" style="width:4px;height:4px;top:20%;left:35%;animation:lDrift3 23s infinite 9s;background:#00d2be;"></div>
+  <div class="l-p" style="width:2px;height:2px;top:70%;left:60%;animation:lDrift1 25s infinite 1s;background:#22d88a;"></div>
+  <div class="l-p" style="width:3px;height:3px;top:35%;left:22%;animation:lDrift2 20s infinite 8s;background:#a78bfa;"></div>
+  <div class="l-p" style="width:2px;height:2px;top:90%;left:70%;animation:lDrift3 18s infinite 3s;background:#00d2be;"></div>
 </div>
 
 <!-- ── GRID OVERLAY ── -->
@@ -722,6 +856,136 @@ _LOWER_SECTIONS = """
   font-size: 0.5rem; letter-spacing: 1.5px;
   color: rgba(0,210,190,0.2);
   text-align: right; line-height: 2;
+}
+
+/* ═══════════ ENHANCEMENT: Engine Card Holographic Shimmer ═══════════ */
+@keyframes lShimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.l-ecard {
+  isolation: isolate;
+}
+.l-ecard::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(0, 210, 190, 0.04) 50%,
+    rgba(0, 245, 224, 0.06) 55%,
+    transparent 65%
+  );
+  background-size: 200% 100%;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.l-ecard:hover::after {
+  opacity: 1;
+  animation: lShimmer 1.5s linear infinite;
+}
+.l-escore {
+  position: relative;
+  padding-top: 14px;
+  border-top: 1px solid rgba(0,210,190,0.06);
+  margin-top: 16px;
+}
+.l-escore::before {
+  content: '';
+  position: absolute; top: 0; left: 0; width: 40px; height: 1px;
+  background: var(--ac-c, #00d2be);
+  opacity: 0.5;
+}
+
+/* ═══════════ ENHANCEMENT: Workflow Connector + Step Glow ═══════════ */
+@keyframes lLineGrow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.l-wf-steps::before {
+  animation: lLineGrow 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.8s both !important;
+  transform-origin: left center;
+}
+.l-wf-step:hover .l-wf-num {
+  background: rgba(0,210,190,0.12) !important;
+  border-color: rgba(0,210,190,0.4) !important;
+  box-shadow: 0 0 20px rgba(0,210,190,0.25) !important;
+  transition: all 0.3s !important;
+}
+.l-wf-step:nth-child(1) { animation: lFadeUp 0.7s 1.0s both; }
+.l-wf-step:nth-child(2) { animation: lFadeUp 0.7s 1.15s both; }
+.l-wf-step:nth-child(3) { animation: lFadeUp 0.7s 1.3s both; }
+.l-wf-step:nth-child(4) { animation: lFadeUp 0.7s 1.45s both; }
+
+/* ═══════════ ENHANCEMENT: Quote Section Decorative Marks ═══════════ */
+.l-quote { position: relative; overflow: hidden; }
+.l-quote::before {
+  content: '\201C';
+  position: absolute;
+  top: 20px; left: 60px;
+  font-family: 'Syne', sans-serif;
+  font-size: 12rem; font-weight: 800;
+  line-height: 1;
+  color: rgba(0,210,190,0.04);
+  pointer-events: none;
+}
+.l-quote::after {
+  content: '\201D';
+  position: absolute;
+  bottom: 20px; right: 60px;
+  font-family: 'Syne', sans-serif;
+  font-size: 12rem; font-weight: 800;
+  line-height: 1;
+  color: rgba(0,210,190,0.04);
+  pointer-events: none;
+}
+.l-ql {
+  background: linear-gradient(90deg, rgba(228,238,236,0.6) 0%, rgba(228,238,236,0.85) 50%, rgba(228,238,236,0.6) 100%);
+  background-size: 200%;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  animation: lFlow 8s linear infinite !important;
+}
+
+/* ═══════════ ENHANCEMENT: Stack Item Hover Depth ═══════════ */
+.l-stack-item {
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+.l-stack-item::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(0,210,190,0.06), transparent);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.l-stack-item:hover::before { opacity: 1; }
+.l-stack-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,210,190,0.2);
+  transition: all 0.25s;
+}
+
+/* ═══════════ ENHANCEMENT: Footer Gradient Line + Brand Glow ═══════════ */
+.l-foot-brand {
+  transition: all 0.3s;
+}
+.l-foot-brand:hover {
+  color: rgba(0,210,190,0.6) !important;
+  text-shadow: 0 0 30px rgba(0,210,190,0.3);
+}
+.l-foot {
+  position: relative;
+}
+.l-foot::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,210,190,0.15), rgba(240,160,32,0.1), rgba(0,210,190,0.15), transparent);
 }
 </style>
 

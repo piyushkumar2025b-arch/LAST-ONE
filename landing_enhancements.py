@@ -265,6 +265,107 @@ def _inject_css():
     st.markdown(_ENHANCEMENT_CSS, unsafe_allow_html=True)
 
 
+def render_animated_counters():
+    """Enhancement: Animate stat bar numbers counting up on load."""
+    try:
+        st.markdown("""
+<style>
+@keyframes lCountUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.l-sv {
+  animation: lCountUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both !important;
+}
+.l-stat:nth-child(1) .l-sv { animation-delay: 0.1s !important; }
+.l-stat:nth-child(2) .l-sv { animation-delay: 0.2s !important; }
+.l-stat:nth-child(3) .l-sv { animation-delay: 0.3s !important; }
+.l-stat:nth-child(4) .l-sv { animation-delay: 0.4s !important; }
+.l-stat:nth-child(5) .l-sv { animation-delay: 0.5s !important; }
+.l-stat:nth-child(6) .l-sv { animation-delay: 0.6s !important; }
+
+/* Hover glow per stat */
+.l-stat:hover .l-sv {
+  text-shadow: 0 0 30px currentColor !important;
+  transition: text-shadow 0.3s !important;
+}
+/* Active teal border bottom on hover */
+.l-stat {
+  position: relative;
+  transition: background 0.2s, transform 0.2s !important;
+}
+.l-stat::after {
+  content: '';
+  position: absolute; bottom: 0; left: 20%; right: 20%; height: 2px;
+  background: currentColor;
+  opacity: 0; transform: scaleX(0);
+  transition: opacity 0.3s, transform 0.3s;
+}
+.l-stat:hover::after {
+  opacity: 0.4; transform: scaleX(1);
+}
+.l-stat:hover {
+  transform: translateY(-2px) !important;
+}
+</style>
+""", unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
+def render_system_status_strip():
+    """Enhancement: Renders a premium system status strip below feature cards."""
+    try:
+        st.markdown("""
+<div style="
+  background: rgba(4,10,18,0.9);
+  border: 1px solid rgba(0,210,190,0.08);
+  border-radius: 12px;
+  padding: 14px 24px;
+  margin: 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  font-family: 'JetBrains Mono', monospace;
+">
+  <div style="font-size:0.48rem;letter-spacing:3px;text-transform:uppercase;color:rgba(0,210,190,0.35);white-space:nowrap;">
+    ⬡ System Status
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="width:6px;height:6px;border-radius:50%;background:#22d88a;box-shadow:0 0 8px #22d88a;animation:lPulse 2s infinite;"></div>
+    <span style="font-size:0.58rem;color:rgba(34,216,138,0.8);letter-spacing:1px;">RDKit Engine</span>
+    <span style="font-size:0.48rem;color:rgba(34,216,138,0.4);">ONLINE</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="width:6px;height:6px;border-radius:50%;background:#22d88a;box-shadow:0 0 8px #22d88a;animation:lPulse 2s infinite 0.3s;"></div>
+    <span style="font-size:0.58rem;color:rgba(34,216,138,0.8);letter-spacing:1px;">ADMET Core</span>
+    <span style="font-size:0.48rem;color:rgba(34,216,138,0.4);">READY</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="width:6px;height:6px;border-radius:50%;background:#22d88a;box-shadow:0 0 8px #22d88a;animation:lPulse 2s infinite 0.6s;"></div>
+    <span style="font-size:0.58rem;color:rgba(34,216,138,0.8);letter-spacing:1px;">Aether v10000</span>
+    <span style="font-size:0.48rem;color:rgba(34,216,138,0.4);">ARMED</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="width:6px;height:6px;border-radius:50%;background:#00d2be;box-shadow:0 0 8px #00d2be;animation:lPulse 2s infinite 0.9s;"></div>
+    <span style="font-size:0.58rem;color:rgba(0,210,190,0.8);letter-spacing:1px;">Claude AI</span>
+    <span style="font-size:0.48rem;color:rgba(0,210,190,0.4);">STANDBY</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div style="width:6px;height:6px;border-radius:50%;background:#f0a020;box-shadow:0 0 8px #f0a020;animation:lPulse 2s infinite 1.2s;"></div>
+    <span style="font-size:0.58rem;color:rgba(240,160,32,0.8);letter-spacing:1px;">PubChem API</span>
+    <span style="font-size:0.48rem;color:rgba(240,160,32,0.4);">EXTERNAL</span>
+  </div>
+  <div style="margin-left:auto;font-size:0.48rem;color:rgba(0,210,190,0.2);letter-spacing:2px;white-space:nowrap;">
+    ALL SYSTEMS NOMINAL
+  </div>
+</div>
+""", unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
 def render_feature_cards():
     """Enhancement 5 — Feature Highlight Cards with hover tooltips."""
     try:
@@ -538,11 +639,14 @@ def render_api_health_summary():
 
 def render_landing_enhancements():
     """
-    Render all 10 landing page enhancements.
+    Render all landing page enhancements.
     ADDITIVE ONLY — safe to call after existing render_landing() content.
     """
     try:
         _inject_css()
+
+        # ── Animated counter stagger (stat bar enhancement)
+        render_animated_counters()
 
         # ── Section wrapper
         with st.container():
@@ -555,6 +659,9 @@ def render_landing_enhancements():
                 'margin-bottom:6px">⬡ Platform Capabilities</div>',
                 unsafe_allow_html=True)
             render_feature_cards()
+
+            # ── System Status Strip (live-look ops panel)
+            render_system_status_strip()
 
             st.markdown('<hr class="lx-divider">', unsafe_allow_html=True)
 
