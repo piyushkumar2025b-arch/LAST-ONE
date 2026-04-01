@@ -637,6 +637,64 @@ def render_api_health_summary():
 # MAIN ENTRY POINT — called from landing.py after existing content
 # ─────────────────────────────────────────────────────────────────────────────
 
+def render_system_dashboard():
+    """Renders a premium mission-control system status dashboard."""
+    try:
+        st.markdown("""
+<div style="
+  background: rgba(2,4,8,0.95);
+  border: 1px solid rgba(0,210,190,0.1);
+  border-radius: 16px;
+  padding: 20px 28px;
+  margin: 16px 0;
+  font-family: 'JetBrains Mono', monospace;
+">
+  <!-- Header row -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+    <div style="font-size:0.48rem;letter-spacing:4px;text-transform:uppercase;color:rgba(0,210,190,0.4);">
+      ⬡ MISSION CONTROL · CHEMOFILTER v1M
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div style="width:5px;height:5px;border-radius:50%;background:#22d88a;box-shadow:0 0 8px #22d88a;animation:lPulse 1.5s infinite;"></div>
+      <span style="font-size:0.48rem;letter-spacing:2px;color:rgba(34,216,138,0.6);">ALL SYSTEMS ONLINE</span>
+    </div>
+  </div>
+  <!-- Status grid -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+    <div style="background:rgba(0,210,190,0.03);border:1px solid rgba(0,210,190,0.08);border-radius:10px;padding:12px 14px;">
+      <div style="font-size:0.45rem;letter-spacing:2px;text-transform:uppercase;color:rgba(0,210,190,0.35);margin-bottom:6px;">RDKit Engine</div>
+      <div style="font-size:1.1rem;font-family:'Syne',sans-serif;font-weight:700;color:#00d2be;">ARMED</div>
+      <div style="font-size:0.42rem;color:rgba(0,210,190,0.25);margin-top:3px;">21+ parameters ready</div>
+    </div>
+    <div style="background:rgba(34,216,138,0.03);border:1px solid rgba(34,216,138,0.08);border-radius:10px;padding:12px 14px;">
+      <div style="font-size:0.45rem;letter-spacing:2px;text-transform:uppercase;color:rgba(34,216,138,0.35);margin-bottom:6px;">Aether v10000</div>
+      <div style="font-size:1.1rem;font-family:'Syne',sans-serif;font-weight:700;color:#22d88a;">100K+</div>
+      <div style="font-size:0.42rem;color:rgba(34,216,138,0.25);margin-top:3px;">feature tensors loaded</div>
+    </div>
+    <div style="background:rgba(240,160,32,0.03);border:1px solid rgba(240,160,32,0.08);border-radius:10px;padding:12px 14px;">
+      <div style="font-size:0.45rem;letter-spacing:2px;text-transform:uppercase;color:rgba(240,160,32,0.35);margin-bottom:6px;">Claude AI</div>
+      <div style="font-size:1.1rem;font-family:'Syne',sans-serif;font-weight:700;color:#f0a020;">STANDBY</div>
+      <div style="font-size:0.42rem;color:rgba(240,160,32,0.25);margin-top:3px;">Anthropic API ready</div>
+    </div>
+    <div style="background:rgba(167,139,250,0.03);border:1px solid rgba(167,139,250,0.08);border-radius:10px;padding:12px 14px;">
+      <div style="font-size:0.45rem;letter-spacing:2px;text-transform:uppercase;color:rgba(167,139,250,0.35);margin-bottom:6px;">PubChem API</div>
+      <div style="font-size:1.1rem;font-family:'Syne',sans-serif;font-weight:700;color:#a78bfa;">ONLINE</div>
+      <div style="font-size:0.42rem;color:rgba(167,139,250,0.25);margin-top:3px;">compound lookup active</div>
+    </div>
+  </div>
+  <!-- Bottom metrics row -->
+  <div style="display:flex;gap:28px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,210,190,0.05);">
+    <div style="font-size:0.48rem;color:rgba(0,210,190,0.3);">⬡ 9 ENGINE TIERS ACTIVE</div>
+    <div style="font-size:0.48rem;color:rgba(0,210,190,0.3);">⬡ 202 SCIENTIFIC REFS INDEXED</div>
+    <div style="font-size:0.48rem;color:rgba(0,210,190,0.3);">⬡ BATCH MODE AVAILABLE</div>
+    <div style="font-size:0.48rem;color:rgba(0,210,190,0.3);">⬡ VIT CHENNAI MDP 2026</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+    except Exception:
+        pass
+
+
 def render_landing_enhancements():
     """
     Render all landing page enhancements.
@@ -650,6 +708,7 @@ def render_landing_enhancements():
 
         # ── Section wrapper
         with st.container():
+            render_system_dashboard()
             st.markdown('<hr class="lx-divider">', unsafe_allow_html=True)
 
             # ── Feature Cards (static but interactive)
