@@ -15,15 +15,15 @@ def render_landing() -> bool:
     # Centered launch button via Streamlit
     col1, col2, col3 = st.columns([1.8, 1, 1.8])
     with col2:
-        launched = st.button("⬡  Launch ChemoFilter", key="_lp_launch", use_container_width=True)
+        launched = st.button("⬡  Launch ChemoFilter", key="_lp_launch", width="stretch")
 
     st.markdown(_POST_BUTTON_HTML, unsafe_allow_html=True)
 
     col4, col5, col6, col7 = st.columns([1.5, 1.2, 1.2, 1.5])
     with col5:
-        cta = st.button("Begin Discovery →", key="_lp_cta", use_container_width=True)
+        cta = st.button("Begin Discovery →", key="_lp_cta", width="stretch")
     with col6:
-        demo = st.button("🚀 Demo Mode", key="_lp_demo", use_container_width=True)
+        demo = st.button("🚀 Demo Mode", key="_lp_demo", width="stretch")
         if demo:
             st.session_state["_demo_all_drugs"] = True
 

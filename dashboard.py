@@ -124,7 +124,7 @@ def render_search_results():
                 rows = [{"Name": h["name"],
                          "Match Score": f"{h['score']:.0%}",
                          "Source": h["source"]} for h in hits]
-                st.dataframe(pd.DataFrame(rows), use_container_width=True)
+                st.dataframe(pd.DataFrame(rows), width="stretch")
 
     if st.button("✕ Close Search Results", key="close_search"):
         st.session_state["show_search_results"] = False
@@ -193,7 +193,7 @@ def render_analytics_tab():
                 for name, s in summary.items()
             ]
             if rows:
-                st.dataframe(pd.DataFrame(rows), use_container_width=True)
+                st.dataframe(pd.DataFrame(rows), width="stretch")
         else:
             st.info("No engine calls recorded yet in this session.")
     else:
@@ -232,7 +232,7 @@ def render_analytics_tab():
                 }
                 for e in reversed(log)
             ]
-            st.dataframe(pd.DataFrame(rows), use_container_width=True)
+            st.dataframe(pd.DataFrame(rows), width="stretch")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

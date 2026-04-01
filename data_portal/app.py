@@ -205,7 +205,7 @@ stored in `data/compounds.parquet` with 380+ features for instant future retriev
             {"ID": "IBUPROFEN", "MW": 206.28, "LogP": 3.97, "TPSA": 37.3, "QED": 0.672, "Grade": "B", "Key Concern": "High LogP"},
         ])
         st.markdown("**Sample Data (demo):**")
-        st.dataframe(demo, use_container_width=True, hide_index=True)
+        st.dataframe(demo, width="stretch", hide_index=True)
     else:
         if grade_filter != "All":
             df = df[df.get("grade", df.get("Grade", pd.Series())).astype(str) == grade_filter]
@@ -220,7 +220,7 @@ stored in `data/compounds.parquet` with 380+ features for instant future retriev
         page_num = st.number_input("Page", min_value=1, max_value=total_pages,
                                     value=1, step=1) - 1
         df_page = df.iloc[page_num * PAGE_SIZE : (page_num + 1) * PAGE_SIZE]
-        st.dataframe(df_page, use_container_width=True, hide_index=True, height=400)
+        st.dataframe(df_page, width="stretch", hide_index=True, height=400)
 
         # Download
         try:
@@ -488,7 +488,7 @@ elif "Stats" in page:
                     fig.update_layout(paper_bgcolor='rgba(4,10,18,0)',
                                       plot_bgcolor='rgba(6,16,30,.4)',
                                       height=280, margin=dict(t=30,b=10,l=10,r=10))
-                    st.plotly_chart(fig, use_container_width=True,
+                    st.plotly_chart(fig, width="stretch",
                                     config={"displayModeBar": False})
 
                 with col_chart2:
@@ -500,7 +500,7 @@ elif "Stats" in page:
                     fig2.update_layout(paper_bgcolor='rgba(4,10,18,0)',
                                        plot_bgcolor='rgba(6,16,30,.4)',
                                        height=280, margin=dict(t=30,b=10,l=10,r=10))
-                    st.plotly_chart(fig2, use_container_width=True,
+                    st.plotly_chart(fig2, width="stretch",
                                     config={"displayModeBar": False})
             except Exception:
                 st.info("Charts available once compounds are stored.")

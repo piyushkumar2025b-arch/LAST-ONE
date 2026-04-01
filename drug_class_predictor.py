@@ -174,7 +174,7 @@ def render_tab(res: list):
             height=340,
             showlegend=True,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     # ── Per-compound table ────────────────────────────────────────────────
     st.subheader("Per-Compound Therapeutic Class Prediction")

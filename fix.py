@@ -5,9 +5,9 @@ old = '''    st.dataframe(df_show.style
         .background_gradient(cmap="Reds",   subset=["PromiscuityRisk","SA_Score","CYP_Hits"])
         .background_gradient(cmap="Blues",  subset=["Sim"])
         .background_gradient(cmap="Greens", subset=["QED"]),
-        use_container_width=True, height=min(80+34*total,320))'''
+        width="stretch", height=min(80+34*total,320))'''
 
-new = '''    st.dataframe(df_show, use_container_width=True, height=min(80+34*total,320))'''
+new = '''    st.dataframe(df_show, width="stretch", height=min(80+34*total,320))'''
 
 if old in content:
     content = content.replace(old, new)

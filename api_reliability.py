@@ -489,7 +489,7 @@ def api_fetch_button(label: str,
     if cached:
         return cached
 
-    if st.button(label, key=btn_key, use_container_width=False):
+    if st.button(label, key=btn_key, width="content"):
         with st.spinner(f"Fetching from {api_key}…"):
             result = safe_api_call(fetch_fn, source=api_key)
             if result.get("status") != "success":

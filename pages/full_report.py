@@ -46,7 +46,7 @@ _GRADE_COLORS = {"A": "🟢", "B": "🟡", "C": "🟠", "F": "🔴"}
 if "Grade" in df.columns:
     df["Grade"] = df["Grade"].map(lambda g: f"{_GRADE_COLORS.get(g,'')} {g}")
 
-st.dataframe(df, use_container_width=True, height=600)
+st.dataframe(df, width="stretch", height=600)
 
 # ── Download buttons ──────────────────────────────────────────────────────
 st.markdown("---")

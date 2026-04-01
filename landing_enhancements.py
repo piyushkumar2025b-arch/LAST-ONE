@@ -419,7 +419,7 @@ def render_quick_molecule_preview():
             for i, (name, smi) in enumerate(SAMPLE_MOLECULES.items()):
                 with cols[i]:
                     if st.button(name, key=f"_lx_sample_{name}",
-                                 use_container_width=True):
+                                 width="stretch"):
                         st.session_state["_lx_smiles_input"] = smi
 
         # ── Enhancement 1: SMILES input ───────────────────────────────────────

@@ -86,7 +86,7 @@ with col_input:
         label_visibility="collapsed", key="viz_smiles_input")
 with col_btn:
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-    render_btn = st.button("⬡ Render", use_container_width=True)
+    render_btn = st.button("⬡ Render", width="stretch")
 
 # Sample molecules
 SAMPLES = {
@@ -99,7 +99,7 @@ SAMPLES = {
 sample_cols = st.columns(len(SAMPLES))
 for i, (name, smi) in enumerate(SAMPLES.items()):
     with sample_cols[i]:
-        if st.button(name, key=f"_viz_s_{name}", use_container_width=True):
+        if st.button(name, key=f"_viz_s_{name}", width="stretch"):
             smiles = smi
             st.query_params["smiles"] = smi
 
@@ -338,7 +338,7 @@ if active_smiles:
                             data=png_bytes,
                             file_name="molecule.png",
                             mime="image/png",
-                            use_container_width=True)
+                            width="stretch")
                 except Exception:
                     pass
             else:
@@ -351,7 +351,7 @@ if active_smiles:
             radar = _radarchart(props)
             if radar:
                 st.markdown("**Drug Profile Radar**", help="Normalized drug-likeness dimensions")
-                st.plotly_chart(radar, use_container_width=True,
+                st.plotly_chart(radar, width="stretch",
                                 config={"displayModeBar": False})
 
             # Bar chart
@@ -359,7 +359,7 @@ if active_smiles:
             if bar:
                 st.markdown("**Property vs Limits**",
                             help="Orange dotted lines = Lipinski/Veber thresholds")
-                st.plotly_chart(bar, use_container_width=True,
+                st.plotly_chart(bar, width="stretch",
                                 config={"displayModeBar": False})
 
         # ── Advanced analysis tabs ─────────────────────────────────────────────
@@ -422,7 +422,7 @@ if active_smiles:
                         margin=dict(l=0, r=0, t=0, b=0),
                         height=500,
                     )
-                    st.plotly_chart(fig3d, use_container_width=True)
+                    st.plotly_chart(fig3d, width="stretch")
                     st.caption("🔮 3D conformation generated via MMFF94 force-field optimisation")
             except Exception as e:
                 st.info(f"3D generation requires RDKit with 3D support. ({str(e)[:80]})")
@@ -457,7 +457,7 @@ if active_smiles:
                     on_bits = fp.GetNumOnBits()
                     st.markdown(f"**ECFP4 Fingerprint (512-bit)** — {on_bits} bits set "
                                 f"({on_bits/512*100:.1f}% density)")
-                    st.plotly_chart(fig_fp, use_container_width=True,
+                    st.plotly_chart(fig_fp, width="stretch",
                                     config={"displayModeBar": False})
                     st.caption("Each teal cell = active bit in the Morgan ECFP4 fingerprint")
             except Exception:
@@ -611,7 +611,7 @@ if active_smiles:
                         is_admet = "ADMET" in cat_name
                         with st.expander(cat_name, expanded=is_admet):
                             df_cat = pd.DataFrame(rows, columns=["Property", "Value"])
-                            st.dataframe(df_cat, use_container_width=True, hide_index=True)
+                            st.dataframe(df_cat, width="stretch", hide_index=True)
 
             except Exception as e:
                 st.error(f"Data error: {e}")

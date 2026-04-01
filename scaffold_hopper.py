@@ -154,7 +154,7 @@ def render_tab(res: list):
             plot_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#c8deff", size=11),
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     # ── Scaffold table ────────────────────────────────────────────────────
     st.subheader("Murcko Scaffold Inventory")

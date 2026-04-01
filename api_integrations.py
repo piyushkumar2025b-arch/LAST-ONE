@@ -252,7 +252,7 @@ def _render_chembl(smiles: str, cpd_id: str):
         import pandas as pd
         df = pd.DataFrame(d["bioactivities"])
         df.columns = ["Protein Target", "Activity Type", "Value", "Units", "Publication Year"]
-        st.dataframe(df, use_container_width=True, height=220)
+        st.dataframe(df, width="stretch", height=220)
     else:
         st.info("No experimental bioactivity data found for structurally similar compounds.")
     st.markdown(f'<a href="{d.get("chembl_url","#")}" target="_blank" style="color:#4ade80;font-size:.75rem">🔗 View on ChEMBL →</a>', unsafe_allow_html=True)
@@ -350,7 +350,7 @@ def _render_clinicaltrials(cpd_id: str):
             df = pd.DataFrame(d.get("trials", []))
             if not df.empty:
                 df.columns = ["NCT ID","Title","Phase","Status","Condition","Sponsor"]
-                st.dataframe(df, use_container_width=True, height=200)
+                st.dataframe(df, width="stretch", height=200)
 
 
 # ── GHS Safety ───────────────────────────────────────────────────────────
@@ -435,7 +435,7 @@ def _render_unichem(compound: dict):
             import pandas as pd
             df = pd.DataFrame(refs)
             df.columns = ["Database", "Compound ID", "Database URL"]
-            st.dataframe(df[["Database","Compound ID"]], use_container_width=True)
+            st.dataframe(df[["Database","Compound ID"]], width="stretch")
         else:
             st.info("No cross-database references found.")
 
@@ -498,7 +498,7 @@ def _render_disgenet(cpd_id: str):
                 import pandas as pd
                 df = pd.DataFrame(assocs)
                 df.columns = ["Disease Name", "Association Score", "Disease ID"]
-                st.dataframe(df, use_container_width=True)
+                st.dataframe(df, width="stretch")
             else:
                 st.info("No disease associations found for this gene.")
 

@@ -133,7 +133,7 @@ def render_tab(res: list):
             font=dict(color="#c8deff", size=11),
             height=360,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     # ── Per-compound breakdown ────────────────────────────────────────────
     st.subheader("Per-Compound ADMET Percentile Breakdown")

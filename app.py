@@ -3951,12 +3951,12 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
 
                     g1,g2 = st.columns(2)
                     with g1:
-                        try: st.plotly_chart(fig_gauge(res["LeadScore"],"LEAD SCORE"), use_container_width=True, key=f"glead_{i}")
+                        try: st.plotly_chart(fig_gauge(res["LeadScore"],"LEAD SCORE"), width="stretch", key=f"glead_{i}")
                         except Exception: st.metric("Lead Score", res.get("LeadScore", "—"))
                     with g2:
-                        try: st.plotly_chart(fig_gauge(res["OralBioScore"],"ORAL BIO"), use_container_width=True, key=f"goral_{i}")
+                        try: st.plotly_chart(fig_gauge(res["OralBioScore"],"ORAL BIO"), width="stretch", key=f"goral_{i}")
                         except Exception: st.metric("Oral Bio", res.get("OralBioScore", "—"))
-                    try: st.plotly_chart(fig_elem(res["_elems"], res["ID"]), use_container_width=True, key=f"elem_{i}")
+                    try: st.plotly_chart(fig_elem(res["_elems"], res["ID"]), width="stretch", key=f"elem_{i}")
                     except Exception: pass
 
                 #  COL 2: Descriptor Table + Bars
@@ -4042,7 +4042,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                         "color:rgba(245,166,35,.3);text-align:center;letter-spacing:2px;"
                         "margin-bottom:4px;text-transform:uppercase'>Drug-Likeness Radar</div>",
                         unsafe_allow_html=True)
-                    st.plotly_chart(fig_radar(res), use_container_width=True, key=f"rad_{i}")
+                    st.plotly_chart(fig_radar(res), width="stretch", key=f"rad_{i}")
 
                     # Tox pills
                     def tpill(cls,icon,label,detail):
@@ -4195,15 +4195,15 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
           <div class="sec-line"></div>
           <span class="sec-tag">Daina & Zoete, ChemMedChem 2016 · Bubble size = Lead Optimisation Score</span>
         </div>""", unsafe_allow_html=True)
-        st.plotly_chart(fig_boiled_egg(display_data), use_container_width=True)
+        st.plotly_chart(fig_boiled_egg(display_data), width="stretch")
 
         q1,q2 = st.columns(2)
         with q1:
             st.markdown('<div class="sec" style="margin-top:8px"><span class="sec-num">02b</span><span class="sec-title">Drug-Likeness Score (QED) Distribution</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
-            st.plotly_chart(fig_qed_sa(display_data), use_container_width=True)
+            st.plotly_chart(fig_qed_sa(display_data), width="stretch")
         with q2:
             st.markdown('<div class="sec" style="margin-top:8px"><span class="sec-num">03c</span><span class="sec-title">Synthetic Accessibility Score (SA) Distribution</span><div class="sec-line"></div></div>', unsafe_allow_html=True)
-            st.plotly_chart(fig_sa(display_data), use_container_width=True)
+            st.plotly_chart(fig_sa(display_data), width="stretch")
 
     #  TAB 7  ANALYSIS SUITE 
     with TABS[7]:
@@ -4230,7 +4230,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     "similarity_matrix", "Compute Similarity Matrix",
                     f"Tanimoto matrix for {len(display_data)} compounds — click to compute.")
                 if _sim_ok:
-                    st.plotly_chart(fig_similarity(display_data), use_container_width=True)
+                    st.plotly_chart(fig_similarity(display_data), width="stretch")
             with at2:
                 st.caption("Drag axes to filter  Colour = Lead Score (red  amber  green)")
                 # PERF: lazy-load parallel coordinates (heavy plotly trace)
@@ -4238,7 +4238,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     "parallel_coords", "Render Parallel Coordinates",
                     "Multi-axis parallel coordinate plot — click to render.")
                 if _par_ok:
-                    st.plotly_chart(fig_parallel(display_data), use_container_width=True)
+                    st.plotly_chart(fig_parallel(display_data), width="stretch")
             with at3:
                 st.caption("PCA of 2048-bit Morgan fingerprints  closer = more similar")
                 # PERF: lazy-load PCA (fingerprint matrix computation)
@@ -4247,11 +4247,11 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     "PCA of 2048-bit Morgan fingerprints — click to compute.")
                 if _pca_ok:
                     p=fig_pca(display_data)
-                    if p: st.plotly_chart(p, use_container_width=True)
+                    if p: st.plotly_chart(p, width="stretch")
             with at4:
                 sel=st.selectbox("Select compound",[d["ID"] for d in display_data])
                 sr=next(d for d in display_data if d["ID"]==sel)
-                st.plotly_chart(fig_approved(sr), use_container_width=True)
+                st.plotly_chart(fig_approved(sr), width="stretch")
             with st.expander(" 3D Chemical Space Radar"):
                 st.markdown('<div class="ai-panel">3D Principal Component projection of all matched compounds.</div>', unsafe_allow_html=True)
                 # PERF: lazy-load 3D PCA
@@ -4260,7 +4260,7 @@ padding:18px 24px;margin:18px 0 28px;display:flex;align-items:center;gap:10px;fl
                     "3D chemical space projection — click to compute.")
                 if _pca3d_ok:
                     pca3d = fig_pca(display_data, is_3d=True)
-                    if pca3d: st.plotly_chart(pca3d, use_container_width=True, key="pca3d_tab")
+                    if pca3d: st.plotly_chart(pca3d, width="stretch", key="pca3d_tab")
         else:
             st.info("Add 2 or more compounds to unlock comparison charts.")
 
@@ -5911,44 +5911,44 @@ with _dlc2:
         elif mode_num == 2:
             result = atm.solvent_effect_simulation(ct_mol)
             df_solv = pd.DataFrame(result)
-            st.dataframe(df_solv, use_container_width=True, hide_index=True)
+            st.dataframe(df_solv, width="stretch", hide_index=True)
             fig = sp.plot_solvent_radar(result)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif mode_num == 3:
             result = atm.catalyst_testing(ct_mol)
             df_cat = pd.DataFrame(result)
-            st.dataframe(df_cat, use_container_width=True, hide_index=True)
+            st.dataframe(df_cat, width="stretch", hide_index=True)
             fig = sp.plot_yield_vs_catalyst(result)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif mode_num == 4:
             result = atm.ph_variation_testing(ct_mol)
             df_ph = pd.DataFrame(result)
-            st.dataframe(df_ph, use_container_width=True, hide_index=True)
+            st.dataframe(df_ph, width="stretch", hide_index=True)
             fig = sp.plot_ph_stability(result)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif mode_num == 5:
             result = atm.reaction_rate_simulation(ct_mol)
             st.markdown(f'<div class="rrow"><span class="rk">Activation Energy</span><span class="rv">{result["Activation_Energy_kJ"]} kJ/mol</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="rrow"><span class="rk">Pre-Exponential</span><span class="rv">{result["Pre_Exponential"]}</span></div>', unsafe_allow_html=True)
             df_kin = pd.DataFrame(result["Data"])
-            st.dataframe(df_kin, use_container_width=True, hide_index=True)
+            st.dataframe(df_kin, width="stretch", hide_index=True)
             fig = sp.plot_kinetics(result)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif mode_num == 6:
             result = atm.equilibrium_testing(ct_mol)
             for k, v in result.items():
                 st.markdown(f'<div class="rrow"><span class="rk">{k}</span><span class="rv">{v}</span></div>', unsafe_allow_html=True)
             fig = sp.plot_equilibrium(result)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif mode_num == 7:
             result = atm.multi_reagent_compatibility(ct_mol)
             df_compat = pd.DataFrame(result)
-            st.dataframe(df_compat, use_container_width=True, hide_index=True)
+            st.dataframe(df_compat, width="stretch", hide_index=True)
 
         elif mode_num == 8:
             result = atm.thermodynamic_stability(ct_mol)
@@ -5960,19 +5960,19 @@ with _dlc2:
             result = atm.sensitivity_analysis(ct_mol, s_param)
             st.markdown(f'<div class="rrow"><span class="rk">Sensitivity</span><span class="rv">{result["Sensitivity_Coefficient"]} ({result["Classification"]})</span></div>', unsafe_allow_html=True)
             df_sens = pd.DataFrame(result["Data"])
-            st.dataframe(df_sens, use_container_width=True, hide_index=True)
+            st.dataframe(df_sens, width="stretch", hide_index=True)
             fig = sp.plot_sensitivity_tornado(atm.error_sensitivity_testing(ct_mol))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif mode_num == 10:
             result = atm.side_reaction_exploration(ct_mol)
             df_side = pd.DataFrame(result)
-            st.dataframe(df_side, use_container_width=True, hide_index=True)
+            st.dataframe(df_side, width="stretch", hide_index=True)
 
         elif mode_num == 11:
             result = atm.degradation_testing(ct_mol)
             df_deg = pd.DataFrame(result)
-            st.dataframe(df_deg, use_container_width=True, hide_index=True)
+            st.dataframe(df_deg, width="stretch", hide_index=True)
 
         elif mode_num == 12:
             result = atm.environmental_condition_testing(ct_mol)
@@ -5983,7 +5983,7 @@ with _dlc2:
             result = atm.concentration_variation(ct_mol)
             st.markdown(f'<div class="rrow"><span class="rk">Optimal Concentration</span><span class="rv">{result["Optimal_Concentration_M"]} M</span></div>', unsafe_allow_html=True)
             df_conc = pd.DataFrame(result["Data"])
-            st.dataframe(df_conc, use_container_width=True, hide_index=True)
+            st.dataframe(df_conc, width="stretch", hide_index=True)
 
         elif mode_num == 14:
             n_runs = st.slider("Number of Runs", 5, 50, 10, key="ct_nruns")
@@ -5991,15 +5991,15 @@ with _dlc2:
             st.markdown(f'<div class="rrow"><span class="rk">Mean Yield</span><span class="rv">{result["Mean_Yield"]}%</span></div>', unsafe_allow_html=True)
             st.markdown(f'<div class="rrow"><span class="rk">CV</span><span class="rv">{result["CV_Pct"]}% ({result["Reproducibility"]})</span></div>', unsafe_allow_html=True)
             fig = sp.plot_repeatability(result)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif mode_num == 15:
             result = atm.error_sensitivity_testing(ct_mol)
             st.markdown(f'<div class="rrow"><span class="rk">Overall Robustness</span><span class="rv">{result["Overall_Robustness"]}</span></div>', unsafe_allow_html=True)
             df_err = pd.DataFrame(result["Parameters"])
-            st.dataframe(df_err, use_container_width=True, hide_index=True)
+            st.dataframe(df_err, width="stretch", hide_index=True)
             fig = sp.plot_sensitivity_tornado(result)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     # ══════════════════════════════════════════════════════════════════════════
     #  TAB 28 — MOLECULAR ANALYSIS (10 Modes)
@@ -6038,9 +6038,9 @@ with _dlc2:
             if result["Weakest_Bond"]:
                 st.markdown(f'<div class="rrow"><span class="rk">Weakest Bond</span><span class="rv" style="color:#f87171">{result["Weakest_Bond"]["Bond"]} ({result["Weakest_Bond"]["BDE_kJ_mol"]} kJ/mol)</span></div>', unsafe_allow_html=True)
             df_bonds = pd.DataFrame(result["All_Bonds"])
-            st.dataframe(df_bonds[["Bond", "Type", "BDE_kJ_mol", "Strength"]], use_container_width=True, hide_index=True)
+            st.dataframe(df_bonds[["Bond", "Type", "BDE_kJ_mol", "Strength"]], width="stretch", hide_index=True)
             fig = sp.plot_bond_strength_distribution(result)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif ma_num == 17:
             result = mam.molecular_geometry_analyzer(ma_mol)
@@ -6051,7 +6051,7 @@ with _dlc2:
             result = mam.steric_hindrance_detection(ma_mol)
             st.markdown(f'<div class="rrow"><span class="rk">Overall</span><span class="rv">{result["Overall"]}</span></div>', unsafe_allow_html=True)
             df_ster = pd.DataFrame(result["Details"])
-            st.dataframe(df_ster, use_container_width=True, hide_index=True)
+            st.dataframe(df_ster, width="stretch", hide_index=True)
 
         elif ma_num == 19:
             result = mam.electron_density_analysis(ma_mol)
@@ -6064,20 +6064,20 @@ with _dlc2:
                     st.markdown(f'<div class="rrow"><span class="rk">Most Nucleophilic</span><span class="rv" style="color:#38bdf8">{result["Most_Nucleophilic"]["Atom"]} (idx {result["Most_Nucleophilic"]["Idx"]}, q={result["Most_Nucleophilic"]["Charge"]})</span></div>', unsafe_allow_html=True)
                 charge_data = mam.charge_distribution_data(ma_mol)
                 fig = sp.plot_charge_scatter(charge_data)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
         elif ma_num == 20:
             charge_data = mam.charge_distribution_data(ma_mol)
             fig = sp.plot_charge_scatter(charge_data)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
             if charge_data.get("charge_histogram"):
                 df_ch = pd.DataFrame(charge_data["charge_histogram"])
-                st.dataframe(df_ch, use_container_width=True, hide_index=True)
+                st.dataframe(df_ch, width="stretch", hide_index=True)
 
         elif ma_num == 21:
             result = mam.functional_group_reactivity(ma_mol)
             df_fg = pd.DataFrame(result)
-            st.dataframe(df_fg, use_container_width=True, hide_index=True)
+            st.dataframe(df_fg, width="stretch", hide_index=True)
 
         elif ma_num == 22:
             result = mam.hydrogen_bond_detection(ma_mol)
@@ -6107,7 +6107,7 @@ with _dlc2:
                 st.markdown(f'<div class="rrow"><span class="rk">Generated</span><span class="rv">{result["Total_Generated"]} conformers</span></div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="rrow"><span class="rk">Energy Range</span><span class="rv">{result["Energy_Range"]} kcal/mol</span></div>', unsafe_allow_html=True)
                 df_conf = pd.DataFrame(result["Conformers"])
-                st.dataframe(df_conf, use_container_width=True, hide_index=True)
+                st.dataframe(df_conf, width="stretch", hide_index=True)
 
     # ══════════════════════════════════════════════════════════════════════════
     #  TAB 29 — SCIENTIFIC PLOTS (15 Chart Types)
@@ -6141,39 +6141,39 @@ with _dlc2:
 
         if sp_type == "Reaction Energy Profile":
             fig = sp.plot_reaction_energy_profile(sp_smiles)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif sp_type == "Rate vs Temperature (Arrhenius)":
             fig = sp.plot_rate_vs_temperature(sp_smiles)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif sp_type == "Concentration vs Time":
             fig = sp.plot_concentration_vs_time(sp_smiles)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif sp_type == "Compound Property Radar":
             radar = sp_res["_ext"]["Radar_Data"]
             fig = sp.plot_compound_radar(radar, sp_res["ID"])
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif sp_type == "Compound Heatmap (All)":
             fig = sp.plot_compound_heatmap(display_data, ["MW", "LogP", "tPSA", "QED", "LeadScore", "SA_Score"])
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif sp_type == "Multi-Compound Radar":
             fig = sp.plot_multi_radar(display_data)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif sp_type == "Parameter Sweep":
             sweep_param = st.selectbox("Sweep Parameter", ["temperature", "concentration", "pH"], key="sp_sweep_p")
             sweep_data = sp.parameter_sweep_data(sp_smiles, sweep_param)
             fig = sp.plot_parameter_sweep(sweep_data)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         elif sp_type == "Equilibrium Diagram":
             eq_data = atm.equilibrium_testing(sp_mol)
             fig = sp.plot_equilibrium(eq_data)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
     # ══════════════════════════════════════════════════════════════════════════
     #  TAB 30 — DRUG DISCOVERY EXTENDED
@@ -6210,7 +6210,7 @@ with _dlc2:
                 "Tox Risk": ext.get("Toxicity_Risk"), "Mutagen": ext.get("Mutagenicity_Risk"),
             })
         df_ext = pd.DataFrame(ext_cols)
-        st.dataframe(df_ext, use_container_width=True, hide_index=True, height=350)
+        st.dataframe(df_ext, width="stretch", hide_index=True, height=350)
         st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Structural + Lead Optimization Table ──
@@ -6233,7 +6233,7 @@ with _dlc2:
                 "OptPriority": ext.get("Optimization_Priority"),
             })
         df_struct = pd.DataFrame(struct_cols)
-        st.dataframe(df_struct, use_container_width=True, hide_index=True, height=300)
+        st.dataframe(df_struct, width="stretch", hide_index=True, height=300)
         st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Deep Analysis Panel ──
@@ -6262,7 +6262,7 @@ with _dlc2:
         # Radar Chart
         radar = dd_ext["Radar_Data"]
         fig = sp.plot_compound_radar(radar, dd_res["ID"])
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         # Deep Analysis Sections
         dd1, dd2 = st.columns(2)
@@ -6295,7 +6295,7 @@ with _dlc2:
             rank_metric = st.selectbox("Rank by", ["LeadScore", "QED", "MW", "SA_Score", "OralBioScore"], key="dd_rank")
             rankings = dap.get_compound_ranking(display_data, rank_metric)
             df_rank = pd.DataFrame(rankings)
-            st.dataframe(df_rank, use_container_width=True, hide_index=True)
+            st.dataframe(df_rank, width="stretch", hide_index=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
         # ── Downloadable Report ──
@@ -6371,10 +6371,10 @@ with _dlc2:
             sc1, sc2 = st.columns(2)
             with sc1:
                 st.write("**Active Weights**")
-                st.json(pkg["weights"])
+                st.json(pkg.get("weights", {}))
             with sc2:
                 st.write("**Raw Component Scores (Normalized 0-1)**")
-                st.json(pkg["components"])
+                st.json(pkg.get("components", {}))
         else:
             st.info("Run analysis to see detailed ChemoScore breakdown.")
 
@@ -6399,7 +6399,7 @@ with _dlc2:
             # Top Leads Table
             st.markdown("### 🔝 Top Lead Candidates")
             leads_df = pd.DataFrame(stats["leads"])
-            st.dataframe(leads_df, use_container_width=True, hide_index=True)
+            st.dataframe(leads_df, width="stretch", hide_index=True)
 
             # Property Distributions
             st.markdown("### 📏 Property Distributions")
@@ -6407,27 +6407,27 @@ with _dlc2:
             pcol1, pcol2 = st.columns(2)
             with pcol1:
                 fig_mw = cuc.plot_chemo_property_distribution(df_display, "MW", "Molecular Weight Distribution")
-                if fig_mw: st.plotly_chart(fig_mw, use_container_width=True)
+                if fig_mw: st.plotly_chart(fig_mw, width="stretch")
                 
                 fig_qed = cuc.plot_chemo_property_distribution(df_display, "QED", "QED Score Distribution")
-                if fig_qed: st.plotly_chart(fig_qed, use_container_width=True)
+                if fig_qed: st.plotly_chart(fig_qed, width="stretch")
             
             with pcol2:
                 fig_lp = cuc.plot_chemo_property_distribution(df_display, "LogP", "LogP Distribution")
-                if fig_lp: st.plotly_chart(fig_lp, use_container_width=True)
+                if fig_lp: st.plotly_chart(fig_lp, width="stretch")
                 
                 fig_sa = cuc.plot_chemo_property_distribution(df_display, "SA_Score", "Synthetic Accessibility Distribution")
-                if fig_sa: st.plotly_chart(fig_sa, use_container_width=True)
+                if fig_sa: st.plotly_chart(fig_sa, width="stretch")
 
             # Scatter Plot
             st.markdown("### ⛓️ Property Correlations")
             sc1, sc2 = st.columns(2)
             with sc1:
                 fig_scat1 = cuc.plot_chemo_scatter(df_display, "MW", "LogP")
-                if fig_scat1: st.plotly_chart(fig_scat1, use_container_width=True)
+                if fig_scat1: st.plotly_chart(fig_scat1, width="stretch")
             with sc2:
                 fig_scat2 = cuc.plot_chemo_scatter(df_display, "QED", "SA_Score")
-                if fig_scat2: st.plotly_chart(fig_scat2, use_container_width=True)
+                if fig_scat2: st.plotly_chart(fig_scat2, width="stretch")
             pdf = pd.DataFrame(stats["property_ranges"]).T
             st.table(pdf)
             

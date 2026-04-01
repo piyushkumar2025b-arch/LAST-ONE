@@ -112,7 +112,7 @@ def render_chemo_score_card(pkg):
         height=300,
         margin=dict(l=40,r=40,t=60,b=40)
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 def render_batch_intelligence(intel):
     """Renders the comprehensive dataset intelligence dashboard."""
@@ -145,7 +145,7 @@ def render_batch_intelligence(intel):
             fig = px.pie(names=list(grades.keys()), values=list(grades.values()), 
                          template="plotly_dark", hole=0.4, color_discrete_sequence=px.colors.sequential.YlOrBr)
             fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             st.info("No grade distribution data.")
             
@@ -153,7 +153,7 @@ def render_batch_intelligence(intel):
         st.markdown("**Top Molecular Scaffolds (Murcko)**")
         scafs = intel.get("top_scaffolds", [])
         if scafs:
-            st.dataframe(pd.DataFrame(scafs), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(scafs), width="stretch", hide_index=True)
         else:
             st.info("No scaffolds detected.")
             
@@ -165,7 +165,7 @@ def render_batch_intelligence(intel):
                      color_continuous_scale="YlOrBr", template="plotly_dark")
         fig.update_layout(height=500, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                           font_color='rgba(200,222,255,0.4)', margin=dict(l=0,r=0,t=0,b=0))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 def plot_chemo_property_distribution(df, prop, title):
     if df.empty or prop not in df: return None

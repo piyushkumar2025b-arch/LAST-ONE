@@ -127,7 +127,7 @@ def render_tab(res: list):
     if _PLT_OK:
         fig = _radar_fig(selected)
         if fig:
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
     else:
         st.info("Plotly not available — radar chart unavailable.")
 
