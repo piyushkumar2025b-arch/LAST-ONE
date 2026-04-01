@@ -34,8 +34,8 @@ except ImportError:
 # URL BUILDERS
 # ─────────────────────────────────────────────────────────────────────────────
 
-_VIZ_BASE    = "http://localhost:8501/visualization"
-_PORTAL_BASE = "http://localhost:8501/data_portal"
+_VIZ_BASE    = "/visualization"
+_PORTAL_BASE = "/data_portal"
 
 def get_visualization_url(smiles: str, base: str = _VIZ_BASE) -> str:
     """Build deep-link URL to visualization app for a given SMILES."""

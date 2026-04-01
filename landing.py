@@ -66,7 +66,7 @@ _LANDING_CSS = """<style>
 #MainMenu, footer,
 [data-testid="stToolbar"],
 .stDeployButton { visibility: hidden !important; }
-section[data-testid="stSidebar"] { display: none !important; }
+section[data-testid="stSidebar"] { display: none !important; visibility: hidden !important; pointer-events: none !important; }
 
 html, body,
 [data-testid="stAppViewContainer"],

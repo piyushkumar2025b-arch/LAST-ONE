@@ -189,6 +189,9 @@ html, body,
 
 /* ════════════ SIDEBAR — Command Center ════════════ */
 section[data-testid="stSidebar"] {
+  display: flex !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
   background: var(--n-bg1) !important;
   border-right: 1px solid var(--n-bdr) !important;
   backdrop-filter: blur(20px) !important;

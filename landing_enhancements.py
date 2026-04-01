@@ -39,7 +39,15 @@ _ENHANCEMENT_CSS = """
 .lx-container {
   font-family: 'Inter', sans-serif;
   color: var(--l-tx, #e4eeec);
-  position: relative; z-index: 10;
+  position: relative;
+  z-index: 1 !important;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+/* Prevent the expander from overlapping the sidebar toggle */
+.streamlit-expanderHeader {
+  z-index: 1 !important;
 }
 
 /* ── Sample selector chips ── */
@@ -305,12 +313,13 @@ def render_quick_molecule_preview():
             '<div style="font-size:0.7rem;color:rgba(180,220,215,0.5);margin-bottom:6px">'
             'Try a sample compound:</div>', unsafe_allow_html=True)
 
-        cols = st.columns(len(SAMPLE_MOLECULES))
-        for i, (name, smi) in enumerate(SAMPLE_MOLECULES.items()):
-            with cols[i]:
-                if st.button(name, key=f"_lx_sample_{name}",
-                             use_container_width=True):
-                    st.session_state["_lx_smiles_input"] = smi
+        with st.container():
+            cols = st.columns(min(len(SAMPLE_MOLECULES), 5), gap="small")
+            for i, (name, smi) in enumerate(SAMPLE_MOLECULES.items()):
+                with cols[i]:
+                    if st.button(name, key=f"_lx_sample_{name}",
+                                 use_container_width=True):
+                        st.session_state["_lx_smiles_input"] = smi
 
         # ── Enhancement 1: SMILES input ───────────────────────────────────────
         smiles_val = st.session_state.get("_lx_smiles_input", "")
