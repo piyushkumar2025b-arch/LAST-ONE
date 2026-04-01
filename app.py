@@ -336,7 +336,7 @@ def get_selected_cpd(data, sel_id):
 # 
 #  CRYSTALLINE OMNIPOTENCE — ANALYTIC HUB
 # 
-st.markdown("""
+st.markdown("""<style>
 /* ── RESEARCH GRADE UI ENHANCEMENT ── */
 [data-testid="block-container"] {
   padding: 3rem 4rem !important;
@@ -353,7 +353,7 @@ h1, h2, h3 {
 }
 
 /* Enhanced Cards (Stage 3: Depth) */
-[data-testid="stMetric"], .stMarkdown div[data-testid="stVerticalBlock"] > div {
+[data-testid="stMetric"] {
   background: rgba(255, 255, 255, 0.03) !important;
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
   border-radius: 12px !important;
@@ -370,6 +370,8 @@ h1, h2, h3 {
 
 /* Premium Sidebar (Stage 2: Feedback) */
 [data-testid="stSidebar"] {
+  display: flex !important;
+  visibility: visible !important;
   background: #040810 !important;
   border-right: 1px solid rgba(0, 210, 190, 0.1) !important;
 }
@@ -390,7 +392,7 @@ h1, h2, h3 {
   text-transform: uppercase !important;
   letter-spacing: 1px !important;
 }
-""", unsafe_allow_html=True)
+</style>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════
 #  FLOATING PANELS: Scientific Calculator + Editor + About/Glossary

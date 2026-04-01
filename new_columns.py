@@ -239,9 +239,9 @@ def render_new_columns(display_data: list[dict],
                 viz_url    = get_visualization_url(smiles, viz_base) if smiles else "#"
                 portal_url = get_portal_url(smiles, portal_base) if smiles else "#"
 
-                viz_link = (f'<a href="{viz_url}" target="_blank" class="nc-link nc-link-v">'
+                viz_link = (f'<a href="{viz_url}" class="nc-link nc-link-v">'
                             f'🔬 Visualize</a>') if smiles else "—"
-                portal_link = (f'<a href="{portal_url}" target="_blank" class="nc-link nc-link-p">'
+                portal_link = (f'<a href="{portal_url}" class="nc-link nc-link-p">'
                                f'📊 Portal</a>') if smiles else "—"
 
                 rows_html += (
@@ -336,12 +336,12 @@ def render_sidebar_service_links():
     text-transform:uppercase;color:rgba(0,210,190,.4);margin-bottom:8px">
     ⬡ External Services
   </div>
-  <a href="/visualization" target="_blank"
+  <a href="/visualization"
      style="display:block;font-size:.68rem;color:#00d2be;text-decoration:none;
      padding:4px 0;border-bottom:1px solid rgba(0,210,190,.07)">
     🔬 Visualization App →
   </a>
-  <a href="/data_portal" target="_blank"
+  <a href="/data_portal"
      style="display:block;font-size:.68rem;color:#a78bfa;text-decoration:none;
      padding:4px 0">
     📊 Data Portal →
